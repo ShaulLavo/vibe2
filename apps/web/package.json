@@ -23,7 +23,9 @@
   },
   "dependencies": {
     "@elysiajs/eden": "^1.4.5",
+    "@tailwindcss/vite": "^4.1.17",
     "solid-js": "^1.9.5",
+    "tailwindcss": "^4.1.17",
     "zod": "^4.1.13"
   }
 }
