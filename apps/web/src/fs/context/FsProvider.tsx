@@ -5,7 +5,8 @@ import { buildTree, fileHandleCache, primeFsCache } from '../runtime/fsRuntime'
 import {
 	cancelOtherStreams,
 	streamFileText,
-	resetStreamingState
+	resetStreamingState,
+	safeReadFileText
 } from '../runtime/streaming'
 import { collectFileHandles } from '../runtime/fileHandles'
 import { findNode } from '../runtime/tree'
@@ -119,15 +120,18 @@ export function FsProvider(props: { children: JSX.Element }) {
 			setError(undefined)
 			setSelectedFileContent('')
 
-			const text = await streamFileText(
+			// const text = await streamFileText(
+			// 	state.activeSource ?? DEFAULT_SOURCE,
+			// 	path,
+			// 	text => {
+			// 		if (requestId !== selectRequestId) return
+			// 		setSelectedFileContent(text)
+			// 	}
+			// )
+			const { text } = await safeReadFileText(
 				state.activeSource ?? DEFAULT_SOURCE,
-				path,
-				text => {
-					if (requestId !== selectRequestId) return
-					setSelectedFileContent(text)
-				}
+				path
 			)
-
 			if (requestId !== selectRequestId) return
 			setSelectedFileContent(text)
 		} catch (error) {

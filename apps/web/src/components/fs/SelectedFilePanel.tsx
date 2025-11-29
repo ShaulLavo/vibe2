@@ -20,7 +20,8 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => (
 			}
 		>
 			<pre class="mt-2 flex-1 font-mono overflow-auto whitespace-pre-wrap text-sm">
-				{props.content()}
+				{/* Preview temporarily disabled for performance testing */}
+				Preview disabled while testing large file performance.
 			</pre>
 		</Show>
 	</div>

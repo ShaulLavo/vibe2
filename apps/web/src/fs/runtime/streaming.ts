@@ -177,7 +177,7 @@ export async function createFileTextStream(
 
 	let position = 0
 	let closed = false
-	const decoder = new TextDecoder()
+	const sequentialDecoder = new TextDecoder()
 
 	const ensureOpen = () => {
 		if (closed) {
@@ -202,6 +202,7 @@ export async function createFileTextStream(
 			return { done: true, offset, bytesRead }
 		}
 
+		const decoder = new TextDecoder()
 		const chunk = decoder.decode(bytes, { stream: false })
 
 		return {
@@ -213,16 +214,41 @@ export async function createFileTextStream(
 	}
 
 	const readNext = async (): Promise<FileTextChunk> => {
-		const result = await readAt(position)
-		if (!result.done) {
-			position += result.bytesRead
+		ensureOpen()
+
+		if (position >= fileSize) {
+			return { done: true, offset: position, bytesRead: 0 }
 		}
-		return result
+
+		const offset = position
+		const remaining = fileSize - position
+		const toRead = Math.min(chunkSize, remaining)
+		const buffer = await reader.read(toRead, { at: offset })
+		const bytes = new Uint8Array(buffer)
+		const bytesRead = bytes.byteLength
+
+		if (bytesRead === 0) {
+			return { done: true, offset, bytesRead }
+		}
+
+		const chunk = sequentialDecoder.decode(bytes, {
+			stream: offset + bytesRead < fileSize
+		})
+
+		position += bytesRead
+
+		return {
+			done: false,
+			chunk,
+			offset,
+			bytesRead
+		}
 	}
 
 	const close = async () => {
 		if (closed) return
 		closed = true
+		sequentialDecoder.decode()
 		await reader.close().catch(() => undefined)
 	}
 

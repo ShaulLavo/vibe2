@@ -1,9 +1,10 @@
+/* eslint-disable solid/reactivity */
+import type { FsDirTreeNode } from '@repo/fs'
 import { makePersisted } from '@solid-primitives/storage'
 import localforage from 'localforage'
-import { createSignal, mergeProps, type Setter } from 'solid-js'
-import { createStore, type SetStoreFunction, unwrap } from 'solid-js/store'
+import { createSignal } from 'solid-js'
+import { createStore, unwrap } from 'solid-js/store'
 import { DEFAULT_SOURCE } from '../config/constants'
-import type { FsDirTreeNode } from '@repo/fs'
 import type { FsState } from '../types'
 
 export const createFsState = () => {
