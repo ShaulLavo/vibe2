@@ -19,11 +19,6 @@ export const Fs = () => {
 		return node.kind === 'dir' ? node.path : (node.parentPath ?? '')
 	})
 
-	const activeFileContent = createMemo(() => {
-		if (!state.lastKnownFileNode) return ''
-		return state.selectedFileContent
-	})
-
 	const sourceButtonClass = (source: FsSource) =>
 		[
 			'rounded border px-2 py-1 text-[11px] font-medium transition',
@@ -83,9 +78,8 @@ export const Fs = () => {
 				</div>
 				<div class="flex-1 min-h-0 overflow-auto bg-zinc-950/30 px-3 py-2">
 					<SelectedFilePanel
-						isFileSelected={() => state.selectedNode?.kind === 'file'}
-						content={activeFileContent}
-						currentPath={state.selectedPath!}
+						isFileSelected={() => state.lastKnownFileNode?.kind === 'file'}
+						currentPath={state.lastKnownFilePath}
 					/>
 				</div>
 			</div>

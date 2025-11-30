@@ -72,7 +72,6 @@ export const Input = (props: InputProps) => {
 		<textarea
 			ref={el => {
 				textareaRef = el
-				textareaRef.value = local.content
 				updateTypography()
 			}}
 			onInput={handleInput}

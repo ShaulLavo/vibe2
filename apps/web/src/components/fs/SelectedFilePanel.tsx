@@ -18,8 +18,7 @@ const DEFAULT_FONT_FAMILY = FONT_OPTIONS[0]?.value ?? 'monospace'
 
 type SelectedFilePanelProps = {
 	isFileSelected: Accessor<boolean>
-	content: Accessor<string>
-	currentPath: string
+	currentPath?: string
 }
 
 export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
@@ -49,7 +48,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		if (!props.isFileSelected()) return []
 		const stats = state.selectedFileStats
 		if (!stats?.lineInfo?.length) return []
-		const content = props.content()
+		const content = stats.text
 
 		return stats.lineInfo.map(info => {
 			const sliceStart = info.start
@@ -59,14 +58,19 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 
 			return { info, text }
 		})
-	}, [])
-
+	})
 	const hasLineEntries = () => lineEntries().length > 0
+
+	const currentFileLabel = createMemo(() => {
+		const path = props.currentPath
+		if (!path) return 'No file selected'
+		return path.split('/').pop() || 'No file selected'
+	})
 
 	return (
 		<div class="flex h-full flex-col font-mono">
 			<p class="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-				{props.currentPath.split('/').pop() || 'No file selected'}
+				{currentFileLabel()}
 			</p>
 
 			<div class="mt-3 flex flex-wrap items-end gap-4 rounded border border-zinc-800/70 bg-zinc-900/30 p-3 text-[11px] uppercase tracking-[0.08em] text-zinc-400">
@@ -135,7 +139,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						}}
 					>
 						<div class="divide-y divide-zinc-800/60">
-							<For each={lineEntries()}>
+							<For each={lineEntries().slice(0, 1000)}>
 								{entry => (
 									<div class="flex items-start gap-4 px-3 py-1 text-zinc-100">
 										<span class="w-10 shrink-0 text-right text-[11px] font-semibold tracking-[0.08em] text-zinc-500 tabular-nums">

@@ -40,14 +40,13 @@ export const createFsState = () => {
 			name: 'fs-active-source'
 		}
 	)
-	// TODO persist selectedFileContent but make it performant (non blocking?)
-	const [selectedFileContent, setSelectedFileContent] = createSignal<string>('')
 	const [selectedFileSize, setSelectedFileSize] = createSignal<
 		number | undefined
 	>(undefined)
+	const [selectedFileContent, setSelectedFileContent] = createSignal('')
 	const [error, setError] = createSignal<string | undefined>(undefined)
 	const [loading, setLoading] = createSignal(false)
-	const [fileStats, setParseResults] = createStore<
+	const [fileStats, setFileStats] = createStore<
 		Record<string, ParseResult | undefined>
 	>({})
 	const [pieceTables, setPieceTables] = createStore<
@@ -66,13 +65,13 @@ export const createFsState = () => {
 	const lastKnownFilePath = () => lastKnownFileNode()?.path
 	const hydration = Promise.allSettled([isTreeReady]).then(() => undefined)
 
-	const setFileStats = (path: string, result?: ParseResult) => {
+	const updateFileStats = (path: string, result?: ParseResult) => {
 		if (!path) return
-		setParseResults(path, result)
+		setFileStats(path, result)
 	}
 
 	const clearParseResults = () => {
-		setParseResults({})
+		setFileStats({})
 	}
 
 	const setPieceTable = (path: string, snapshot?: PieceTableSnapshot) => {
@@ -96,6 +95,10 @@ export const createFsState = () => {
 			return activeSource()
 		},
 		get selectedFileContent() {
+			const path = lastKnownFilePath()
+			if (path) {
+				return fileStats[path]?.text ?? selectedFileContent()
+			}
 			return selectedFileContent()
 		},
 		get selectedFileSize() {
@@ -108,11 +111,11 @@ export const createFsState = () => {
 			return loading()
 		},
 		get selectedFileStats() {
-			const path = selectedPath()
+			const path = lastKnownFilePath()
 			return path ? fileStats[path] : undefined
 		},
 		get selectedFilePieceTable() {
-			const path = selectedPath()
+			const path = lastKnownFilePath()
 			return path ? pieceTables[path] : undefined
 		},
 		get selectedNode() {
@@ -133,11 +136,11 @@ export const createFsState = () => {
 		setExpanded,
 		setSelectedPath,
 		setActiveSource,
-		setSelectedFileContent,
 		setSelectedFileSize,
+		setSelectedFileContent,
 		setError,
 		setLoading,
-		setFileStats,
+		setFileStats: updateFileStats,
 		clearParseResults,
 		setPieceTable,
 		clearPieceTables

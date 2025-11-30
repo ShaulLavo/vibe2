@@ -93,6 +93,7 @@ type LanguageId =
 	| 'cmake'
 	| 'gitignore'
 	| 'plaintext'
+	| 'unknown'
 
 type LanguageDetectionSource =
 	| 'hint'
@@ -253,6 +254,11 @@ const LANGUAGE_RULES: Record<LanguageId, LanguageRules> = {
 		angleBrackets: false,
 		strings: DEFAULT_STRING_RULES,
 		displayName: 'Plain Text'
+	},
+	unknown: {
+		angleBrackets: false,
+		strings: DEFAULT_STRING_RULES,
+		displayName: 'Unknown'
 	}
 }
 

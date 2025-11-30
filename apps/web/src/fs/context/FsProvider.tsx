@@ -1,6 +1,5 @@
 import { batch, type JSX, onMount } from 'solid-js'
 import { webLogger } from '~/logger'
-import { formatBytes } from '~/utils/bytes'
 import { parseFileBuffer } from '~/utils/parse'
 import { createPieceTableSnapshot } from '~/utils/pieceTable'
 import { analyzeFileBytes } from '~/utils/textHeuristics'
@@ -17,6 +16,9 @@ import { findNode } from '../runtime/tree'
 import { createFsState } from '../state/fsState'
 import type { FsSource } from '../types'
 import { FsContext, type FsContextValue } from './FsContext'
+import { fa } from 'zod/v4/locales'
+
+type TimingEntry = { label: string; duration: number }
 
 export function FsProvider(props: { children: JSX.Element }) {
 	const {
@@ -26,8 +28,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setExpanded,
 		setSelectedPath,
 		setActiveSource,
-		setSelectedFileContent,
 		setSelectedFileSize,
+		setSelectedFileContent,
 		setError,
 		setLoading,
 		setFileStats,
@@ -93,13 +95,75 @@ export function FsProvider(props: { children: JSX.Element }) {
 
 	const selectPath = async (path: string) => {
 		const start = performance.now()
+		const timings: TimingEntry[] = []
+		const recordTiming = (label: string, duration: number) => {
+			timings.push({ label, duration })
+		}
+		const formatBreakdownTable = () => {
+			if (timings.length === 0) return ''
+			const labelHeader = 'step'
+			const durationHeader = 'duration'
+			const labelWidth = Math.max(
+				labelHeader.length,
+				...timings.map(entry => entry.label.length)
+			)
+			const formatDuration = (value: number) => `${value.toFixed(2)}ms`
+			const durationWidth = Math.max(
+				durationHeader.length,
+				...timings.map(entry => formatDuration(entry.duration).length)
+			)
+			const divider = `+-${'-'.repeat(labelWidth)}-+-${'-'.repeat(durationWidth)}-+`
+			const header = `| ${labelHeader.padEnd(labelWidth)} | ${durationHeader.padEnd(durationWidth)} |`
+			const rows = timings.map(
+				entry =>
+					`| ${entry.label.padEnd(labelWidth)} | ${formatDuration(entry.duration).padStart(durationWidth)} |`
+			)
+			const totalCaptured = timings.reduce(
+				(sum, entry) => sum + entry.duration,
+				0
+			)
+			const totalRow = `| ${'total'.padEnd(labelWidth)} | ${formatDuration(totalCaptured).padStart(durationWidth)} |`
+			return [
+				'timing breakdown:',
+				divider,
+				header,
+				divider,
+				...rows,
+				divider,
+				totalRow,
+				divider
+			].join('\n')
+		}
 		const logDuration = (status: string) => {
+			const total = performance.now() - start
+			const breakdownTable = formatBreakdownTable()
+			const summary = `selectPath ${status} for ${path} in ${total.toFixed(2)}ms`
 			webLogger.debug(
-				`selectPath ${status} for ${path} in ${(performance.now() - start).toFixed(2)}ms`
+				breakdownTable ? `${summary}\n${breakdownTable}` : summary
 			)
 		}
+		const timeSync = <T,>(label: string, fn: () => T): T => {
+			const stepStart = performance.now()
+			try {
+				return fn()
+			} finally {
+				recordTiming(label, performance.now() - stepStart)
+			}
+		}
+		const timeAsync = async <T,>(
+			label: string,
+			fn: () => Promise<T>
+		): Promise<T> => {
+			const stepStart = performance.now()
+			try {
+				return await fn()
+			} finally {
+				recordTiming(label, performance.now() - stepStart)
+			}
+		}
 
-		if (!state.tree) {
+		const tree = state.tree
+		if (!tree) {
 			logDuration('skipped:no-tree')
 			return
 		}
@@ -108,60 +172,165 @@ export function FsProvider(props: { children: JSX.Element }) {
 			return
 		}
 
-		const node = findNode(state.tree, path)
+		const node = timeSync('find-node', () => findNode(tree, path))
 		if (!node) {
 			logDuration('skipped:not-found')
 			return
 		}
 
 		if (node.kind === 'dir') {
-			setSelectedPath(path)
-			setSelectedFileSize(undefined)
+			timeSync('select-dir', () => {
+				setSelectedPath(path)
+				setSelectedFileSize(undefined)
+			})
 			logDuration('selected-dir')
 			return
 		}
 
 		const requestId = ++selectRequestId
+		let completionStatus = 'complete'
 
 		try {
-			await batch(async () => {
-				setSelectedPath(path)
-				setError(undefined)
+			const source = state.activeSource ?? DEFAULT_SOURCE
+			const fileSize = await timeAsync('get-file-size', () =>
+				getFileSize(source, path)
+			)
+			if (requestId !== selectRequestId) {
+				completionStatus = 'cancelled:stale-after-size'
+				return
+			}
 
-				const source = state.activeSource ?? DEFAULT_SOURCE
-				const fileSize = await getFileSize(source, path)
-				if (requestId !== selectRequestId) return
+			let selectedFileContentValue = ''
+			let pieceTableSnapshot:
+				| ReturnType<typeof createPieceTableSnapshot>
+				| undefined
+			let fileStatsResult: ReturnType<typeof parseFileBuffer> | undefined
 
-				setSelectedFileSize(fileSize)
-
-				if (fileSize > MAX_FILE_SIZE_BYTES) {
-					setSelectedFileContent(`File too large (${formatBytes(fileSize)})`)
+			if (fileSize > MAX_FILE_SIZE_BYTES) {
+				completionStatus = 'skipped:file-too-large'
+			} else {
+				const previewBytes = await timeAsync('read-preview-bytes', () =>
+					readFilePreviewBytes(source, path)
+				)
+				if (requestId !== selectRequestId) {
+					completionStatus = 'cancelled:stale-after-preview'
 					return
 				}
 
-				const previewBytes = await readFilePreviewBytes(source, path)
-				if (requestId !== selectRequestId) return
-				const detection = analyzeFileBytes(path, previewBytes)
+				const detection = timeSync('analyze-file', () =>
+					analyzeFileBytes(path, previewBytes)
+				)
 				const shouldParseStructurally = detection.isText
 
-				const text = await readFileText(source, path)
-				if (requestId !== selectRequestId) return
-				setSelectedFileContent(text)
+				const text = await timeAsync('read-file-text', () =>
+					readFileText(source, path)
+				)
+				if (requestId !== selectRequestId) {
+					completionStatus = 'cancelled:stale-after-read'
+					return
+				}
+
+				selectedFileContentValue = text
+
 				if (shouldParseStructurally) {
-					setPieceTable(path, createPieceTableSnapshot(text))
-					setFileStats(
-						path,
+					pieceTableSnapshot = timeSync('create-piece-table', () =>
+						createPieceTableSnapshot(text)
+					)
+					fileStatsResult = timeSync('parse-file-buffer', () =>
 						parseFileBuffer(text, {
 							path
 						})
 					)
+				} else {
+					fileStatsResult = {
+						text,
+						lineInfo: [
+							{
+								index: 0,
+								start: 0,
+								length: text.length,
+								indentSpaces: 0,
+								indentTabs: 0,
+								trailingWhitespace: 0,
+								hasContent: true
+							}
+						],
+						characterCount: 0,
+						lineCount: 0,
+						lineStarts: [],
+						newline: {
+							kind: 'none',
+							kinds: { none: 0, lf: 0, cr: 0, crlf: 0 },
+							normalized: false
+						},
+						unicode: {
+							hasNull: false,
+							invalidSurrogateCount: 0,
+							controlCharacterCount: 0,
+							issues: []
+						},
+						binary: { suspicious: false },
+						indentation: {
+							style: 'none',
+							width: 0,
+							spaceLines: 0,
+							tabLines: 0,
+							mixedLines: 0,
+							blankLines: 0,
+							trailingWhitespaceLines: 0,
+							totalTrailingWhitespace: 0
+						},
+						strings: [],
+						brackets: {
+							pairs: [],
+							unmatchedOpens: [],
+							unmatchedCloses: [],
+							maxDepth: 0,
+							depthByIndex: []
+						},
+						language: {
+							id: 'unknown',
+							source: 'fallback',
+							displayName: 'Plain Text',
+							rules: {
+								angleBrackets: false,
+								strings: {
+									'"': { quote: '"', multiline: false },
+									"'": { quote: "'", multiline: false },
+									'`': { quote: '`', multiline: false }
+								},
+								displayName: 'Plain Text'
+							}
+						}
+					}
+				}
+			}
+
+			batch(() => {
+				timeSync('set-selected-path', () => setSelectedPath(path))
+				timeSync('clear-error', () => setError(undefined))
+				timeSync('set-selected-file-size', () => setSelectedFileSize(fileSize))
+				timeSync('set-selected-file-content', () =>
+					setSelectedFileContent(selectedFileContentValue)
+				)
+				if (pieceTableSnapshot) {
+					timeSync('set-piece-table', () =>
+						setPieceTable(path, pieceTableSnapshot)
+					)
+				}
+				if (fileStatsResult) {
+					timeSync('set-file-stats', () => setFileStats(path, fileStatsResult))
 				}
 			})
 		} catch (error) {
-			if (requestId !== selectRequestId) return
+			if (requestId !== selectRequestId) {
+				completionStatus = 'cancelled:error-stale'
+				return
+			}
+			completionStatus = 'error'
 			handleReadError(error)
 		} finally {
-			logDuration('complete')
+			logDuration(completionStatus)
 		}
 	}
 
@@ -169,7 +338,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 		refresh,
 		setExpanded,
 		setSelectedPath,
-		setSelectedFileContent,
 		setSelectedFileSize,
 		setError,
 		getState: () => state,

@@ -3,35 +3,40 @@
 
 export async function countLinesInFile(file: File) {
 	const reader = file.stream().getReader()
-	const decoder = new TextDecoder('utf-8')
 
-	let lines = 0
-	let lastText = ''
+	try {
+		const decoder = new TextDecoder('utf-8')
 
-	const { value, done } = await reader.read()
+		let lines = 0
+		let lastText = ''
 
-	if (done) {
-		return 0
-	}
+		const { value, done } = await reader.read()
 
-	let text = decoder.decode(value, { stream: true })
-	lastText = text
-	lines += text.split('\n').length - 1
+		if (done) {
+			return 0
+		}
 
-	while (true) {
-		const result = await reader.read()
-		if (result.done) break
-
-		text = decoder.decode(result.value, { stream: true })
-		if (text.length === 0) continue
-
+		let text = decoder.decode(value, { stream: true })
 		lastText = text
 		lines += text.split('\n').length - 1
-	}
 
-	if (!lastText.endsWith('\n')) {
-		lines++
-	}
+		while (true) {
+			const result = await reader.read()
+			if (result.done) break
 
-	return lines
+			text = decoder.decode(result.value, { stream: true })
+			if (text.length === 0) continue
+
+			lastText = text
+			lines += text.split('\n').length - 1
+		}
+
+		if (!lastText.endsWith('\n')) {
+			lines++
+		}
+
+		return lines
+	} finally {
+		reader.releaseLock()
+	}
 }

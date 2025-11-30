@@ -7,7 +7,6 @@ type FsMutationDeps = {
 	refresh: (source?: FsSource) => Promise<void>
 	setExpanded: SetStoreFunction<Record<string, boolean>>
 	setSelectedPath: Setter<string | undefined>
-	setSelectedFileContent: Setter<string>
 	setSelectedFileSize: Setter<number | undefined>
 	setError: Setter<string | undefined>
 	getState: () => FsState
@@ -21,7 +20,6 @@ export const createFsMutations = ({
 	getActiveSource,
 	setExpanded,
 	setSelectedPath,
-	setSelectedFileContent,
 	setSelectedFileSize,
 	setError,
 	getState,
@@ -61,7 +59,6 @@ export const createFsMutations = ({
 			batch(() => {
 				setExpanded(parentPath, true)
 				setSelectedPath(newPath)
-				setSelectedFileContent(fileContent)
 				setSelectedFileSize(new Blob([fileContent]).size)
 			})
 			await refresh()
@@ -82,7 +79,6 @@ export const createFsMutations = ({
 					state.selectedPath?.startsWith(`${path}/`)
 				) {
 					setSelectedPath(undefined)
-					setSelectedFileContent('')
 					setSelectedFileSize(undefined)
 				}
 			})
