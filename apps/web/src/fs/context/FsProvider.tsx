@@ -1,14 +1,18 @@
 import { batch, type JSX, onMount } from 'solid-js'
-import { createFsMutations } from '../fsMutations'
+import { webLogger } from '~/logger'
+import { formatBytes } from '~/utils/bytes'
+import { parseFileBuffer } from '~/utils/parse'
+import { createPieceTableSnapshot } from '~/utils/pieceTable'
+import { analyzeFileBytes } from '~/utils/textHeuristics'
 import { DEFAULT_SOURCE } from '../config/constants'
+import { createFsMutations } from '../fsMutations'
+import { collectFileHandles } from '../runtime/fileHandles'
 import { buildTree, fileHandleCache, primeFsCache } from '../runtime/fsRuntime'
 import {
-	cancelOtherStreams,
-	streamFileText,
-	resetStreamingState,
-	safeReadFileText
+	getFileSize,
+	readFilePreviewBytes,
+	readFileText
 } from '../runtime/streaming'
-import { collectFileHandles } from '../runtime/fileHandles'
 import { findNode } from '../runtime/tree'
 import { createFsState } from '../state/fsState'
 import type { FsSource } from '../types'
@@ -23,11 +27,17 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setSelectedPath,
 		setActiveSource,
 		setSelectedFileContent,
+		setSelectedFileSize,
 		setError,
-		setLoading
+		setLoading,
+		setFileStats,
+		clearParseResults,
+		setPieceTable,
+		clearPieceTables
 	} = createFsState()
 
 	let selectRequestId = 0
+	const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 100 // 100 MB
 
 	const restoreHandleCache = () => {
 		if (!state.tree) return
@@ -43,16 +53,10 @@ export function FsProvider(props: { children: JSX.Element }) {
 	const refresh = async (
 		source: FsSource = state.activeSource ?? DEFAULT_SOURCE
 	) => {
-		if (source !== state.activeSource) {
-			resetStreamingState()
-			setSelectedPath(undefined)
-			setSelectedFileContent('')
-			setExpanded({})
-			setTree(undefined!)
-		}
-
 		setLoading(true)
-		setError(undefined)
+		clearParseResults()
+		clearPieceTables()
+
 		try {
 			const built = await buildTree(source)
 
@@ -63,6 +67,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 					...expanded,
 					[built.path]: expanded[built.path] ?? true
 				}))
+				setError(undefined)
 			})
 		} catch (error) {
 			setError(
@@ -89,13 +94,17 @@ export function FsProvider(props: { children: JSX.Element }) {
 	const selectPath = async (path: string) => {
 		const start = performance.now()
 		const logDuration = (status: string) => {
-			console.log(
-				`[FsProvider] selectPath ${status} for ${path} in ${(performance.now() - start).toFixed(2)}ms`
+			webLogger.debug(
+				`selectPath ${status} for ${path} in ${(performance.now() - start).toFixed(2)}ms`
 			)
 		}
 
 		if (!state.tree) {
 			logDuration('skipped:no-tree')
+			return
+		}
+		if (state.selectedPath === path) {
+			logDuration('skipped:already-selected')
 			return
 		}
 
@@ -107,33 +116,47 @@ export function FsProvider(props: { children: JSX.Element }) {
 
 		if (node.kind === 'dir') {
 			setSelectedPath(path)
+			setSelectedFileSize(undefined)
 			logDuration('selected-dir')
 			return
 		}
 
 		const requestId = ++selectRequestId
 
-		cancelOtherStreams(path)
-
 		try {
-			setSelectedPath(path)
-			setError(undefined)
-			setSelectedFileContent('')
+			await batch(async () => {
+				setSelectedPath(path)
+				setError(undefined)
 
-			// const text = await streamFileText(
-			// 	state.activeSource ?? DEFAULT_SOURCE,
-			// 	path,
-			// 	text => {
-			// 		if (requestId !== selectRequestId) return
-			// 		setSelectedFileContent(text)
-			// 	}
-			// )
-			const { text } = await safeReadFileText(
-				state.activeSource ?? DEFAULT_SOURCE,
-				path
-			)
-			if (requestId !== selectRequestId) return
-			setSelectedFileContent(text)
+				const source = state.activeSource ?? DEFAULT_SOURCE
+				const fileSize = await getFileSize(source, path)
+				if (requestId !== selectRequestId) return
+
+				setSelectedFileSize(fileSize)
+
+				if (fileSize > MAX_FILE_SIZE_BYTES) {
+					setSelectedFileContent(`File too large (${formatBytes(fileSize)})`)
+					return
+				}
+
+				const previewBytes = await readFilePreviewBytes(source, path)
+				if (requestId !== selectRequestId) return
+				const detection = analyzeFileBytes(path, previewBytes)
+				const shouldParseStructurally = detection.isText
+
+				const text = await readFileText(source, path)
+				if (requestId !== selectRequestId) return
+				setSelectedFileContent(text)
+				if (shouldParseStructurally) {
+					setPieceTable(path, createPieceTableSnapshot(text))
+					setFileStats(
+						path,
+						parseFileBuffer(text, {
+							path
+						})
+					)
+				}
+			})
 		} catch (error) {
 			if (requestId !== selectRequestId) return
 			handleReadError(error)
@@ -147,6 +170,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setExpanded,
 		setSelectedPath,
 		setSelectedFileContent,
+		setSelectedFileSize,
 		setError,
 		getState: () => state,
 		getActiveSource: () => state.activeSource

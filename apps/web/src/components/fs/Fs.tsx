@@ -1,6 +1,5 @@
 import { For, Show, createMemo } from 'solid-js'
-import type { FsTreeNode } from '@repo/fs'
-import { findNode, useFs } from '../../fs/FsContext'
+import { useFs } from '../../fs/context/FsContext'
 import type { FsSource } from '../../fs/types'
 import { SelectedFilePanel } from './SelectedFilePanel'
 import { TreeView } from './TreeView'
@@ -14,19 +13,14 @@ const SOURCE_OPTIONS: { id: FsSource; label: string }[] = [
 export const Fs = () => {
 	const [state, actions] = useFs()
 
-	const selectedNode = createMemo<FsTreeNode | undefined>(() =>
-		state.tree ? findNode(state.tree, state.selectedPath) : undefined
-	)
-
 	const activeDirPath = createMemo(() => {
-		const node = selectedNode()
+		const node = state.selectedNode
 		if (!node) return ''
 		return node.kind === 'dir' ? node.path : (node.parentPath ?? '')
 	})
 
 	const activeFileContent = createMemo(() => {
-		const node = selectedNode()
-		if (!node || node.kind !== 'file') return ''
+		if (!state.lastKnownFileNode) return ''
 		return state.selectedFileContent
 	})
 
@@ -89,8 +83,9 @@ export const Fs = () => {
 				</div>
 				<div class="flex-1 min-h-0 overflow-auto bg-zinc-950/30 px-3 py-2">
 					<SelectedFilePanel
-						isFileSelected={() => selectedNode()?.kind === 'file'}
+						isFileSelected={() => state.selectedNode?.kind === 'file'}
 						content={activeFileContent}
+						currentPath={state.selectedPath!}
 					/>
 				</div>
 			</div>
