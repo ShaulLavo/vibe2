@@ -589,22 +589,12 @@ export function parseFileBuffer(
 
 	const controlCharRatioExceeded =
 		length > 0 && controlCharacterCount / length > CONTROL_CHAR_MAX_RATIO
-	const detectionReason =
-		isBinaryByDetection && detection
-			? formatBinaryDetectionReason(detection) ??
-				detection.reason?.kind ??
-				'binary-detected'
-			: undefined
 	const binary: BinaryReport = {
-		suspicious: Boolean(
-			isBinaryByDetection || hasNullByte || controlCharRatioExceeded
-		),
+		suspicious: hasNullByte || controlCharRatioExceeded,
 		reason: undefined
 	}
 
-	if (isBinaryByDetection) {
-		binary.reason = detectionReason ?? 'binary-detected'
-	} else if (hasNullByte) {
+	if (hasNullByte) {
 		binary.reason = 'null-byte'
 	} else if (controlCharRatioExceeded) {
 		binary.reason = 'control-chars'

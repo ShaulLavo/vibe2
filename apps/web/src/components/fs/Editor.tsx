@@ -356,8 +356,8 @@ const TextFileEditor = (props: TextFileEditorProps) => {
 	const applyDelete = (offset: number, length: number) => {
 		if (length <= 0 || offset < 0) return
 		updateSelectedFilePieceTable(current => {
-			if (!current) return current
-			return deleteFromPieceTable(current, offset, length)
+			const baseSnapshot = current ?? createPieceTableSnapshot(pieceTableText())
+			return deleteFromPieceTable(baseSnapshot, offset, length)
 		})
 	}
 
