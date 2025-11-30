@@ -160,7 +160,6 @@ export type ParseResult = {
 }
 
 const CONTROL_CHAR_MAX_RATIO = 0.02
-const BINARY_FALLBACK_DISPLAY_LIMIT = 1024 * 64 // TODO remove this once we have virtualized rendering
 
 const DEFAULT_STRING_RULES: Record<StringRule['quote'], StringRule> = {
 	'"': { quote: '"', multiline: false },
@@ -307,15 +306,17 @@ export function parseFileBuffer(
 	text: string,
 	options: ParseOptions = {}
 ): ParseResult {
+	const rawText = text ?? ''
 	const detection = options.previewBytes
 		? analyzeFileBytes(options.path, options.previewBytes)
 		: undefined
+	const isBinaryByDetection = Boolean(detection && !detection.isText)
 
-	if (detection && !detection.isText) {
-		return createBinaryFallbackResult(text, detection)
+	if (isBinaryByDetection) {
+		return createMinimalBinaryParseResult(rawText, detection)
 	}
 
-	const normalized = normalizeNewlines(text ?? '')
+	const normalized = normalizeNewlines(rawText)
 	const languageDetection = detectLanguage(
 		normalized.text,
 		options.path,
@@ -583,22 +584,27 @@ export function parseFileBuffer(
 		totalTrailingWhitespace
 	}
 
+	const controlCharRatioExceeded =
+		length > 0 && controlCharacterCount / length > CONTROL_CHAR_MAX_RATIO
+	const detectionReason =
+		isBinaryByDetection && detection
+			? formatBinaryDetectionReason(detection) ??
+				detection.reason?.kind ??
+				'binary-detected'
+			: undefined
 	const binary: BinaryReport = {
-		suspicious:
-			hasNullByte ||
-			(length > 0 && controlCharacterCount / length > CONTROL_CHAR_MAX_RATIO),
+		suspicious: Boolean(
+			isBinaryByDetection || hasNullByte || controlCharRatioExceeded
+		),
 		reason: undefined
 	}
 
-	if (binary.suspicious) {
-		if (hasNullByte) {
-			binary.reason = 'null-byte'
-		} else if (
-			length > 0 &&
-			controlCharacterCount / length > CONTROL_CHAR_MAX_RATIO
-		) {
-			binary.reason = 'control-chars'
-		}
+	if (isBinaryByDetection) {
+		binary.reason = detectionReason ?? 'binary-detected'
+	} else if (hasNullByte) {
+		binary.reason = 'null-byte'
+	} else if (controlCharRatioExceeded) {
+		binary.reason = 'control-chars'
 	}
 
 	const unicode: UnicodeReport = {
@@ -627,38 +633,86 @@ export function parseFileBuffer(
 			depthByIndex: bracketDepth
 		},
 		language: languageDetection,
-		contentKind: 'text',
+		contentKind: isBinaryByDetection ? 'binary' : 'text',
 		textHeuristic: detection
 	}
 }
 
-const createBinaryFallbackResult = (
+const createMinimalBinaryParseResult = (
 	text: string,
 	detection?: TextHeuristicDecision
 ): ParseResult => {
-	const previewLength = Math.min(BINARY_FALLBACK_DISPLAY_LIMIT, text.length)
+	const length = text.length
+	const lineStarts: number[] = [0]
+	const lineInfo: LineInfo[] = []
+	let lineStart = 0
+
+	const pushLine = (lineEnd: number) => {
+		const info: LineInfo = {
+			index: lineInfo.length,
+			start: lineStart,
+			length: lineEnd - lineStart,
+			indentSpaces: 0,
+			indentTabs: 0,
+			trailingWhitespace: 0,
+			hasContent: lineEnd > lineStart
+		}
+		lineInfo.push(info)
+	}
+
+	const newlineCounts: Record<Exclude<NewlineKind, 'mixed'>, number> = {
+		lf: 0,
+		crlf: 0,
+		cr: 0,
+		none: 0
+	}
+
+	for (let i = 0; i < length; i++) {
+		const code = text.charCodeAt(i)
+		if (code === 10) {
+			newlineCounts.lf++
+			pushLine(i)
+			lineStart = i + 1
+			lineStarts.push(lineStart)
+		} else if (code === 13) {
+			pushLine(i)
+			if (text.charCodeAt(i + 1) === 10) {
+				newlineCounts.crlf++
+				lineStart = i + 2
+				i++
+			} else {
+				newlineCounts.cr++
+				lineStart = i + 1
+			}
+			lineStarts.push(lineStart)
+		}
+	}
+
+	pushLine(length)
+
+	if (newlineCounts.lf + newlineCounts.crlf + newlineCounts.cr === 0) {
+		newlineCounts.none = 1
+	}
+
+	const newlineInfo: NewlineInfo = {
+		kinds: newlineCounts,
+		kind: determineNewlineKind(newlineCounts),
+		normalized: false
+	}
+
+	const binaryReason = detection
+		? formatBinaryDetectionReason(detection) ??
+			detection.reason?.kind ??
+			'binary-detected'
+		: undefined
 
 	return {
 		text,
-		characterCount: 0,
-		lineCount: 0,
-		lineStarts: [],
-		lineInfo: [
-			{
-				index: 0,
-				start: 0,
-				length: previewLength,
-				indentSpaces: 0,
-				indentTabs: 0,
-				trailingWhitespace: 0,
-				hasContent: previewLength > 0
-			}
-		],
-		newline: {
-			kind: 'none',
-			kinds: { none: 0, lf: 0, cr: 0, crlf: 0 },
-			normalized: false
-		},
+		characterCount: length,
+		lineCount: lineInfo.length,
+		lineStarts,
+		lineInfo,
+		newline: newlineInfo,
 		unicode: {
 			hasNull: false,
 			invalidSurrogateCount: 0,
@@ -667,9 +721,7 @@ const createBinaryFallbackResult = (
 		},
 		binary: {
 			suspicious: true,
-			reason: detection?.reason
-				? formatBinaryDetectionReason(detection)
-				: 'binary-fallback'
+			reason: binaryReason ?? 'binary-detected'
 		},
 		indentation: {
 			style: 'none',
@@ -733,6 +785,16 @@ const resolveIndentStyle = (
 	return 'none'
 }
 
+const determineNewlineKind = (
+	counts: Record<Exclude<NewlineKind, 'mixed'>, number>
+): NewlineKind => {
+	if (counts.crlf > 0 && counts.lf === 0 && counts.cr === 0) return 'crlf'
+	if (counts.lf > 0 && counts.crlf === 0 && counts.cr === 0) return 'lf'
+	if (counts.cr > 0 && counts.lf === 0 && counts.crlf === 0) return 'cr'
+	if (counts.crlf + counts.cr + counts.lf === 0) return 'none'
+	return 'mixed'
+}
+
 const normalizeNewlines = (rawText: string): NormalizeResult => {
 	let text = rawText
 	let hadBom = false
@@ -780,16 +842,7 @@ const normalizeNewlines = (rawText: string): NormalizeResult => {
 		counts.none = 1
 	}
 
-	const kind: NewlineKind =
-		counts.crlf > 0 && counts.lf === 0 && counts.cr === 0
-			? 'crlf'
-			: counts.lf > 0 && counts.crlf === 0 && counts.cr === 0
-				? 'lf'
-				: counts.cr > 0 && counts.lf === 0 && counts.crlf === 0
-					? 'cr'
-					: counts.crlf + counts.cr + counts.lf === 0
-						? 'none'
-						: 'mixed'
+	const kind = determineNewlineKind(counts)
 
 	return {
 		text: normalized,
