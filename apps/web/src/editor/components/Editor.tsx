@@ -1,16 +1,8 @@
 /* eslint-disable solid/prefer-for */
 import { createVirtualizer } from '@tanstack/solid-virtual'
-import type { VirtualItem, Virtualizer } from '@tanstack/virtual-core'
-import {
-	type Accessor,
-	Show,
-	createEffect,
-	createMemo,
-	createSignal
-} from 'solid-js'
+import { Show, createEffect, createMemo, createSignal } from 'solid-js'
 import { useFs } from '../../fs/context/FsContext'
-import { BinaryFileViewer } from './BinaryFileViewer'
-import type { ParseResult } from '~/utils/parse'
+import { BinaryFileViewer } from '../../components/BinaryFileViewer'
 import {
 	createPieceTableSnapshot,
 	deleteFromPieceTable,
@@ -18,155 +10,14 @@ import {
 	getPieceTableText,
 	insertIntoPieceTable
 } from '~/utils/pieceTable'
-
-const LINE_HEIGHT_RATIO = 1.55
-const MIN_ESTIMATED_LINE_HEIGHT = 18
-const VERTICAL_VIRTUALIZER_OVERSCAN = 10
-const CHAR_WIDTH_RATIO = 0.65
-const COLUMN_CHARS_PER_ITEM = 80
-const HORIZONTAL_VIRTUALIZER_OVERSCAN = 6
-
-const estimateLineHeight = (fontSize: number) =>
-	Math.max(Math.round(fontSize * LINE_HEIGHT_RATIO), MIN_ESTIMATED_LINE_HEIGHT)
-const estimateColumnWidth = (fontSize: number) =>
-	Math.max(fontSize * CHAR_WIDTH_RATIO * COLUMN_CHARS_PER_ITEM, fontSize * 4)
-
-type EditorProps = {
-	isFileSelected: Accessor<boolean>
-	stats: Accessor<ParseResult | undefined>
-	fontSize: Accessor<number>
-	fontFamily: Accessor<string>
-	previewBytes?: Accessor<Uint8Array | undefined>
-}
-
-type LineEntry = {
-	index: number
-	start: number
-	length: number
-	text: string
-}
-
-type VirtualizedRowProps = {
-	rowVirtualizer: Virtualizer<HTMLDivElement, HTMLDivElement>
-	virtualRow: VirtualItem
-	entry: LineEntry
-	columns: VirtualItem[]
-	totalColumnWidth: number
-	lineHeight: number
-	onRowClick: (entry: LineEntry) => void
-	isActive: boolean
-}
-
-const VirtualizedRow = (props: VirtualizedRowProps) => {
-	let rowElement: HTMLDivElement | null = null
-
-	const measure = () => {
-		props.rowVirtualizer.measureElement(rowElement)
-	}
-
-	return (
-		<div
-			data-index={props.virtualRow.index}
-			ref={el => {
-				rowElement = el
-				queueMicrotask(measure)
-			}}
-			class="absolute left-0 right-0 "
-			style={{
-				transform: `translateY(${props.virtualRow.start}px)`,
-				top: 0,
-				height: `${props.virtualRow.size || props.lineHeight}px`
-			}}
-		>
-			<div
-				class="flex items-start gap-4 px-3 py-1 text-zinc-100"
-				classList={{ 'bg-zinc-900/60': props.isActive }}
-				onClick={event => {
-					// Only treat as a caret move on a plain left-click with no modifiers and no active text selection.
-					if (
-						event.button !== 0 ||
-						event.shiftKey ||
-						event.ctrlKey ||
-						event.metaKey
-					) {
-						return
-					}
-					const selection = window.getSelection()
-					if (!selection || selection.isCollapsed) {
-						props.onRowClick(props.entry)
-					}
-				}}
-			>
-				<span class="w-10 shrink-0 text-right text-[11px] font-semibold tracking-[0.08em] text-zinc-500 tabular-nums">
-					{props.entry.index + 1}
-				</span>
-				<div
-					class="relative h-full whitespace-pre"
-					style={{
-						width: `${props.totalColumnWidth}px`,
-						height: `${props.virtualRow.size || props.lineHeight}px`
-					}}
-				>
-					{props.columns.map(column => {
-						const chunkStart = column.index * COLUMN_CHARS_PER_ITEM
-						const chunkEnd = chunkStart + COLUMN_CHARS_PER_ITEM
-						const chunkText = props.entry.text.slice(chunkStart, chunkEnd)
-						if (!chunkText) return null
-						return (
-							<span
-								data-column-index={column.index}
-								class="absolute inset-y-0 overflow-hidden whitespace-pre"
-								style={{
-									transform: `translateX(${column.start}px)`,
-									width: `${column.size}px`
-								}}
-							>
-								{chunkText}
-							</span>
-						)
-					})}
-				</div>
-			</div>
-		</div>
-	)
-}
-
-type VirtualizedRowsProps = {
-	rows: Accessor<VirtualItem[]>
-	columns: Accessor<VirtualItem[]>
-	entries: Accessor<LineEntry[]>
-	totalColumnWidth: Accessor<number>
-	rowVirtualizer: Virtualizer<HTMLDivElement, HTMLDivElement>
-	lineHeight: Accessor<number>
-	onRowClick: (entry: LineEntry) => void
-	activeLineIndex: Accessor<number | null>
-}
-
-const VirtualizedRows = (props: VirtualizedRowsProps) => {
-	return (
-		<>
-			{props.rows().map(virtualRow => {
-				const entry = props.entries()[virtualRow.index]
-				if (!entry) return null
-
-				return (
-					<VirtualizedRow
-						rowVirtualizer={props.rowVirtualizer}
-						virtualRow={virtualRow}
-						entry={entry}
-						columns={props.columns()}
-						totalColumnWidth={props.totalColumnWidth()}
-						lineHeight={props.lineHeight()}
-						onRowClick={props.onRowClick}
-						isActive={props.activeLineIndex() === entry.index}
-					/>
-				)
-			})}
-		</>
-	)
-}
-
-type TextFileEditorProps = EditorProps
+import { VirtualizedRows } from './components'
+import {
+	COLUMN_CHARS_PER_ITEM,
+	HORIZONTAL_VIRTUALIZER_OVERSCAN,
+	VERTICAL_VIRTUALIZER_OVERSCAN
+} from '../consts'
+import { estimateColumnWidth, estimateLineHeight } from '../utils'
+import type { EditorProps, LineEntry, TextFileEditorProps } from '../types'
 
 const TextFileEditor = (props: TextFileEditorProps) => {
 	const [state, { updateSelectedFilePieceTable }] = useFs()
@@ -368,10 +219,7 @@ const TextFileEditor = (props: TextFileEditorProps) => {
 				return baseSnapshot
 			}
 
-			const clampedLength = Math.max(
-				0,
-				Math.min(length, totalLength - offset)
-			)
+			const clampedLength = Math.max(0, Math.min(length, totalLength - offset))
 
 			if (clampedLength === 0) {
 				return baseSnapshot

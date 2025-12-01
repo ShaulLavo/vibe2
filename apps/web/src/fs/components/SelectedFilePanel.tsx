@@ -1,7 +1,7 @@
 import type { JSX } from 'solid-js'
 import { Accessor, For, createMemo, createSignal } from 'solid-js'
 import { useFs } from '../../fs/context/FsContext'
-import { Editor } from './Editor'
+import { Editor } from '../../editor'
 
 const FONT_OPTIONS = [
 	{
