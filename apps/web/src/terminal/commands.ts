@@ -1,5 +1,5 @@
 import type { Terminal } from '@xterm/xterm'
-import type LocalEchoController from 'local-echo'
+import type { LocalEchoController } from './localEcho'
 import { printColumns } from './utils'
 
 export interface CommandContext {

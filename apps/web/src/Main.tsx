@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { Fs } from './components/fs/Fs'
+import { Fs } from './fs/components/Fs'
 import { Terminal } from './components/Terminal'
 import { StatusBar } from './components/StatusBar'
 

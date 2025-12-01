@@ -1,6 +1,6 @@
 import { FitAddon } from '@xterm/addon-fit'
 import { Terminal as Xterm } from '@xterm/xterm'
-import LocalEchoController from 'local-echo'
+import { LocalEchoController } from './localEcho'
 import { handleCommand } from './commands'
 
 const promptLabel = 'guest@vibe:~$ '

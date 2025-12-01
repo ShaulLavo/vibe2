@@ -45,10 +45,22 @@ export function FsProvider(props: { children: JSX.Element }) {
 	let selectRequestId = 0
 	const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 100 // 100 MB
 
+	const isValidHandle = (
+		handle: unknown
+	): handle is FileSystemDirectoryHandle => {
+		if (!handle || typeof handle !== 'object') return false
+		// Memory handles lose their methods after IndexedDB serialization
+		const h = handle as { entries?: unknown; [Symbol.asyncIterator]?: unknown }
+		return (
+			typeof h.entries === 'function' ||
+			typeof h[Symbol.asyncIterator] === 'function'
+		)
+	}
+
 	const restoreHandleCache = () => {
 		if (!state.tree) return
 
-		if (state.tree.kind === 'dir' && state.tree.handle) {
+		if (state.tree.kind === 'dir' && isValidHandle(state.tree.handle)) {
 			primeFsCache(state.activeSource ?? DEFAULT_SOURCE, state.tree.handle)
 		}
 
@@ -195,10 +207,12 @@ export function FsProvider(props: { children: JSX.Element }) {
 					)
 
 					if (fileStatsResult.contentKind === 'text') {
-						const existingSnapshot = (state.pieceTables as Record<
-							string,
-							ReturnType<typeof createPieceTableSnapshot> | undefined
-						>)[path]
+						const existingSnapshot = (
+							state.pieceTables as Record<
+								string,
+								ReturnType<typeof createPieceTableSnapshot> | undefined
+							>
+						)[path]
 
 						pieceTableSnapshot =
 							existingSnapshot ??
