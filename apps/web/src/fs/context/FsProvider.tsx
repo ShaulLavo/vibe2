@@ -1,11 +1,10 @@
 import { batch, type JSX, onMount } from 'solid-js'
-import { webLogger } from '~/logger'
 import {
 	createMinimalBinaryParseResult,
 	detectBinaryFromPreview,
 	parseFileBuffer
 } from '~/utils/parse'
-import { createTimingTracker } from '~/utils/timing'
+import { trackOperation } from '~/perf'
 import { createPieceTableSnapshot } from '~/utils/pieceTable'
 import { DEFAULT_SOURCE } from '../config/constants'
 import { createFsMutations } from '../fsMutations'
@@ -20,8 +19,6 @@ import { findNode } from '../runtime/tree'
 import { createFsState } from '../state/fsState'
 import type { FsSource } from '../types'
 import { FsContext, type FsContextValue } from './FsContext'
-import { logger } from '@repo/logger'
-import { formatBytes } from '~/utils/bytes'
 
 export function FsProvider(props: { children: JSX.Element }) {
 	const {
@@ -76,17 +73,25 @@ export function FsProvider(props: { children: JSX.Element }) {
 		clearPieceTables()
 
 		try {
-			const built = await buildTree(source)
+			await trackOperation(
+				'fs:refresh',
+				async ({ timeAsync, timeSync }) => {
+					const built = await timeAsync('build-tree', () => buildTree(source))
 
-			batch(() => {
-				setTree(built)
-				setActiveSource(source)
-				setExpanded(expanded => ({
-					...expanded,
-					[built.path]: expanded[built.path] ?? true
-				}))
-				setError(undefined)
-			})
+					timeSync('apply-state', () => {
+						batch(() => {
+							setTree(built)
+							setActiveSource(source)
+							setExpanded(expanded => ({
+								...expanded,
+								[built.path]: expanded[built.path] ?? true
+							}))
+							setError(undefined)
+						})
+					})
+				},
+				{ metadata: { source } }
+			)
 		} catch (error) {
 			setError(
 				error instanceof Error ? error.message : 'Failed to load filesystem'
@@ -110,154 +115,123 @@ export function FsProvider(props: { children: JSX.Element }) {
 	}
 
 	const selectPath = async (path: string) => {
-		const timings = createTimingTracker({
-			logger: message => webLogger.debug(message)
-		})
-		const { timeSync, timeAsync } = timings
-		const logDuration = (status: string) =>
-			timings.log(
-				status,
-				total => `selectPath ${status} for ${path} in ${total.toFixed(2)}ms`
-			)
-
 		const tree = state.tree
-		if (!tree) {
-			logDuration('skipped:no-tree')
-			return
-		}
-		if (state.selectedPath === path) {
-			logDuration('skipped:already-selected')
-			return
-		}
+		if (!tree) return
+		if (state.selectedPath === path) return
 
-		const node = timeSync('find-node', () => findNode(tree, path))
-		if (!node) {
-			logDuration('skipped:not-found')
-			return
-		}
+		const node = findNode(tree, path)
+		if (!node) return
 
 		if (node.kind === 'dir') {
-			timeSync('select-dir', () => {
-				setSelectedPath(path)
-				setSelectedFileSize(undefined)
-			})
-			logDuration('selected-dir')
+			setSelectedPath(path)
+			setSelectedFileSize(undefined)
 			return
 		}
 
 		const requestId = ++selectRequestId
-		let completionStatus = 'complete'
 
-		try {
-			const source = state.activeSource ?? DEFAULT_SOURCE
-			const fileSize = await timeAsync('get-file-size', () =>
-				getFileSize(source, path)
-			)
-			if (requestId !== selectRequestId) {
-				completionStatus = 'cancelled:stale-after-size'
-				return
-			}
+		await trackOperation(
+			'fs:selectPath',
+			async ({ timeSync, timeAsync }) => {
+				const source = state.activeSource ?? DEFAULT_SOURCE
 
-			let selectedFileContentValue = ''
-			let pieceTableSnapshot:
-				| ReturnType<typeof createPieceTableSnapshot>
-				| undefined
-			let fileStatsResult:
-				| ReturnType<typeof parseFileBuffer>
-				| ReturnType<typeof createMinimalBinaryParseResult>
-				| undefined
-
-			let previewBytes: Uint8Array | undefined
-
-			if (fileSize > MAX_FILE_SIZE_BYTES) {
-				completionStatus = 'skipped:file-too-large'
-			} else {
-				previewBytes = await timeAsync('read-preview-bytes', () =>
-					readFilePreviewBytes(source, path)
+				const fileSize = await timeAsync('get-file-size', () =>
+					getFileSize(source, path)
 				)
-				if (requestId !== selectRequestId) {
-					completionStatus = 'cancelled:stale-after-preview'
-					return
-				}
+				if (requestId !== selectRequestId) return
 
-				const detection = detectBinaryFromPreview(path, previewBytes)
-				const isBinary = !detection.isText
+				let selectedFileContentValue = ''
+				let pieceTableSnapshot:
+					| ReturnType<typeof createPieceTableSnapshot>
+					| undefined
+				let fileStatsResult:
+					| ReturnType<typeof parseFileBuffer>
+					| ReturnType<typeof createMinimalBinaryParseResult>
+					| undefined
 
-				if (isBinary) {
-					fileStatsResult = timeSync('binary-file-metadata', () =>
-						createMinimalBinaryParseResult('', detection)
-					)
+				let previewBytes: Uint8Array | undefined
+
+				if (fileSize > MAX_FILE_SIZE_BYTES) {
+					// Skip processing for large files
 				} else {
-					const text = await timeAsync('read-file-text', () =>
-						readFileText(source, path)
+					previewBytes = await timeAsync('read-preview-bytes', () =>
+						readFilePreviewBytes(source, path)
 					)
-					if (requestId !== selectRequestId) {
-						completionStatus = 'cancelled:stale-after-read'
-						return
-					}
+					if (requestId !== selectRequestId) return
 
-					selectedFileContentValue = text
+					const detection = detectBinaryFromPreview(path, previewBytes)
+					const isBinary = !detection.isText
 
-					fileStatsResult = timeSync('parse-file-buffer', () =>
-						parseFileBuffer(text, {
-							path,
-							previewBytes,
-							textHeuristic: detection
-						})
-					)
+					if (isBinary) {
+						fileStatsResult = timeSync('binary-file-metadata', () =>
+							createMinimalBinaryParseResult('', detection)
+						)
+					} else {
+						const text = await timeAsync('read-file-text', () =>
+							readFileText(source, path)
+						)
+						if (requestId !== selectRequestId) return
 
-					if (fileStatsResult.contentKind === 'text') {
-						const existingSnapshot = (
-							state.pieceTables as Record<
-								string,
-								ReturnType<typeof createPieceTableSnapshot> | undefined
-							>
-						)[path]
+						selectedFileContentValue = text
 
-						pieceTableSnapshot =
-							existingSnapshot ??
-							timeSync('create-piece-table', () =>
-								createPieceTableSnapshot(text)
-							)
+						fileStatsResult = timeSync('parse-file-buffer', () =>
+							parseFileBuffer(text, {
+								path,
+								previewBytes,
+								textHeuristic: detection
+							})
+						)
+
+						if (fileStatsResult.contentKind === 'text') {
+							const existingSnapshot = (
+								state.pieceTables as Record<
+									string,
+									ReturnType<typeof createPieceTableSnapshot> | undefined
+								>
+							)[path]
+
+							pieceTableSnapshot =
+								existingSnapshot ??
+								timeSync('create-piece-table', () =>
+									createPieceTableSnapshot(text)
+								)
+						}
 					}
 				}
-			}
-			timeSync('apply-selection-state', ({ timeSync }) => {
-				batch(() => {
-					timeSync('set-selected-path', () => setSelectedPath(path))
-					timeSync('clear-error', () => setError(undefined))
-					timeSync('set-selected-file-size', () =>
-						setSelectedFileSize(fileSize)
-					)
-					timeSync('set-selected-file-preview-bytes', () =>
-						setSelectedFilePreviewBytes(previewBytes)
-					)
-					timeSync('set-selected-file-content', () =>
-						setSelectedFileContent(selectedFileContentValue)
-					)
-					if (pieceTableSnapshot) {
-						timeSync('set-piece-table', () =>
-							setPieceTable(path, pieceTableSnapshot)
+
+				timeSync('apply-selection-state', ({ timeSync }) => {
+					batch(() => {
+						timeSync('set-selected-path', () => setSelectedPath(path))
+						timeSync('clear-error', () => setError(undefined))
+						timeSync('set-selected-file-size', () =>
+							setSelectedFileSize(fileSize)
 						)
-					}
-					if (fileStatsResult) {
-						timeSync('set-file-stats', () =>
-							setFileStats(path, fileStatsResult)
+						timeSync('set-selected-file-preview-bytes', () =>
+							setSelectedFilePreviewBytes(previewBytes)
 						)
-					}
+						timeSync('set-selected-file-content', () =>
+							setSelectedFileContent(selectedFileContentValue)
+						)
+						if (pieceTableSnapshot) {
+							timeSync('set-piece-table', () =>
+								setPieceTable(path, pieceTableSnapshot)
+							)
+						}
+						if (fileStatsResult) {
+							timeSync('set-file-stats', () =>
+								setFileStats(path, fileStatsResult)
+							)
+						}
+					})
 				})
-			})
-		} catch (error) {
-			if (requestId !== selectRequestId) {
-				completionStatus = 'cancelled:error-stale'
-				return
+			},
+			{
+				metadata: { path, source: state.activeSource ?? DEFAULT_SOURCE }
 			}
-			completionStatus = 'error'
+		).catch(error => {
+			if (requestId !== selectRequestId) return
 			handleReadError(error)
-		} finally {
-			logDuration(completionStatus)
-			logger.debug(`File size: ${formatBytes(state.selectedFileSize ?? 0)}`)
-		}
+		})
 	}
 
 	const { createDir, createFile, deleteNode } = createFsMutations({

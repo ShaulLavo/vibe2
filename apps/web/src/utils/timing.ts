@@ -25,7 +25,8 @@ export type TimingTracker = {
 	timeAsync: TimingAsyncFn
 	log: (
 		status: string,
-		buildSummary: (totalDuration: number) => string
+		buildSummary: (totalDuration: number) => string,
+		extraInfo?: string
 	) => string
 	formatTable: () => string
 	getTotalDuration: () => number
@@ -93,7 +94,11 @@ export const createTimingTracker = (
 			untrackedThresholdMs
 		})
 
-	const log = (status: string, buildSummary: (total: number) => string) => {
+	const log = (
+		status: string,
+		buildSummary: (total: number) => string,
+		extraInfo?: string
+	) => {
 		const total = getTotalDuration()
 		const summary = buildSummary(total)
 		const breakdown = formatTimingTable({
@@ -101,7 +106,8 @@ export const createTimingTracker = (
 			totalDuration: total,
 			untrackedThresholdMs
 		})
-		const message = breakdown ? `${summary}\n${breakdown}` : summary
+		const parts = [summary, breakdown, extraInfo].filter(Boolean)
+		const message = parts.join('\n')
 		logger?.(message)
 		return message
 	}

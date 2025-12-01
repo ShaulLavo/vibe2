@@ -1,3 +1,4 @@
+import { trackSync } from '~/perf'
 import { analyzeFileBytes, type TextHeuristicDecision } from './textHeuristics'
 
 type NewlineKind = 'lf' | 'crlf' | 'cr' | 'mixed' | 'none'
@@ -1021,4 +1022,25 @@ const guessIndentWidth = (samples: number[]): number | null => {
 		}
 	}
 	return null
+}
+
+/**
+ * Tracked version of parseFileBuffer for standalone calls.
+ * Use this when calling parseFileBuffer outside of an already-tracked operation.
+ */
+export function parseFileBufferTracked(
+	text: string,
+	options: ParseOptions = {}
+): ParseResult {
+	return trackSync(
+		'parse:parseFileBuffer',
+		() => parseFileBuffer(text, options),
+		{
+			metadata: {
+				path: options.path,
+				textLength: text.length
+			},
+			persist: false // Don't persist micro-level parsing, it's tracked by parent
+		}
+	)
 }

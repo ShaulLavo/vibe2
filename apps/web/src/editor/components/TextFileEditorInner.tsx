@@ -351,9 +351,9 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 					autocomplete="off"
 					autocorrect="off"
 					spellcheck={false}
-					onInput={event => handleInput(event as unknown as InputEvent)}
-					onKeyDown={event => handleKeyDown(event as unknown as KeyboardEvent)}
-					onKeyUp={event => handleKeyUp(event as unknown as KeyboardEvent)}
+					onInput={handleInput}
+					onKeyDown={handleKeyDown}
+					onKeyUp={handleKeyUp}
 				/>
 				<div
 					style={{

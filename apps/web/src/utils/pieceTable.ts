@@ -1,3 +1,5 @@
+import { trackMicro } from '~/perf'
+
 export type PieceBufferId = 'original' | 'add'
 
 export type Piece = {
@@ -253,3 +255,52 @@ export const deleteFromPieceTable = (
 
 export const debugPieceTable = (snapshot: PieceTableSnapshot) =>
 	snapshot.pieces.map(piece => ({ ...piece }))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tracked versions for performance monitoring
+// These only log when operations exceed threshold (default 1ms)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PIECE_TABLE_TIMING_THRESHOLD = 1 // ms
+
+export const createPieceTableSnapshotTracked = (
+	original: string
+): PieceTableSnapshot =>
+	trackMicro(
+		'pieceTable:create',
+		() => createPieceTableSnapshot(original),
+		{ metadata: { length: original.length }, threshold: PIECE_TABLE_TIMING_THRESHOLD }
+	)
+
+export const getPieceTableTextTracked = (
+	snapshot: PieceTableSnapshot,
+	start = 0,
+	end?: number
+): string =>
+	trackMicro(
+		'pieceTable:getText',
+		() => getPieceTableText(snapshot, start, end),
+		{ metadata: { pieces: snapshot.pieces.length }, threshold: PIECE_TABLE_TIMING_THRESHOLD }
+	)
+
+export const insertIntoPieceTableTracked = (
+	snapshot: PieceTableSnapshot,
+	offset: number,
+	text: string
+): PieceTableSnapshot =>
+	trackMicro(
+		'pieceTable:insert',
+		() => insertIntoPieceTable(snapshot, offset, text),
+		{ metadata: { insertLength: text.length }, threshold: PIECE_TABLE_TIMING_THRESHOLD }
+	)
+
+export const deleteFromPieceTableTracked = (
+	snapshot: PieceTableSnapshot,
+	offset: number,
+	length: number
+): PieceTableSnapshot =>
+	trackMicro(
+		'pieceTable:delete',
+		() => deleteFromPieceTable(snapshot, offset, length),
+		{ metadata: { deleteLength: length }, threshold: PIECE_TABLE_TIMING_THRESHOLD }
+	)

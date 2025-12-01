@@ -6,6 +6,7 @@ import {
 	type FsTreeNode,
 	FsDirTreeNode
 } from '@repo/fs'
+import { trackOperation } from '~/perf'
 import type { FsSource } from '../types'
 import { OPFS_ROOT_NAME } from '../config/constants'
 import { collectFileHandles } from './fileHandles'
@@ -43,17 +44,23 @@ export function primeFsCache(
 }
 
 export async function buildTree(source: FsSource): Promise<FsDirTreeNode> {
-	const ctx = await ensureFs(source)
-	const root = await buildFsTree(
-		ctx,
-		{ path: '', name: OPFS_ROOT_NAME },
-		{ withHandles: true }
+	return trackOperation(
+		'fs:buildTree',
+		async ({ timeAsync, timeSync }) => {
+			const ctx = await timeAsync('ensure-fs', () => ensureFs(source))
+			const root = await timeAsync('build-fs-tree', () =>
+				buildFsTree(ctx, { path: '', name: OPFS_ROOT_NAME }, { withHandles: true })
+			)
+
+			timeSync('collect-file-handles', () => {
+				fileHandleCache.clear()
+				collectFileHandles(root)
+			})
+
+			return root
+		},
+		{ metadata: { source } }
 	)
-
-	fileHandleCache.clear()
-	collectFileHandles(root)
-
-	return root
 }
 
 export {

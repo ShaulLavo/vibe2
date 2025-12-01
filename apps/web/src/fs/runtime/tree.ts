@@ -1,4 +1,7 @@
 import type { FsDirTreeNode, FsTreeNode } from '@repo/fs'
+import { trackMicro } from '~/perf'
+
+const TREE_TIMING_THRESHOLD = 1 // ms
 
 export function findNode(
 	root?: FsDirTreeNode,
@@ -23,4 +26,18 @@ export function findNode(
 	}
 
 	return undefined
+}
+
+/**
+ * Tracked version of findNode that logs slow lookups
+ */
+export function findNodeTracked(
+	root?: FsDirTreeNode,
+	path?: string
+): FsTreeNode | undefined {
+	return trackMicro(
+		'tree:findNode',
+		() => findNode(root, path),
+		{ metadata: { path }, threshold: TREE_TIMING_THRESHOLD }
+	)
 }
