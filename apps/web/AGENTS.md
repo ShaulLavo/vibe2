@@ -22,7 +22,7 @@
 ## Logging
 - Use the consola-based logger from `~/logger` (`logger` instance) for all runtime logging.
 - Prefer tagged loggers via `logger.withTag('feature')` instead of raw `console.*`.
-- Avoid `console.log`, `console.error`, and other `console.*` calls in app code; reserve direct console usage only for very short-lived debugging.*** End Patch ***!
+- Avoid `console.log`, `console.error`, and other `console.*` calls in app code; reserve direct console usage only for very short-lived debugging.
 
 ## Testing Guidelines
 - When adding tests, prefer Vitest colocated next to source files (e.g. `ComponentName.test.tsx`).
