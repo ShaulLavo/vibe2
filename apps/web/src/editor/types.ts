@@ -24,7 +24,10 @@ export type VirtualizedRowProps = {
 	columns: VirtualItem[]
 	totalColumnWidth: number
 	lineHeight: number
+	fontSize: number
+	fontFamily: string
 	onRowClick: (entry: LineEntry) => void
+	onPreciseClick: (lineIndex: number, column: number) => void
 	isActive: boolean
 }
 
@@ -35,9 +38,11 @@ export type VirtualizedRowsProps = {
 	totalColumnWidth: Accessor<number>
 	rowVirtualizer: Virtualizer<HTMLDivElement, HTMLDivElement>
 	lineHeight: Accessor<number>
+	fontSize: Accessor<number>
+	fontFamily: Accessor<string>
 	onRowClick: (entry: LineEntry) => void
+	onPreciseClick: (lineIndex: number, column: number) => void
 	activeLineIndex: Accessor<number | null>
 }
 
 export type TextFileEditorProps = EditorProps
-

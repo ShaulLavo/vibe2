@@ -1,16 +1,68 @@
 /* eslint-disable solid/prefer-for */
 import { COLUMN_CHARS_PER_ITEM } from '../consts'
+import { measureCharWidth } from '../utils'
 import type {
 	LineEntry,
 	VirtualizedRowProps,
 	VirtualizedRowsProps
 } from '../types'
 
+/**
+ * Calculate the column from a click X position within the text area
+ */
+const calculateColumnFromClick = (
+	clickX: number,
+	charWidth: number,
+	maxColumn: number
+): number => {
+	// Round to nearest character (not floor) for better UX
+	const column = Math.round(clickX / charWidth)
+	return Math.max(0, Math.min(column, maxColumn))
+}
+
 export const VirtualizedRow = (props: VirtualizedRowProps) => {
 	let rowElement: HTMLDivElement | null = null
+	let textContentElement: HTMLDivElement | null = null
 
 	const measure = () => {
 		props.rowVirtualizer.measureElement(rowElement)
+	}
+
+	const handleClick = (event: MouseEvent) => {
+		// Only treat as a caret move on a plain left-click with no modifiers
+		if (
+			event.button !== 0 ||
+			event.shiftKey ||
+			event.ctrlKey ||
+			event.metaKey
+		) {
+			return
+		}
+
+		const selection = window.getSelection()
+		if (selection && !selection.isCollapsed) {
+			// User has text selected, don't move cursor
+			return
+		}
+
+		// Calculate precise click position
+		if (textContentElement) {
+			const rect = textContentElement.getBoundingClientRect()
+			const clickX = event.clientX - rect.left
+			const charWidth = measureCharWidth(props.fontSize, props.fontFamily)
+
+			// Calculate column from click position
+			const column = calculateColumnFromClick(
+				clickX,
+				charWidth,
+				props.entry.text.length
+			)
+
+			props.onPreciseClick(props.entry.index, column)
+		} else {
+			// Fallback to old behavior
+			props.onRowClick(props.entry)
+		}
 	}
 
 	return (
@@ -28,28 +80,17 @@ export const VirtualizedRow = (props: VirtualizedRowProps) => {
 			}}
 		>
 			<div
-				class="flex items-start gap-4 px-3 py-1 text-zinc-100"
+				class="flex items-start gap-4 px-3 text-zinc-100"
 				classList={{ 'bg-zinc-900/60': props.isActive }}
-				onClick={event => {
-					// Only treat as a caret move on a plain left-click with no modifiers and no active text selection.
-					if (
-						event.button !== 0 ||
-						event.shiftKey ||
-						event.ctrlKey ||
-						event.metaKey
-					) {
-						return
-					}
-					const selection = window.getSelection()
-					if (!selection || selection.isCollapsed) {
-						props.onRowClick(props.entry)
-					}
-				}}
+				onClick={handleClick}
 			>
 				<span class="w-10 shrink-0 text-right text-[11px] font-semibold tracking-[0.08em] text-zinc-500 tabular-nums">
 					{props.entry.index + 1}
 				</span>
 				<div
+					ref={el => {
+						textContentElement = el
+					}}
 					class="relative h-full whitespace-pre"
 					style={{
 						width: `${props.totalColumnWidth}px`,
@@ -95,7 +136,10 @@ export const VirtualizedRows = (props: VirtualizedRowsProps) => {
 						columns={props.columns()}
 						totalColumnWidth={props.totalColumnWidth()}
 						lineHeight={props.lineHeight()}
+						fontSize={props.fontSize()}
+						fontFamily={props.fontFamily()}
 						onRowClick={props.onRowClick}
+						onPreciseClick={props.onPreciseClick}
 						isActive={props.activeLineIndex() === entry.index}
 					/>
 				)
