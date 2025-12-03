@@ -45,6 +45,129 @@ export function FsProvider(props: { children: JSX.Element }) {
 		clearPieceTables
 	} = createFsState()
 
+	const subtreeLoads = new Map<string, Promise<void>>()
+
+	const buildEnsurePaths = () => {
+		const paths = new Set<string>()
+		const selectedNode = state.selectedNode
+		if (selectedNode?.kind === 'file') {
+			paths.add(selectedNode.path)
+		}
+		const lastFilePath = state.lastKnownFilePath
+		if (lastFilePath) {
+			paths.add(lastFilePath)
+		}
+		return Array.from(paths)
+	}
+
+	const normalizeDirNodeMetadata = (
+		node: FsDirTreeNode,
+		parentPath: string | undefined,
+		depth: number
+	): FsDirTreeNode => {
+		const childParentPath = node.path || undefined
+		return {
+			...node,
+			parentPath,
+			depth,
+			children: node.children.map(child => {
+				if (child.kind === 'dir') {
+					return normalizeDirNodeMetadata(child, childParentPath, depth + 1)
+				}
+
+				return {
+					...child,
+					parentPath: childParentPath,
+					depth: depth + 1
+				}
+			})
+		}
+	}
+
+	const replaceDirNodeInTree = (
+		current: FsDirTreeNode,
+		targetPath: string,
+		replacement: FsDirTreeNode
+	): FsDirTreeNode => {
+		if (current.path === targetPath) {
+			return replacement
+		}
+
+		let changed = false
+		const children = current.children.map(child => {
+			if (child.kind !== 'dir') return child
+			const shouldDescend =
+				child.path === targetPath || targetPath.startsWith(`${child.path}/`)
+			if (!shouldDescend) return child
+			const next = replaceDirNodeInTree(child, targetPath, replacement)
+			if (next !== child) {
+				changed = true
+			}
+			return next
+		})
+
+		if (!changed) {
+			return current
+		}
+
+		return {
+			...current,
+			children
+		}
+	}
+
+	const setDirNode = (path: string, node: FsDirTreeNode) => {
+		if (!state.tree) return
+		if (!path) {
+			setTree(() => node)
+			return
+		}
+		const nextTree = replaceDirNodeInTree(state.tree, path, node)
+		if (nextTree === state.tree) return
+		setTree(() => nextTree)
+	}
+
+	const ensureDirLoaded = (path: string) => {
+		if (!state.tree) return
+		const existing = findNode(state.tree, path)
+		if (!existing || existing.kind !== 'dir') return
+		if (existing.isLoaded !== false) return
+		const inflight = subtreeLoads.get(path)
+		if (inflight) return inflight
+
+		const expandedSnapshot = { ...state.expanded, [path]: true }
+		const ensurePaths = buildEnsurePaths()
+		const load = (async () => {
+			try {
+				const subtree = await buildTree(state.activeSource ?? DEFAULT_SOURCE, {
+					rootPath: path,
+					expandedPaths: expandedSnapshot,
+					ensurePaths,
+					operationName: 'fs:buildSubtree'
+				})
+				const latest = state.tree ? findNode(state.tree, path) : undefined
+				if (!latest || latest.kind !== 'dir') return
+				const normalized = normalizeDirNodeMetadata(
+					subtree,
+					latest.parentPath,
+					latest.depth
+				)
+				setDirNode(path, normalized)
+			} catch (error) {
+				setError(
+					error instanceof Error
+						? error.message
+						: 'Failed to load directory contents'
+				)
+			} finally {
+				subtreeLoads.delete(path)
+			}
+		})()
+
+		subtreeLoads.set(path, load)
+		return load
+	}
+
 	let selectRequestId = 0
 	const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 100 // 100 MB
 
@@ -69,9 +192,13 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setLoading(true)
 		clearParseResults()
 		clearPieceTables()
+		const ensurePaths = buildEnsurePaths()
 
 		try {
-			const built = await buildTree(source)
+			const built = await buildTree(source, {
+				expandedPaths: state.expanded,
+				ensurePaths
+			})
 			const restorablePath = getRestorableFilePath(built)
 
 			batch(() => {
@@ -83,6 +210,12 @@ export function FsProvider(props: { children: JSX.Element }) {
 				}))
 				setError(undefined)
 			})
+
+			for (const [expandedPath, isOpen] of Object.entries(state.expanded)) {
+				if (isOpen) {
+					void ensureDirLoaded(expandedPath)
+				}
+			}
 
 			if (restorablePath) {
 				await selectPath(restorablePath, { forceReload: true })
@@ -97,10 +230,14 @@ export function FsProvider(props: { children: JSX.Element }) {
 	}
 
 	const toggleDir = (path: string) => {
+		const next = !state.expanded[path]
 		batch(() => {
-			setExpanded(path, prev => !prev)
+			setExpanded(path, next)
 			setSelectedPath(path)
 		})
+		if (next) {
+			void ensureDirLoaded(path)
+		}
 	}
 
 	const handleReadError = (error: unknown) => {

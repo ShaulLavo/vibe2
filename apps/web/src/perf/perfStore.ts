@@ -37,7 +37,7 @@ type PerfStoreData = {
 
 const STORAGE_KEY = 'perf-history'
 const STORAGE_VERSION = 1
-const DEFAULT_MAX_ENTRIES = 500
+const DEFAULT_MAX_ENTRIES = Infinity
 
 let cachedData: PerfStoreData | null = null
 let maxEntries = DEFAULT_MAX_ENTRIES
@@ -104,7 +104,9 @@ export const record = async (
 	return newRecord
 }
 
-export const getHistory = async (filter?: PerfFilter): Promise<PerfRecord[]> => {
+export const getHistory = async (
+	filter?: PerfFilter
+): Promise<PerfRecord[]> => {
 	let { records } = await loadData()
 
 	if (filter?.name) {
@@ -130,7 +132,9 @@ const percentile = (sorted: number[], p: number): number => {
 	return sorted[Math.max(0, index)]!
 }
 
-export const getSummary = async (filter?: PerfFilter): Promise<PerfSummary[]> => {
+export const getSummary = async (
+	filter?: PerfFilter
+): Promise<PerfSummary[]> => {
 	const records = await getHistory(filter)
 
 	const grouped = new Map<string, number[]>()

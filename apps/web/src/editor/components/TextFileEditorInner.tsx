@@ -158,7 +158,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 						<div
 							class="sticky left-0 z-10 bg-zinc-950"
 							style={{
-								width: `${LINE_NUMBER_WIDTH + CONTENT_GAP + EDITOR_PADDING_LEFT}px`
+								width: `${LINE_NUMBER_WIDTH}px`
 							}}
 						>
 							<div

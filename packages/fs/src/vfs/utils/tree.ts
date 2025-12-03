@@ -41,7 +41,8 @@ export async function buildFsTree(
 		withHandles = false,
 		withFileMeta = false,
 		filter,
-		signal
+		signal,
+		shouldDescend
 	} = options ?? {}
 
 	const shouldInclude = async (
@@ -119,7 +120,8 @@ export async function buildFsTree(
 			depth,
 			parentPath,
 			children: [],
-			handle: withHandles ? handle : undefined
+			handle: withHandles ? handle : undefined,
+			isLoaded: true
 		}
 
 		if (!(await shouldInclude(dirNode, isRoot))) {
@@ -127,7 +129,16 @@ export async function buildFsTree(
 		}
 
 		if (depth >= maxDepth) {
+			dirNode.isLoaded = false
 			return dirNode
+		}
+
+		if (shouldDescend) {
+			const canDescend = await shouldDescend(dirNode)
+			if (!canDescend) {
+				dirNode.isLoaded = false
+				return dirNode
+			}
 		}
 
 		type ChildResult = FsTreeNode | undefined
@@ -185,6 +196,7 @@ export async function buildFsTree(
 				})
 		}
 
+		dirNode.isLoaded = true
 		return dirNode
 	}
 
