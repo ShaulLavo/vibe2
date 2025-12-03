@@ -5,7 +5,7 @@ import {
 	getRootDirectory,
 	type FsContext as VfsContext
 } from '@repo/fs'
-import logger from '~/logger'
+import { logger } from '~/logger'
 import { trackOperation } from '~/perf'
 import { OPFS_ROOT_NAME } from '../config/constants'
 import type { FsSource } from '../types'

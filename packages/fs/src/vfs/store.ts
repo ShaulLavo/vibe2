@@ -54,6 +54,7 @@ class VfsStoreImpl implements VfsStore {
 	#indexCache: Map<string, ItemPointer> | null = null
 	#loadingIndex: Promise<Map<string, ItemPointer>> | null = null
 	#queue: Promise<void> = Promise.resolve()
+	#isRunning = false
 
 	constructor(indexFile: VFile, dataFile: VFile) {
 		this.#indexFile = indexFile
@@ -133,8 +134,9 @@ class VfsStoreImpl implements VfsStore {
 	): Promise<U | undefined> {
 		return this.#enqueue(async () => {
 			const index = await this.#ensureIndex()
+			const entries = Array.from(index.entries())
 			let iterationNumber = 1
-			for (const [key, pointer] of index.entries()) {
+			for (const [key, pointer] of entries) {
 				const value = (await this.#readValueAt(pointer)) as T
 				const result = await iteratee(value, key, iterationNumber++)
 				if (result !== undefined) {
@@ -145,12 +147,26 @@ class VfsStoreImpl implements VfsStore {
 		})
 	}
 
+	// Serialized but re-entrant queue so nested store calls run inline to avoid deadlocks.
 	#enqueue<T>(operation: () => Promise<T>): Promise<T> {
-		const run = this.#queue.then(() => operation())
+		if (this.#isRunning) {
+			return operation()
+		}
+
+		const run = this.#queue.then(async () => {
+			this.#isRunning = true
+			try {
+				return await operation()
+			} finally {
+				this.#isRunning = false
+			}
+		})
+
 		this.#queue = run.then(
 			() => undefined,
 			() => undefined
 		)
+
 		return run
 	}
 
