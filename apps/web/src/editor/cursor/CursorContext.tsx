@@ -55,15 +55,12 @@ export type CursorProviderProps = {
 }
 
 export function CursorProvider(props: CursorProviderProps) {
-	// Store cursor states per file path
 	const [cursorStates, setCursorStates] = createStore<
 		Record<string, CursorState>
 	>({})
 
-	// Reactive memo for current file path
 	const currentPath = createMemo(() => props.filePath())
 
-	// Reactive memo for current cursor state
 	const currentState = createMemo((): CursorState => {
 		const path = currentPath()
 		if (!path) {
@@ -72,7 +69,6 @@ export function CursorProvider(props: CursorProviderProps) {
 		return cursorStates[path] ?? createDefaultCursorState()
 	})
 
-	// Update cursor state for current file
 	const updateCurrentState = (
 		updater: (prev: CursorState) => Partial<CursorState>
 	) => {
@@ -84,7 +80,6 @@ export function CursorProvider(props: CursorProviderProps) {
 		setCursorStates(path, { ...current, ...updates })
 	}
 
-	// Initialize cursor state when file changes
 	createEffect(
 		on(currentPath, path => {
 			if (!path) return
@@ -94,7 +89,6 @@ export function CursorProvider(props: CursorProviderProps) {
 		})
 	)
 
-	// Clamp cursor when document length changes (e.g., after edits)
 	createEffect(
 		on(
 			() => props.documentLength(),
@@ -250,9 +244,9 @@ export function CursorProvider(props: CursorProviderProps) {
 			return currentState()
 		},
 		actions,
-		lineEntries: props.lineEntries,
-		documentText: props.documentText,
-		documentLength: props.documentLength
+		lineEntries: () => props.lineEntries(),
+		documentText: () => props.documentText(),
+		documentLength: () => props.documentLength()
 	}
 
 	return (

@@ -1,10 +1,7 @@
 import type { LineEntry } from '../types'
-import type { CursorPosition, CursorNavigationContext } from './types'
+import type { CursorPosition } from './types'
 import { createCursorPosition } from './types'
 
-/**
- * Convert an absolute offset to a line/column position
- */
 export const offsetToPosition = (
 	offset: number,
 	lineEntries: LineEntry[]
@@ -13,36 +10,36 @@ export const offsetToPosition = (
 		return createCursorPosition(0, 0, 0)
 	}
 
-	// Clamp offset to valid range
-	const clampedOffset = Math.max(0, offset)
+	const lastEntryIndex = lineEntries.length - 1
+	const lastEntry = lineEntries[lastEntryIndex]!
+	const documentEnd = lastEntry.start + lastEntry.length
 
-	for (let i = 0; i < lineEntries.length; i++) {
-		const entry = lineEntries[i]!
-		const lineEnd = entry.start + entry.length
+	const positiveOffset = Math.max(0, offset)
+	const lookupOffset = Math.min(positiveOffset, documentEnd)
 
-		// Check if offset falls within this line (including the newline if present)
-		if (clampedOffset < lineEnd || i === lineEntries.length - 1) {
-			const column = Math.min(clampedOffset - entry.start, entry.text.length)
-			return createCursorPosition(
-				clampedOffset,
-				entry.index,
-				Math.max(0, column)
-			)
+	let low = 0
+	let high = lastEntryIndex
+	let lineIndex = 0
+
+	while (low <= high) {
+		const mid = (low + high) >> 1
+		const entry = lineEntries[mid]!
+
+		if (entry.start <= lookupOffset) {
+			lineIndex = mid
+			low = mid + 1
+		} else {
+			high = mid - 1
 		}
 	}
 
-	// Fallback: position at end of last line
-	const lastEntry = lineEntries[lineEntries.length - 1]!
-	return createCursorPosition(
-		lastEntry.start + lastEntry.text.length,
-		lastEntry.index,
-		lastEntry.text.length
-	)
+	const entry = lineEntries[lineIndex]!
+	const relativeOffset = Math.max(0, lookupOffset - entry.start)
+	const column = Math.min(relativeOffset, entry.text.length)
+
+	return createCursorPosition(lookupOffset, entry.index, column)
 }
 
-/**
- * Convert a line/column position to an absolute offset
- */
 export const positionToOffset = (
 	line: number,
 	column: number,
@@ -59,9 +56,6 @@ export const positionToOffset = (
 	return entry.start + clampedColumn
 }
 
-/**
- * Move cursor vertically (ArrowUp/ArrowDown) while preserving preferred column
- */
 export const moveVertically = (
 	position: CursorPosition,
 	direction: 'up' | 'down',
@@ -77,26 +71,21 @@ export const moveVertically = (
 			? Math.max(0, position.line - 1)
 			: Math.min(lineEntries.length - 1, position.line + 1)
 
-	// If we can't move (at top/bottom), return unchanged
 	if (targetLine === position.line) {
 		return { position, preferredColumn }
 	}
 
 	const targetEntry = lineEntries[targetLine]!
-	// Use preferredColumn to determine actual column (clamped to line length)
+
 	const targetColumn = Math.min(preferredColumn, targetEntry.text.length)
 	const newOffset = targetEntry.start + targetColumn
 
 	return {
 		position: createCursorPosition(newOffset, targetLine, targetColumn),
-		preferredColumn // Keep the same preferred column
+		preferredColumn
 	}
 }
 
-/**
- * Move cursor by multiple lines at once (for PageUp/PageDown)
- * Positive delta moves down, negative moves up
- */
 export const moveByLines = (
 	position: CursorPosition,
 	delta: number,
@@ -112,25 +101,21 @@ export const moveByLines = (
 		Math.min(lineEntries.length - 1, position.line + delta)
 	)
 
-	// If we can't move (at top/bottom), return unchanged
 	if (targetLine === position.line) {
 		return { position, preferredColumn }
 	}
 
 	const targetEntry = lineEntries[targetLine]!
-	// Use preferredColumn to determine actual column (clamped to line length)
+
 	const targetColumn = Math.min(preferredColumn, targetEntry.text.length)
 	const newOffset = targetEntry.start + targetColumn
 
 	return {
 		position: createCursorPosition(newOffset, targetLine, targetColumn),
-		preferredColumn // Keep the same preferred column
+		preferredColumn
 	}
 }
 
-/**
- * Move cursor to the start of the current line
- */
 export const moveToLineStart = (
 	position: CursorPosition,
 	lineEntries: LineEntry[]
@@ -147,9 +132,6 @@ export const moveToLineStart = (
 	return createCursorPosition(entry.start, position.line, 0)
 }
 
-/**
- * Move cursor to the end of the current line
- */
 export const moveToLineEnd = (
 	position: CursorPosition,
 	lineEntries: LineEntry[]
@@ -167,16 +149,10 @@ export const moveToLineEnd = (
 	return createCursorPosition(entry.start + endColumn, position.line, endColumn)
 }
 
-/**
- * Move cursor to the start of the document
- */
 export const moveToDocStart = (): CursorPosition => {
 	return createCursorPosition(0, 0, 0)
 }
 
-/**
- * Move cursor to the end of the document
- */
 export const moveToDocEnd = (lineEntries: LineEntry[]): CursorPosition => {
 	if (lineEntries.length === 0) {
 		return createCursorPosition(0, 0, 0)
@@ -191,33 +167,24 @@ export const moveToDocEnd = (lineEntries: LineEntry[]): CursorPosition => {
 	)
 }
 
-/**
- * Check if a character is a word character (alphanumeric or underscore)
- */
 const isWordChar = (char: string): boolean => {
 	return /[\w]/.test(char)
 }
 
-/**
- * Find the next word boundary moving left
- */
 export const findWordBoundaryLeft = (text: string, offset: number): number => {
 	if (offset <= 0) return 0
 
 	let pos = offset - 1
 
-	// Skip any whitespace
 	while (pos > 0 && /\s/.test(text[pos]!)) {
 		pos--
 	}
 
-	// If we're on a word char, skip to start of word
 	if (pos >= 0 && isWordChar(text[pos]!)) {
 		while (pos > 0 && isWordChar(text[pos - 1]!)) {
 			pos--
 		}
 	} else if (pos >= 0) {
-		// We're on a non-word, non-space char - skip similar chars
 		const currentChar = text[pos]!
 		while (
 			pos > 0 &&
@@ -231,21 +198,16 @@ export const findWordBoundaryLeft = (text: string, offset: number): number => {
 	return pos
 }
 
-/**
- * Find the next word boundary moving right
- */
 export const findWordBoundaryRight = (text: string, offset: number): number => {
 	if (offset >= text.length) return text.length
 
 	let pos = offset
 
-	// If on word char, skip to end of word
 	if (isWordChar(text[pos]!)) {
 		while (pos < text.length && isWordChar(text[pos]!)) {
 			pos++
 		}
 	} else if (!/\s/.test(text[pos]!)) {
-		// On non-word, non-space - skip similar
 		while (
 			pos < text.length &&
 			!isWordChar(text[pos]!) &&
@@ -255,7 +217,6 @@ export const findWordBoundaryRight = (text: string, offset: number): number => {
 		}
 	}
 
-	// Skip whitespace after
 	while (pos < text.length && /\s/.test(text[pos]!)) {
 		pos++
 	}
@@ -263,9 +224,6 @@ export const findWordBoundaryRight = (text: string, offset: number): number => {
 	return pos
 }
 
-/**
- * Move cursor by word in the given direction
- */
 export const moveByWord = (
 	position: CursorPosition,
 	direction: 'left' | 'right',
@@ -280,9 +238,6 @@ export const moveByWord = (
 	return offsetToPosition(newOffset, lineEntries)
 }
 
-/**
- * Move cursor left by one character
- */
 export const moveCursorLeft = (
 	position: CursorPosition,
 	lineEntries: LineEntry[]
@@ -293,9 +248,6 @@ export const moveCursorLeft = (
 	return offsetToPosition(position.offset - 1, lineEntries)
 }
 
-/**
- * Move cursor right by one character
- */
 export const moveCursorRight = (
 	position: CursorPosition,
 	documentLength: number,
@@ -307,10 +259,6 @@ export const moveCursorRight = (
 	return offsetToPosition(position.offset + 1, lineEntries)
 }
 
-/**
- * Calculate the pixel X position for a cursor at a given column
- * Uses estimated character width (monospace assumption)
- */
 export const calculateCursorX = (
 	column: number,
 	fontSize: number,
@@ -319,10 +267,6 @@ export const calculateCursorX = (
 	return column * fontSize * charWidthRatio
 }
 
-/**
- * Calculate the column from a click X position
- * Uses estimated character width (monospace assumption)
- */
 export const calculateColumnFromX = (
 	x: number,
 	fontSize: number,
