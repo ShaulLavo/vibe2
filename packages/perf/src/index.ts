@@ -4,9 +4,9 @@ export {
 	trackSync,
 	trackMicro,
 	createOperationTracker,
-	PERF_TRACKING_ENABLED,
 	type TimingControls
 } from './perfTracker'
+export { PERF_TRACKING_ENABLED, setPerfTrackingEnabled } from './config'
 
 // Store functions
 export {

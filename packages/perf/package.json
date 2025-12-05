@@ -6,7 +6,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@repo/env": "*",
     "@repo/logger": "*",
     "localforage": "^1.10.0"
   },

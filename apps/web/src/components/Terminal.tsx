@@ -1,13 +1,19 @@
 import '@xterm/xterm/css/xterm.css'
 import { onCleanup, onMount, type Component } from 'solid-js'
 import { createTerminalController } from '../terminal/terminalController'
+import { useFocusManager } from '~/focus/focusManager'
 
 export const Terminal: Component = () => {
 	let containerRef: HTMLDivElement = null!
+	const focus = useFocusManager()
 
 	onMount(() => {
-		const dispose = createTerminalController(containerRef)
-		onCleanup(dispose)
+		const disposeTerminal = createTerminalController(containerRef)
+		const unregisterFocus = focus.registerArea('terminal', () => containerRef)
+		onCleanup(() => {
+			disposeTerminal()
+			unregisterFocus()
+		})
 	})
 
 	return (

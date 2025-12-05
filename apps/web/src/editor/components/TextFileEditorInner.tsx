@@ -1,4 +1,4 @@
-import { Show, createEffect, on } from 'solid-js'
+import { Show, createEffect, on, onCleanup, onMount } from 'solid-js'
 import { useFs } from '../../fs/context/FsContext'
 import { Lines } from './Lines'
 import { Cursor } from './Cursor'
@@ -11,6 +11,7 @@ import {
 	createTextEditorLayout
 } from '../hooks'
 import type { LineEntry, TextFileEditorProps } from '../types'
+import { useFocusManager } from '~/focus/focusManager'
 
 export const TextFileEditorInner = (props: TextFileEditorProps) => {
 	const [state, { updateSelectedFilePieceTable }] = useFs()
@@ -19,6 +20,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 	const cursorActions = cursor.actions
 	const lineEntries = cursor.lineEntries
 	const pieceTableText = cursor.documentText
+	const focus = useFocusManager()
 
 	let scrollElement: HTMLDivElement = null!
 	let inputElement: HTMLTextAreaElement = null!
@@ -98,6 +100,12 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		if (!isEditable()) return
 		input.focusInput()
 	}
+
+	onMount(() => {
+		if (!scrollElement) return
+		const unregister = focus.registerArea('editor', () => scrollElement)
+		onCleanup(unregister)
+	})
 
 	return (
 		<Show

@@ -1,8 +1,16 @@
-import { For, Show, createMemo } from 'solid-js'
+import {
+	For,
+	Show,
+	createEffect,
+	createMemo,
+	createSignal,
+	onCleanup
+} from 'solid-js'
 import { useFs } from '../../fs/context/FsContext'
 import type { FsSource } from '../../fs/types'
 import { SelectedFilePanel } from './SelectedFilePanel'
 import { TreeView } from './TreeView'
+import { useFocusManager } from '~/focus/focusManager'
 
 const SOURCE_OPTIONS: { id: FsSource; label: string }[] = [
 	{ id: 'local', label: 'Open Local Folder' },
@@ -12,6 +20,8 @@ const SOURCE_OPTIONS: { id: FsSource; label: string }[] = [
 
 export const Fs = () => {
 	const [state, actions] = useFs()
+	const focus = useFocusManager()
+	const [treePanel, setTreePanel] = createSignal<HTMLDivElement | undefined>()
 
 	const activeDirPath = createMemo(() => {
 		const node = state.selectedNode
@@ -26,6 +36,13 @@ export const Fs = () => {
 				? 'border-emerald-400/60 bg-emerald-500/10 text-emerald-100 shadow-sm'
 				: 'border-zinc-700/70 bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
 		].join(' ')
+
+	createEffect(() => {
+		const panel = treePanel()
+		if (!panel) return
+		const unregister = focus.registerArea('fileTree', () => panel)
+		onCleanup(unregister)
+	})
 
 	return (
 		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-800/70 bg-zinc-950/60 shadow-xl">
@@ -73,7 +90,13 @@ export const Fs = () => {
 			</Show>
 
 			<div class="flex flex-1 min-h-0">
-				<div class="w-72 min-h-0 overflow-auto border-r border-zinc-800/70 bg-zinc-950/60 px-3 py-2">
+				<div
+					class="w-72 min-h-0 overflow-auto border-r border-zinc-800/70 bg-zinc-950/60 px-3 py-2"
+					ref={el => {
+						setTreePanel(el)
+						onCleanup(() => setTreePanel(undefined))
+					}}
+				>
 					<TreeView tree={() => state.tree} loading={() => state.loading} />
 				</div>
 				<div class="flex-1 min-h-0 overflow-auto bg-zinc-950/30 px-3 py-2">

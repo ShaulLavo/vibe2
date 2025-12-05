@@ -2,6 +2,7 @@ import { createMemo } from 'solid-js'
 import { useFs } from '~/fs/context/FsContext'
 import type { FsSource } from '~/fs/types'
 import { formatBytes } from '@repo/utils'
+import { useFocusManager, type FocusArea } from '~/focus/focusManager'
 
 const SOURCE_LABELS: Record<FsSource, string> = {
 	local: 'Local Folder',
@@ -9,8 +10,23 @@ const SOURCE_LABELS: Record<FsSource, string> = {
 	memory: 'In-Memory'
 }
 
+const FOCUS_LABELS: Record<FocusArea, string> = {
+	global: 'Global',
+	editor: 'Editor',
+	terminal: 'Terminal',
+	fileTree: 'File Tree'
+}
+
+const FOCUS_BADGE_STYLES: Record<FocusArea, string> = {
+	global: 'border-zinc-700/60 bg-zinc-900 text-zinc-200',
+	editor: 'border-blue-500/40 bg-blue-500/10 text-blue-100',
+	terminal: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200',
+	fileTree: 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+}
+
 export const StatusBar = () => {
 	const [state] = useFs()
+	const focus = useFocusManager()
 
 	const filePath = createMemo(() => state.selectedPath ?? 'No file selected')
 
@@ -38,6 +54,14 @@ export const StatusBar = () => {
 		return {
 			label: state.selectedPath ? 'Ready' : 'Idle',
 			class: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
+		}
+	})
+
+	const focusDescriptor = createMemo(() => {
+		const area = focus.activeArea()
+		return {
+			label: FOCUS_LABELS[area] ?? 'Global',
+			class: FOCUS_BADGE_STYLES[area] ?? FOCUS_BADGE_STYLES.global
 		}
 	})
 
@@ -77,6 +101,17 @@ export const StatusBar = () => {
 						class={`rounded border px-2 py-0.5 text-[11px] font-semibold ${statusIndicator().class}`}
 					>
 						{statusIndicator().label}
+					</span>
+				</div>
+
+				<div class="flex items-center gap-2 text-sm">
+					<span class="text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+						Focus
+					</span>
+					<span
+						class={`rounded border px-2 py-0.5 text-[11px] font-semibold transition duration-150 ${focusDescriptor().class}`}
+					>
+						{focusDescriptor().label}
 					</span>
 				</div>
 			</div>

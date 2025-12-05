@@ -3,12 +3,11 @@ import {
 	type TimingControls,
 	type TimingTracker
 } from './timing'
-import { PERF_TRACKING_ENABLED } from '@repo/env'
+import { PERF_TRACKING_ENABLED } from './config'
 import { record, type PerfBreakdownEntry, type PerfRecord } from './perfStore'
 import { logOperation, logOperationSimple } from './perfLogger'
 
 export type { TimingControls }
-export { PERF_TRACKING_ENABLED }
 
 type TrackOptions = {
 	metadata?: Record<string, unknown>
