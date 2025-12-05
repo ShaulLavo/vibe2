@@ -16,11 +16,9 @@ const getImportMetaEnv = (): EnvRecord => {
 	}
 }
 
-const booleanString = z.stringbool().optional()
-
 const envSchema = z.object({
-	PERF_TRACKING_ENABLED: booleanString,
-	VITE_PERF_TRACKING: booleanString
+	PERF_TRACKING_ENABLED: z.stringbool().optional(),
+	VITE_PERF_TRACKING: z.stringbool().optional()
 })
 
 const envData = envSchema.parse({
