@@ -10,15 +10,17 @@ const getProcessEnv = (): EnvRecord => {
 
 const getImportMetaEnv = (): EnvRecord => {
 	try {
-		return ((import.meta as { env?: EnvRecord })?.env) ?? {}
+		return import.meta.env ?? {}
 	} catch {
 		return {}
 	}
 }
 
+const booleanString = z.stringbool().optional()
+
 const envSchema = z.object({
-	PERF_TRACKING_ENABLED: z.coerce.boolean().optional(),
-	VITE_PERF_TRACKING: z.coerce.boolean().optional()
+	PERF_TRACKING_ENABLED: booleanString,
+	VITE_PERF_TRACKING: booleanString
 })
 
 const envData = envSchema.parse({
@@ -28,7 +30,7 @@ const envData = envSchema.parse({
 
 export const perfEnv = {
 	perfTrackingEnabled:
-		envData.PERF_TRACKING_ENABLED ?? envData.VITE_PERF_TRACKING ?? true
+		envData.PERF_TRACKING_ENABLED ?? envData.VITE_PERF_TRACKING ?? false
 }
 
 export type PerfEnv = typeof perfEnv

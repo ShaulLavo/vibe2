@@ -35,7 +35,10 @@ export function createKeymapController<TContext = unknown>(
 	const keybindings = createKeybindingRegistry()
 	const commands = createCommandRegistry<TContext>()
 
-	let activeScopes = options.initialScopes?.slice() ?? ['global']
+	let activeScopes =
+		options.initialScopes && options.initialScopes.length > 0
+			? options.initialScopes.slice()
+			: ['global']
 	let target: KeyboardEventTarget | null = null
 	const onMatchListeners = new Set<MatchListener>()
 	const onExecuteListeners = new Set<ExecuteListener<TContext>>()
