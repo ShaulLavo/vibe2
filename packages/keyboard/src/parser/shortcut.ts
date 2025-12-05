@@ -1,13 +1,14 @@
 import { normalizeCombo } from './combo'
 import { contentKeyMapper, parseKeyToken } from './keyUtils'
 import { parseModifiers } from './modifierUtils'
+import { detectPlatform } from './platform'
 import type { KeyCombo, Modifier, Platform, ShortcutSequence } from './types'
 
 export function parseShortcut(
 	s: string,
 	opts: { platform?: Platform; treatEqualAsDistinct?: boolean } = {}
 ): KeyCombo {
-	const platform = opts.platform ?? 'mac'
+	const platform = opts.platform ?? detectPlatform()
 	const treatEqualAsDistinct = opts.treatEqualAsDistinct ?? true
 	const raw = s.trim().toLowerCase()
 
@@ -34,12 +35,12 @@ export function parseShortcut(
 			throw new Error(`Invalid shortcut: ambiguous '+=' usage in "${s}"`)
 		}
 
-			const modifiers = modsToken
-				? parseModifiers(modsToken, platform)
-				: new Set<Modifier>()
+		const modifiers = modsToken
+			? parseModifiers(modsToken, platform)
+			: new Set<Modifier>()
 
-			const key = contentKeyMapper('=', { treatEqualAsDistinct })
-			return normalizeCombo({ key, modifiers })
+		const key = contentKeyMapper('=', { treatEqualAsDistinct })
+		return normalizeCombo({ key, modifiers })
 	}
 
 	if (/(\+\+|\+=)/.test(raw)) {

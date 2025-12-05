@@ -6,6 +6,6 @@ Utilities for parsing and formatting keyboard shortcuts shared across the monore
 
 Run tests for this package with:
 
-```
+```bash
 bun run test --filter=@repo/keyboard
 ```

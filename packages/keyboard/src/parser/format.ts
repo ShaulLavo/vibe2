@@ -44,6 +44,9 @@ export function formatModifier(
 	m: Modifier,
 	opts: { platform: Platform; useSymbols: boolean }
 ): string {
+	const assertNever = (value: never): never => {
+		throw new Error(`Unhandled modifier: ${value}`)
+	}
 	if (!opts.useSymbols) {
 		switch (m) {
 			case 'ctrl':
@@ -54,6 +57,8 @@ export function formatModifier(
 				return 'Alt'
 			case 'meta':
 				return opts.platform === 'mac' ? 'Cmd' : 'Win'
+			default:
+				return assertNever(m)
 		}
 	}
 
@@ -67,6 +72,8 @@ export function formatModifier(
 				return '⌥'
 			case 'meta':
 				return '⌘'
+			default:
+				return assertNever(m)
 		}
 	}
 
@@ -79,6 +86,8 @@ export function formatModifier(
 			return 'Alt'
 		case 'meta':
 			return 'Win'
+		default:
+			return assertNever(m)
 	}
 }
 

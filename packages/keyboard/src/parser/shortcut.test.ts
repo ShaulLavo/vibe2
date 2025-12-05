@@ -14,7 +14,9 @@ describe('parseShortcut', () => {
 		const plusCombo = parseShortcut('ctrl++')
 		expect(plusCombo.key).toBe('+')
 	})
+})
 
+describe('parseShortcutSequence', () => {
 	it('supports JSON array based sequences with literal semicolons', () => {
 		const sequence = parseShortcutSequence('["ctrl+k",";"]')
 		expect(sequence).toHaveLength(2)

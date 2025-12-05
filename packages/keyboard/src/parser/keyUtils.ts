@@ -31,10 +31,6 @@ export function contentKeyMapper(
 		mapped = c[c.length - 1] as DigitKey
 	}
 
-	if (mapped === null && symbolToDigit[c]) {
-		mapped = symbolToDigit[c]
-	}
-
 	if (mapped === null && specialKeyMap[c]) {
 		mapped = specialKeyMap[c]
 	}

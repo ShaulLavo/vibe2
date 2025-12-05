@@ -22,8 +22,7 @@ export function fromEvent(
 		const lk = rawKey.toLowerCase()
 		if (lk === 'control' || lk === 'shift' || lk === 'alt' || lk === 'meta') {
 			key = ''
-		}
-		if (lk === 'contextmenu' || lk === 'apps' || lk === 'menu') {
+		} else if (lk === 'contextmenu' || lk === 'apps' || lk === 'menu') {
 			key = 'contextMenu'
 		}
 	}

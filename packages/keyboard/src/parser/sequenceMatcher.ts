@@ -24,6 +24,10 @@ export function createShortcutSequenceMatcher(
 			? parseShortcutSequence(sequence, { platform, treatEqualAsDistinct })
 			: sequence.map(normalizeCombo)
 
+	if (targetSequence.length === 0) {
+		throw new Error('Shortcut sequences must include at least one combo')
+	}
+
 	let index = 0
 	let lastTime = 0
 

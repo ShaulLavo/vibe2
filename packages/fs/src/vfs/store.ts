@@ -35,11 +35,7 @@ export interface VfsStore {
 	key(index: number): Promise<string | null>
 	keys(): Promise<string[]>
 	iterate<T, U>(
-		iteratee: (
-			value: T,
-			key: string,
-			iterationNumber: number
-		) => U | Promise<U>
+		iteratee: (value: T, key: string, iterationNumber: number) => U | Promise<U>
 	): Promise<U | undefined>
 }
 
@@ -126,17 +122,16 @@ class VfsStoreImpl implements VfsStore {
 	}
 
 	async iterate<T, U>(
-		iteratee: (
-			value: T,
-			key: string,
-			iterationNumber: number
-		) => U | Promise<U>
+		iteratee: (value: T, key: string, iterationNumber: number) => U | Promise<U>
 	): Promise<U | undefined> {
 		return this.#enqueue(async () => {
 			const index = await this.#ensureIndex()
 			const entries = Array.from(index.entries())
 			let iterationNumber = 1
-			for (const [key, pointer] of entries) {
+			for (const [key] of entries) {
+				// Refresh pointer so removeItem inside iteratee doesn't leave stale offsets.
+				const pointer = index.get(key)
+				if (!pointer) continue
 				const value = (await this.#readValueAt(pointer)) as T
 				const result = await iteratee(value, key, iterationNumber++)
 				if (result !== undefined) {
@@ -326,9 +321,7 @@ export function createStore(
 	const ctx = isFsContext(source)
 		? source
 		: createFs(source, options?.fsOptions)
-	const indexPath = sanitizePath(
-		options?.filePath ?? DEFAULT_STORE_INDEX_PATH
-	)
+	const indexPath = sanitizePath(options?.filePath ?? DEFAULT_STORE_INDEX_PATH)
 	const dataPath = sanitizePath(`${indexPath}${STORE_DATA_SUFFIX}`)
 	const indexFile = ctx.file(indexPath, 'rw')
 	const dataFile = ctx.file(dataPath, 'rw')
