@@ -37,7 +37,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 	}
 
 	return (
-		<div class="">
+		<div>
 			<div class="relative">
 				<Show when={showBranch()}>
 					<span
@@ -48,6 +48,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 				<button
 					type="button"
 					onMouseDown={handleClick}
+					onClick={handleClick}
 					aria-expanded={isDir() ? isOpen() : undefined}
 					class={`flex w-full items-center overflow-hidden rounded border border-transparent  text-left text-sm transition hover:border-zinc-700/60 hover:bg-zinc-800/30 ${
 						isSelected() ? 'border-zinc-700 bg-zinc-900/50' : ''

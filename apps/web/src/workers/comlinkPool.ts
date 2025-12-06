@@ -20,7 +20,11 @@ export class ComlinkPool<T extends object> {
 	public readonly api: T
 
 	constructor(size: number, private readonly factory: WorkerFactory) {
-		const poolSize = Math.max(1, Math.floor(size))
+		const numericSize = Number(size)
+		const normalizedSize = Number.isFinite(numericSize)
+			? Math.floor(numericSize)
+			: 1
+		const poolSize = Math.max(1, normalizedSize)
 		for (let i = 0; i < poolSize; i++) {
 			this.workers.push(this.createWorkerHandle())
 		}
@@ -110,7 +114,10 @@ export class ComlinkPool<T extends object> {
 	}
 
 	public async destroy(): Promise<void> {
-		this.queue.splice(0, this.queue.length)
+		while (this.queue.length > 0) {
+			const job = this.queue.shift()
+			job?.reject(new Error('ComlinkPool destroyed'))
+		}
 		await Promise.all(
 			this.workers.map(async handle => {
 				await Promise.resolve(

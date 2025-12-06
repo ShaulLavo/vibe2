@@ -5,6 +5,7 @@ import {
 	parseFileBuffer,
 	createPieceTableSnapshot
 } from '@repo/utils'
+import type { PieceTableSnapshot } from '@repo/utils'
 import { trackOperation } from '@repo/perf'
 import {
 	getFileSize,
@@ -24,7 +25,7 @@ type UseFileSelectionOptions = {
 	setSelectedFileContent: (content: string) => void
 	setSelectedFileLoading: (value: boolean) => void
 	setError: (message: string | undefined) => void
-	setPieceTable: (path: string, snapshot?: ReturnType<typeof createPieceTableSnapshot>) => void
+	setPieceTable: (path: string, snapshot?: PieceTableSnapshot) => void
 	setFileStats: (
 		path: string,
 		result?:
@@ -85,9 +86,7 @@ export const useFileSelection = ({
 					if (requestId !== selectRequestId) return
 
 					let selectedFileContentValue = ''
-					let pieceTableSnapshot:
-						| ReturnType<typeof createPieceTableSnapshot>
-						| undefined
+					let pieceTableSnapshot: PieceTableSnapshot | undefined
 					let fileStatsResult:
 						| ReturnType<typeof parseFileBuffer>
 						| ReturnType<typeof createMinimalBinaryParseResult>
@@ -127,12 +126,7 @@ export const useFileSelection = ({
 							)
 
 							if (fileStatsResult.contentKind === 'text') {
-								const existingSnapshot = (
-									state.pieceTables as Record<
-										string,
-										ReturnType<typeof createPieceTableSnapshot> | undefined
-									>
-								)[path]
+								const existingSnapshot = state.pieceTables[path]
 
 								pieceTableSnapshot =
 									existingSnapshot ??

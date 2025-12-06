@@ -446,9 +446,12 @@ export class PrefetchQueue {
 		if (dir.isLoaded === false) return
 		const path = dir.path ?? ''
 		this.loadedDirPaths.add(path)
-		const fileCount = dir.children.reduce((count, child) => {
-			return child.kind === 'file' ? count + 1 : count
-		}, 0)
+		const children = dir.children
+		const fileCount = !children
+			? 0
+			: children.reduce((count, child) => {
+					return child.kind === 'file' ? count + 1 : count
+				}, 0)
 		const previous = this.loadedDirFileCounts.get(path) ?? 0
 		if (fileCount === previous) return
 		this.loadedDirFileCounts.set(path, fileCount)

@@ -1,4 +1,5 @@
 import type { FsDirTreeNode } from '@repo/fs'
+import { getOwner, onCleanup } from 'solid-js'
 import { findNode } from '../runtime/tree'
 import type { FsState } from '../types'
 import { createTreePrefetchClient } from '../prefetch/treePrefetchClient'
@@ -11,7 +12,7 @@ import type {
 import { normalizeDirNodeMetadata } from '../utils/treeNodes'
 import { scheduleMicrotask } from '../utils/schedule'
 
-type UseTreePrefetchOptions = {
+type MakeTreePrefetchOptions = {
 	state: FsState
 	setDirNode: (path: string, node: FsDirTreeNode) => void
 	setLastPrefetchedPath: (path: string | undefined) => void
@@ -24,7 +25,7 @@ type UseTreePrefetchOptions = {
 	registerDeferredMetadata: (node: PrefetchDeferredMetadataPayload['node']) => void
 }
 
-export const useTreePrefetch = ({
+export const makeTreePrefetch = ({
 	state,
 	setDirNode,
 	setLastPrefetchedPath,
@@ -35,7 +36,7 @@ export const useTreePrefetch = ({
 	setPrefetchLastDurationMs,
 	setPrefetchAverageDurationMs,
 	registerDeferredMetadata
-}: UseTreePrefetchOptions) => {
+}: MakeTreePrefetchOptions) => {
 	const handlePrefetchStatus = (status: PrefetchStatusPayload) => {
 		setBackgroundPrefetching(
 			status.running || status.pending > 0 || status.deferred > 0
@@ -56,9 +57,9 @@ export const useTreePrefetch = ({
 	const runPrefetchTask = (
 		task: Promise<void> | undefined,
 		fallbackMessage: string
-	) => {
+	): Promise<void> | undefined => {
 		if (!task) return
-		task.catch(error => {
+		return task.catch(error => {
 			handlePrefetchError({
 				message: error instanceof Error ? error.message : fallbackMessage
 			})
@@ -94,9 +95,17 @@ export const useTreePrefetch = ({
 		onError: handlePrefetchError,
 		onDeferredMetadata: handleDeferredMetadata
 	})
+	const disposeTreePrefetchClient = () => treePrefetchClient.dispose()
+
+	if (getOwner()) {
+		onCleanup(() => {
+			void disposeTreePrefetchClient()
+		})
+	}
 
 	return {
 		treePrefetchClient,
-		runPrefetchTask
+		runPrefetchTask,
+		disposeTreePrefetchClient
 	}
 }

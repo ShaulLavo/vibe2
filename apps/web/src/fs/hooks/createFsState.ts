@@ -150,7 +150,7 @@ export const createFsState = () => {
 		get lastKnownFilePath() {
 			return lastKnownFilePath()
 		}
-	} as FsState
+	} satisfies FsState
 
 	return {
 		state,

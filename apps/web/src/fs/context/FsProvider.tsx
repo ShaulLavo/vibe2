@@ -7,7 +7,7 @@ import { createFsState } from '../hooks/createFsState'
 import type { FsSource } from '../types'
 import { FsContext, type FsContextValue } from './FsContext'
 import { replaceDirNodeInTree } from '../utils/treeNodes'
-import { useTreePrefetch } from '../hooks/useTreePrefetch'
+import { makeTreePrefetch } from '../hooks/useTreePrefetch'
 import { useDirectoryLoader } from '../hooks/useDirectoryLoader'
 import { useFileSelection } from '../hooks/useFileSelection'
 import { useFsRefresh } from '../hooks/useFsRefresh'
@@ -52,18 +52,19 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setTree(() => nextTree)
 	}
 
-	const { treePrefetchClient, runPrefetchTask } = useTreePrefetch({
-		state,
-		setDirNode,
-		setLastPrefetchedPath,
-		setBackgroundPrefetching,
-		setBackgroundIndexedFileCount,
-		setPrefetchError,
-		setPrefetchProcessedCount,
-		setPrefetchLastDurationMs,
-		setPrefetchAverageDurationMs,
-		registerDeferredMetadata
-	})
+	const { treePrefetchClient, runPrefetchTask, disposeTreePrefetchClient } =
+		makeTreePrefetch({
+			state,
+			setDirNode,
+			setLastPrefetchedPath,
+			setBackgroundPrefetching,
+			setBackgroundIndexedFileCount,
+			setPrefetchError,
+			setPrefetchProcessedCount,
+			setPrefetchLastDurationMs,
+			setPrefetchAverageDurationMs,
+			registerDeferredMetadata
+		})
 
 	const { buildEnsurePaths, ensureDirLoaded, toggleDir } = useDirectoryLoader({
 		state,
@@ -143,7 +144,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 	})
 
 	onCleanup(() => {
-		void treePrefetchClient.dispose()
+		void disposeTreePrefetchClient()
 		clearDeferredMetadata()
 	})
 

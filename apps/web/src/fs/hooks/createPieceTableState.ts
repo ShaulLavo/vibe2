@@ -1,5 +1,5 @@
 /* eslint-disable solid/reactivity */
-import { createStore } from 'solid-js/store'
+import { createStore, reconcile } from 'solid-js/store'
 import type { PieceTableSnapshot } from '@repo/utils'
 
 export const createPieceTableState = () => {
@@ -22,9 +22,7 @@ export const createPieceTableState = () => {
 	}
 
 	const clearPieceTables = () => {
-		for (const path of Object.keys(pieceTables)) {
-			evictPieceTableEntry(path)
-		}
+		setPieceTablesStore(reconcile({}))
 	}
 
 	return {

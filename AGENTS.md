@@ -46,7 +46,7 @@
 ### apps/web
 - Main layout (`apps/web/src/Main.tsx`) wraps the file workspace and terminal in vertically stacked `@repo/ui/resizable` panels whose split sizes persist via `makePersisted` + `dualStorage`.
 - `FsProvider` (`apps/web/src/fs/context/FsProvider.tsx`) builds trees for the `'local' | 'opfs' | 'memory'` sources using `@repo/fs`, caches handles, streams file bytes/text, tracks parse stats, and exposes create/delete/mutation helpers so `TreeView` + `SelectedFilePanel` can lazily load folders/files.
-- File viewing leverages `@repo/code-editor` for text (piece-table backed editing, cursor/selection virtualization) and `BinaryFileViewer` for hex/ASCII previews with stats from `@repo/utils`; state such as expanded folders, selection, preview bytes, and piece tables persist via `localforage`.
+- File viewing leverages `@repo/code-editor` for text (piece-table-backed editing, cursor/selection virtualization) and `BinaryFileViewer` for hex/ASCII previews with stats from `@repo/utils`; state such as expanded folders, selection, preview bytes, and piece tables persist via `localforage`.
 - The terminal (`apps/web/src/components/Terminal.tsx`) boots `xterm.js` with a local-echo command loop (`help`, `echo`, `clear`), while `FocusProvider` + `StatusBar` surface the active focus area, selected file path, file size, FS source, and loading/error states.
 - `serverRoutesProbe` and the Eden `client` keep the UI aware of Bun API health, logging via `@repo/logger`.
 

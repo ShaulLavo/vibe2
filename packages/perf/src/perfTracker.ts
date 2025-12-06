@@ -107,7 +107,7 @@ export const trackOperation = async <T>(
 				breakdown,
 				metadata
 			)
-			logOperation(perfRecord, { showBreakdown })
+			logOperation(perfRecord, { showBreakdown, level })
 		}
 	}
 }

@@ -44,7 +44,7 @@ const filterRecords = (filter?: PerfFilter): PerfRecord[] => {
 		result = result.filter(r => r.name === filter.name)
 	}
 
-	if (filter?.since) {
+	if (filter && typeof filter.since === 'number') {
 		const since = filter.since
 		result = result.filter(r => r.timestamp >= since)
 	}
