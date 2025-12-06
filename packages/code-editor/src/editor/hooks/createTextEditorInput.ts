@@ -1,11 +1,11 @@
 import { createEffect, type Accessor } from 'solid-js'
-import type { PieceTableSnapshot } from '@repo/utils/pieceTable'
+import type { PieceTableSnapshot } from '@repo/utils'
 import {
 	createPieceTableSnapshot,
 	deleteFromPieceTable,
 	getPieceTableLength,
 	insertIntoPieceTable
-} from '@repo/utils/pieceTable'
+} from '@repo/utils'
 import type { LineEntry } from '../types'
 import type { CursorState, CursorActions } from '../cursor'
 import { createKeyRepeat } from './createKeyRepeat'
@@ -83,10 +83,7 @@ export function createTextEditorInput(
 				return baseSnapshot
 			}
 
-			const clampedLength = Math.max(
-				0,
-				Math.min(length, totalLength - offset)
-			)
+			const clampedLength = Math.max(0, Math.min(length, totalLength - offset))
 
 			if (clampedLength === 0) {
 				return baseSnapshot

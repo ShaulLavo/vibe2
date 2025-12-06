@@ -4,7 +4,7 @@ import { Lines } from './Lines'
 import { Cursor } from './Cursor'
 import { LineGutters } from './LineGutters'
 import { Input } from './Input'
-import { LINE_NUMBER_WIDTH } from '../consts'
+import { DEFAULT_TAB_SIZE, LINE_NUMBER_WIDTH } from '../consts'
 import { useCursor } from '../cursor'
 import {
 	createCursorScrollSync,
@@ -19,6 +19,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 	const cursorActions = cursor.actions
 	const lineEntries = cursor.lineEntries
 	const pieceTableText = cursor.documentText
+	const tabSizeAccessor = props.tabSize ?? (() => DEFAULT_TAB_SIZE)
 
 	let scrollElement: HTMLDivElement = null!
 	let inputElement: HTMLTextAreaElement = null!
@@ -31,6 +32,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		fontSize: () => props.fontSize(),
 		fontFamily: () => props.fontFamily(),
 		isFileSelected: () => props.isFileSelected(),
+		tabSize: tabSizeAccessor,
 		scrollElement: () => scrollElement
 	})
 
@@ -173,6 +175,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 							rowVirtualizer={layout.rowVirtualizer}
 							lineHeight={layout.lineHeight}
 							charWidth={layout.charWidth}
+							tabSize={tabSizeAccessor}
 							onRowClick={handleRowClick}
 							onPreciseClick={handlePreciseClick}
 							activeLineIndex={layout.activeLineIndex}

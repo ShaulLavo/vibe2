@@ -1,7 +1,7 @@
 import type { VirtualItem, Virtualizer } from '@tanstack/virtual-core'
 import type { Accessor } from 'solid-js'
 import type { ParseResult } from '@repo/utils/parse'
-import type { PieceTableSnapshot } from '@repo/utils/pieceTable'
+import type { PieceTableSnapshot } from '@repo/utils'
 
 export type CursorMode = 'regular' | 'terminal'
 
@@ -28,6 +28,7 @@ export type EditorProps = {
 	fontSize: Accessor<number>
 	fontFamily: Accessor<string>
 	cursorMode: Accessor<CursorMode>
+	tabSize?: Accessor<number>
 	registerEditorArea?: EditorAreaRegistration
 	previewBytes?: Accessor<Uint8Array | undefined>
 }
@@ -46,6 +47,7 @@ export type LineProps = {
 	lineHeight: number
 	contentWidth: number
 	charWidth: number
+	tabSize: number
 	onRowClick: (entry: LineEntry) => void
 	onPreciseClick: (lineIndex: number, column: number) => void
 	isActive: boolean
@@ -58,6 +60,7 @@ export type LinesProps = {
 	rowVirtualizer: Virtualizer<HTMLDivElement, HTMLDivElement>
 	lineHeight: Accessor<number>
 	charWidth: Accessor<number>
+	tabSize: Accessor<number>
 	onRowClick: (entry: LineEntry) => void
 	onPreciseClick: (lineIndex: number, column: number) => void
 	activeLineIndex: Accessor<number | null>

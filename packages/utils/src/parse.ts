@@ -710,9 +710,9 @@ export const createMinimalBinaryParseResult = (
 	}
 
 	const binaryReason = detection
-		? formatBinaryDetectionReason(detection) ??
+		? (formatBinaryDetectionReason(detection) ??
 			detection.reason?.kind ??
-			'binary-detected'
+			'binary-detected')
 		: undefined
 
 	return {
@@ -991,7 +991,6 @@ const heuristicLanguage = (text: string): LanguageId | undefined => {
 	// '#' alone is ambiguous (could be markdown header or shell/python comment)
 	return undefined
 }
-// greatest common divisor
 const gcd = (a: number, b: number): number => {
 	let x = Math.abs(a)
 	let y = Math.abs(b)
@@ -1021,10 +1020,6 @@ const guessIndentWidth = (samples: number[]): number | null => {
 	return null
 }
 
-/**
- * Tracked version of parseFileBuffer for standalone calls.
- * Use this when calling parseFileBuffer outside of an already-tracked operation.
- */
 export function parseFileBufferTracked(
 	text: string,
 	options: ParseOptions = {}

@@ -1,5 +1,4 @@
 /* eslint-disable solid/prefer-for */
-import { TAB_SIZE } from '../consts'
 import { calculateColumnFromClick } from '../utils'
 import type { LineProps } from '../types'
 
@@ -38,7 +37,7 @@ export const Line = (props: LineProps) => {
 			props.entry.text,
 			clickX,
 			props.charWidth,
-			TAB_SIZE
+			props.tabSize
 		)
 
 		props.onPreciseClick(props.entry.index, column)
@@ -67,7 +66,7 @@ export const Line = (props: LineProps) => {
 				style={{
 					width: `${props.contentWidth}px`,
 					height: `${props.virtualRow.size || props.lineHeight}px`,
-					'tab-size': `${TAB_SIZE}`
+					'tab-size': `${Math.max(1, props.tabSize)}`
 				}}
 			>
 				{props.entry.text}

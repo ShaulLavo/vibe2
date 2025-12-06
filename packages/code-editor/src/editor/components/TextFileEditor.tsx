@@ -1,5 +1,5 @@
 import { createMemo } from 'solid-js'
-import { getPieceTableText } from '@repo/utils/pieceTable'
+import { getPieceTableText } from '@repo/utils'
 import { textToLineEntries } from '../utils'
 import { CursorProvider } from '../cursor'
 import { TextFileEditorInner } from './TextFileEditorInner'

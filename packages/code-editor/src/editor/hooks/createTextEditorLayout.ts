@@ -20,6 +20,7 @@ export type TextEditorLayoutOptions = {
 	fontSize: Accessor<number>
 	fontFamily: Accessor<string>
 	isFileSelected: Accessor<boolean>
+	tabSize: Accessor<number>
 	scrollElement: () => HTMLDivElement | null
 }
 
@@ -50,13 +51,18 @@ export function createTextEditorLayout(
 		return options.cursorState().position.line
 	})
 
-	const maxVisualColumns = createMemo(() => {
+	const maxColumns = createMemo(() => {
 		const entries = options.lineEntries()
 		let max = 0
+		const tabSize = options.tabSize()
+
 		for (const entry of entries) {
-			const columns = calculateVisualColumnCount(entry.text)
-			if (columns > max) max = columns
+			const visualWidth = calculateVisualColumnCount(entry.text, tabSize)
+			if (visualWidth > max) {
+				max = visualWidth
+			}
 		}
+
 		return max
 	})
 
@@ -94,17 +100,22 @@ export function createTextEditorLayout(
 	const totalSize = () => rowVirtualizer.getTotalSize()
 	const lineHeight = createMemo(() => estimateLineHeight(options.fontSize()))
 	const contentWidth = createMemo(() => {
-		const maxColumns = maxVisualColumns()
-		if (maxColumns === 0) {
+		const visualColumns = maxColumns()
+		if (visualColumns === 0) {
 			return Math.max(options.fontSize(), 1)
 		}
-		return maxColumns * charWidth()
+		return visualColumns * charWidth()
 	})
 
 	const columnOffset = (lineIndex: number, columnIndex: number): number => {
 		const entry = options.lineEntries()[lineIndex]
 		if (!entry) return 0
-		return calculateColumnOffset(entry.text, columnIndex, charWidth())
+		return calculateColumnOffset(
+			entry.text,
+			columnIndex,
+			charWidth(),
+			options.tabSize()
+		)
 	}
 
 	const inputX = createMemo(

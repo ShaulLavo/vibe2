@@ -3,7 +3,7 @@ import {
 	COLUMN_CHARS_PER_ITEM,
 	LINE_HEIGHT_RATIO,
 	MIN_ESTIMATED_LINE_HEIGHT,
-	TAB_SIZE
+	DEFAULT_TAB_SIZE
 } from './consts'
 import type { LineEntry } from './types'
 
@@ -94,48 +94,52 @@ export const textToLineEntries = (text: string): LineEntry[] => {
 	return entries
 }
 
-const normalizeTabSize = (tabSize: number): number => {
-	return Number.isFinite(tabSize) && tabSize > 0 ? tabSize : TAB_SIZE
+const normalizeCharWidth = (charWidth: number): number =>
+	Number.isFinite(charWidth) && charWidth > 0 ? charWidth : 1
+
+const normalizeTabSize = (tabSize: number | undefined): number => {
+	if (tabSize === undefined) return DEFAULT_TAB_SIZE
+	return Number.isFinite(tabSize) && tabSize > 0 ? tabSize : DEFAULT_TAB_SIZE
 }
 
 const getTabAdvance = (visualColumn: number, tabSize: number): number => {
-	const normalizedTab = normalizeTabSize(tabSize)
-	const remainder = visualColumn % normalizedTab
-	return remainder === 0 ? normalizedTab : normalizedTab - remainder
+	const normalized = normalizeTabSize(tabSize)
+	const remainder = visualColumn % normalized
+	return remainder === 0 ? normalized : normalized - remainder
 }
 
 export const calculateVisualColumnCount = (
 	text: string,
-	tabSize = TAB_SIZE
+	tabSize?: number
 ): number => {
 	let visualColumn = 0
+	const normalizedTab = normalizeTabSize(tabSize)
+
 	for (let i = 0; i < text.length; i++) {
 		if (text[i] === '\t') {
-			visualColumn += getTabAdvance(visualColumn, tabSize)
+			visualColumn += getTabAdvance(visualColumn, normalizedTab)
 		} else {
 			visualColumn += 1
 		}
 	}
-	return visualColumn
-}
 
-const normalizeCharWidth = (charWidth: number): number => {
-	return Number.isFinite(charWidth) && charWidth > 0 ? charWidth : 1
+	return visualColumn
 }
 
 export const calculateColumnOffset = (
 	text: string,
 	column: number,
 	charWidth: number,
-	tabSize = TAB_SIZE
+	tabSize?: number
 ): number => {
 	const safeCharWidth = normalizeCharWidth(charWidth)
-	const clampedColumn = Math.max(0, Math.min(column, text.length))
+	const safeColumn = Math.max(0, Math.min(column, text.length))
 	let visualColumn = 0
+	const normalizedTab = normalizeTabSize(tabSize)
 
-	for (let i = 0; i < clampedColumn; i++) {
+	for (let i = 0; i < safeColumn; i++) {
 		if (text[i] === '\t') {
-			visualColumn += getTabAdvance(visualColumn, tabSize)
+			visualColumn += getTabAdvance(visualColumn, normalizedTab)
 		} else {
 			visualColumn += 1
 		}
@@ -144,23 +148,23 @@ export const calculateColumnOffset = (
 	return visualColumn * safeCharWidth
 }
 
-export const calculateColumnFromX = (
+export const calculateColumnFromClick = (
 	text: string,
-	targetX: number,
+	clickX: number,
 	charWidth: number,
-	tabSize = TAB_SIZE
+	tabSize?: number
 ): number => {
 	const safeCharWidth = normalizeCharWidth(charWidth)
-	const safeTarget = Math.max(0, targetX) / safeCharWidth
-
+	const targetColumn = Math.max(0, clickX) / safeCharWidth
+	const normalizedTab = normalizeTabSize(tabSize)
 	let visualColumn = 0
 
 	for (let i = 0; i < text.length; i++) {
 		const advance =
-			text[i] === '\t' ? getTabAdvance(visualColumn, tabSize) : 1
+			text[i] === '\t' ? getTabAdvance(visualColumn, normalizedTab) : 1
 		const midpoint = visualColumn + advance / 2
 
-		if (safeTarget < midpoint) {
+		if (targetColumn < midpoint) {
 			return i
 		}
 
@@ -168,13 +172,4 @@ export const calculateColumnFromX = (
 	}
 
 	return text.length
-}
-
-export const calculateColumnFromClick = (
-	text: string,
-	clickX: number,
-	charWidth: number,
-	tabSize = TAB_SIZE
-): number => {
-	return calculateColumnFromX(text, clickX, charWidth, tabSize)
 }

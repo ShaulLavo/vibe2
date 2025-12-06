@@ -17,6 +17,7 @@ export const Lines = (props: LinesProps) => {
 						lineHeight={props.lineHeight()}
 						contentWidth={props.contentWidth()}
 						charWidth={props.charWidth()}
+						tabSize={props.tabSize()}
 						onRowClick={props.onRowClick}
 						onPreciseClick={props.onPreciseClick}
 						isActive={props.activeLineIndex() === entry.index}

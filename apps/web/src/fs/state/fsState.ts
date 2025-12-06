@@ -5,10 +5,7 @@ import localforage from 'localforage'
 import { createMemo, createSignal } from 'solid-js'
 import { createStore, unwrap } from 'solid-js/store'
 import type { ParseResult } from '@repo/utils/parse'
-import {
-	type PieceTableSnapshot,
-	getPieceTableText
-} from '@repo/utils/pieceTable'
+import { type PieceTableSnapshot, getPieceTableText } from '@repo/utils'
 import { DEFAULT_SOURCE } from '../config/constants'
 import { findNode } from '../runtime/tree'
 import type { FsState } from '../types'

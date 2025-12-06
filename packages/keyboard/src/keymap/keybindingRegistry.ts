@@ -1,5 +1,6 @@
 import { createShortcutSequenceMatcher } from '../parser/sequenceMatcher'
 import { parseShortcut, parseShortcutSequence } from '../parser/shortcut'
+import { fromEvent } from '../parser/events'
 import type {
 	KeybindingDescriptor,
 	KeybindingMatch,
@@ -52,6 +53,7 @@ function toSequenceKey(sequence: ShortcutSequence): string {
 export function createKeybindingRegistry() {
 	const bindings = new Map<string, InternalKeybinding>()
 	const shortcutIndex = new Map<string, Set<string>>()
+	const firstComboIndex = new Map<string, Set<string>>()
 	let autoIdCounter = 0
 
 	function ensureSequence(
@@ -110,6 +112,33 @@ export function createKeybindingRegistry() {
 		}
 	}
 
+	function addToFirstComboIndex(sequence: ShortcutSequence, bindingId: string) {
+		const firstCombo = sequence[0]
+		if (!firstCombo) return
+		const firstComboKey = serializeCombo(firstCombo)
+		const existing = firstComboIndex.get(firstComboKey)
+		if (existing) {
+			existing.add(bindingId)
+			return
+		}
+		firstComboIndex.set(firstComboKey, new Set([bindingId]))
+	}
+
+	function removeFromFirstComboIndex(
+		sequence: ShortcutSequence,
+		bindingId: string
+	) {
+		const firstCombo = sequence[0]
+		if (!firstCombo) return
+		const firstComboKey = serializeCombo(firstCombo)
+		const set = firstComboIndex.get(firstComboKey)
+		if (!set) return
+		set.delete(bindingId)
+		if (set.size === 0) {
+			firstComboIndex.delete(firstComboKey)
+		}
+	}
+
 	function register(binding: KeybindingDescriptor): KeybindingRegistration {
 		const parts = splitOptions(binding.options)
 		const sequence = ensureSequence(binding.shortcut, parts.matcherOptions)
@@ -138,19 +167,36 @@ export function createKeybindingRegistry() {
 
 		bindings.set(bindingId, record)
 		addToIndex(seqKey, bindingId)
+		addToFirstComboIndex(sequence, bindingId)
 
 		return {
 			id: bindingId,
 			dispose: () => {
 				bindings.delete(bindingId)
 				removeFromIndex(seqKey, bindingId)
+				removeFromFirstComboIndex(sequence, bindingId)
 			}
 		}
 	}
 
 	function match(event: KeyboardEvent): KeybindingMatch[] {
 		const matches: KeybindingMatch[] = []
-		for (const binding of bindings.values()) {
+
+		// Convert the event to a combo and look up only bindings that start with this combo
+		const eventCombo = fromEvent(event, { treatEqualAsDistinct: true })
+		const comboKey = serializeCombo(eventCombo)
+		const candidateBindingIds = firstComboIndex.get(comboKey)
+
+		// If no bindings start with this combo, return early
+		if (!candidateBindingIds || candidateBindingIds.size === 0) {
+			return matches
+		}
+
+		// Only check matchers for bindings whose first combo matches
+		for (const bindingId of candidateBindingIds) {
+			const binding = bindings.get(bindingId)
+			if (!binding) continue
+
 			if (binding.matcher.handleEvent(event)) {
 				matches.push({
 					id: binding.snapshot.id,

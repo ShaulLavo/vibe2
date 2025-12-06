@@ -6,7 +6,7 @@ import {
 	parseFileBuffer
 } from '@repo/utils/parse'
 import { trackOperation } from '@repo/perf'
-import { createPieceTableSnapshot } from '@repo/utils/pieceTable'
+import { createPieceTableSnapshot } from '@repo/utils'
 import { DEFAULT_SOURCE } from '../config/constants'
 import { createFsMutations } from '../fsMutations'
 import { buildTree } from '../runtime/fsRuntime'
@@ -304,8 +304,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 								createMinimalBinaryParseResult('', detection)
 							)
 						} else {
-							// Only keep preview bytes for binaries to avoid holding large typed arrays
-							// when we're about to read the full text anyway.
 							const text = await timeAsync('read-file-text', () =>
 								readFileText(source, path)
 							)
