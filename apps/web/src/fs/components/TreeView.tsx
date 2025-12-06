@@ -6,7 +6,6 @@ type TreeViewProps = {
 	tree: Accessor<FsDirTreeNode | undefined>
 	loading: Accessor<boolean>
 }
-
 export const TreeView = (props: TreeViewProps) => (
 	<div class="">
 		<p class="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">

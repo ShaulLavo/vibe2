@@ -60,7 +60,15 @@ export const TreeNode = (props: { node: FsTreeNode }) => {
 						class="pointer-events-none absolute left-1.5 top-0 bottom-0 border-l border-zinc-800"
 					/>
 					<For each={(props.node as FsDirTreeNode).children}>
-						{child => <TreeNode node={child} />}
+						{child => (
+							<div class="relative">
+								<span
+									aria-hidden="true"
+									class="pointer-events-none absolute left-1.5 top-1/2 w-4 -translate-y-1/2 border-t border-zinc-800"
+								/>
+								<TreeNode node={child} />
+							</div>
+						)}
 					</For>
 				</div>
 			</Show>

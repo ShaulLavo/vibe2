@@ -81,7 +81,10 @@ export function createMouseSelection(
 		const entry = entries[lineIndex]
 		if (!entry) return null
 
-		const relativeX = Math.max(0, event.clientX - rect.left - 52) // 52 = approximate gutter width
+		const relativeX = Math.max(
+			0,
+			event.clientX - rect.left + scrollEl.scrollLeft - 52
+		) // 52 = approximate gutter width
 
 		const column = calculateColumnFromClick(
 			entry.text,
