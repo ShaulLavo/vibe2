@@ -1,17 +1,31 @@
 class DualStorage implements Storage {
-	get length(): number {
+	private getUniqueKeys(): string[] {
 		const sessionLength = sessionStorage.length
 		const localLength = localStorage.length
-		const uniqueKeys = new Set<string>()
+		const keys: string[] = []
+		const seen = new Set<string>()
+
 		for (let i = 0; i < sessionLength; i++) {
 			const key = sessionStorage.key(i)
-			if (key) uniqueKeys.add(key)
+			if (key && !seen.has(key)) {
+				keys.push(key)
+				seen.add(key)
+			}
 		}
+
 		for (let i = 0; i < localLength; i++) {
 			const key = localStorage.key(i)
-			if (key) uniqueKeys.add(key)
+			if (key && !seen.has(key)) {
+				keys.push(key)
+				seen.add(key)
+			}
 		}
-		return uniqueKeys.size
+
+		return keys
+	}
+
+	get length(): number {
+		return this.getUniqueKeys().length
 	}
 
 	clear(): void {
@@ -24,11 +38,8 @@ class DualStorage implements Storage {
 	}
 
 	key(index: number): string | null {
-		const sessionLength = sessionStorage.length
-		if (index < sessionLength) {
-			return sessionStorage.key(index)
-		}
-		return localStorage.key(index - sessionLength)
+		const keys = this.getUniqueKeys()
+		return keys[index] ?? null
 	}
 
 	removeItem(key: string): void {

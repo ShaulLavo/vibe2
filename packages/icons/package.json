@@ -4,12 +4,26 @@
 	"private": true,
 	"exports": {
 		".": "./src/index.ts",
-		"./lib": "./src/lib/index.tsx"
+		"./lib": "./src/lib/index.tsx",
+		"./vs": {
+			"types": "./dist/vs/index.d.ts",
+			"import": "./dist/vs/index.js",
+			"require": "./dist/vs/index.cjs",
+			"default": "./dist/vs/index.js"
+		},
+		"./vs/*": {
+			"types": "./dist/vs/*.d.ts",
+			"import": "./dist/vs/*.js",
+			"require": "./dist/vs/*.cjs",
+			"default": "./dist/vs/*.js"
+		}
 	},
 	"scripts": {
+		"prebuild": "bun ./scripts/fetch-packs.ts",
 		"lint": "eslint . --max-warnings 0",
 		"check-types": "tsc --noEmit",
-		"build": "bun ./src/build/index.ts"
+		"build": "bun ./src/build/index.ts",
+		"fetch-packs": "bun ./scripts/fetch-packs.ts"
 	},
 	"dependencies": {
 		"solid-js": "^1.9.5"

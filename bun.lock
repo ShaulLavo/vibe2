@@ -40,6 +40,7 @@
         "@fontsource-variable/jetbrains-mono": "^5.2.8",
         "@repo/code-editor": "*",
         "@repo/fs": "*",
+        "@repo/icons": "*",
         "@repo/keyboard": "*",
         "@repo/logger": "*",
         "@repo/perf": "*",

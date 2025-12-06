@@ -1,6 +1,11 @@
 import { For, Show } from 'solid-js'
 import type { FsDirTreeNode, FsTreeNode } from '@repo/fs'
 import { useFs } from '../../fs/context/FsContext'
+import { VsChevronDown } from '@repo/icons/vs/VsChevronDown'
+import { VsChevronRight } from '@repo/icons/vs/VsChevronRight'
+import { VsFile } from '@repo/icons/vs/VsFile'
+import { VsFolder } from '@repo/icons/vs/VsFolder'
+import { VsFolderOpened } from '@repo/icons/vs/VsFolderOpened'
 
 export const TreeNode = (props: { node: FsTreeNode }) => {
 	const [state, actions] = useFs()
@@ -30,21 +35,30 @@ export const TreeNode = (props: { node: FsTreeNode }) => {
 				type="button"
 				onMouseDown={handleClick}
 				aria-expanded={isDir() ? isOpen() : undefined}
-				class={`flex w-full items-center overflow-hidden rounded border border-transparent text-left text-sm transition hover:border-zinc-700/60 hover:bg-zinc-800/30 ${
+				class={`flex w-full items-center overflow-hidden rounded border border-transparent  text-left text-sm transition hover:border-zinc-700/60 hover:bg-zinc-800/30 ${
 					isSelected() ? 'border-zinc-700 bg-zinc-900/50' : ''
 				}`}
 			>
-				<span
-					class={`w-4 text-center text-xs ${isDir() ? '' : 'text-zinc-500'}`}
-				>
-					{isDir() ? (isOpen() ? '▾' : '▸') : '•'}
+				<span class="w-4 text-center text-[10px] text-zinc-500">
+					{isDir() ? isOpen() ? <VsChevronDown /> : <VsChevronRight /> : ''}
+				</span>
+				<span class="mr-2 flex items-center justify-center ">
+					<Show when={isDir()} fallback={<VsFile size={16} />}>
+						<Show when={isOpen()} fallback={<VsFolder size={16} />}>
+							<VsFolderOpened size={16} />
+						</Show>
+					</Show>
 				</span>
 				<span class="truncate text-zinc-200">
 					{isDir() ? props.node.name || 'root' : props.node.name}
 				</span>
 			</button>
 			<Show when={isDir() && isOpen()}>
-				<div class="border-l border-zinc-100 pl-1">
+				<div class="relative pl-2">
+					<span
+						aria-hidden="true"
+						class="pointer-events-none absolute left-1.5 top-0 bottom-0 border-l border-zinc-800"
+					/>
 					<For each={(props.node as FsDirTreeNode).children}>
 						{child => <TreeNode node={child} />}
 					</For>

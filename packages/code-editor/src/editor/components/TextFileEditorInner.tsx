@@ -71,7 +71,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		isFileSelected: () => props.isFileSelected(),
 		getInputElement: () => inputElement,
 		scrollCursorIntoView,
-		activeScopes: () => props.activeScopes?.() ?? ['global']
+		activeScopes: () => props.activeScopes?.() ?? ['editor', 'global']
 	})
 
 	const handleInput: JSX.EventHandlerUnion<
