@@ -44,7 +44,7 @@ export const TreeNode = (props: { node: FsTreeNode }) => {
 				</span>
 			</button>
 			<Show when={isDir() && isOpen()}>
-				<div class="border-l border-zinc-800 pl-1">
+				<div class="border-l border-zinc-100 pl-1">
 					<For each={(props.node as FsDirTreeNode).children}>
 						{child => <TreeNode node={child} />}
 					</For>

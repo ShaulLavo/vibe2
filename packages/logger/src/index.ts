@@ -1,20 +1,21 @@
-import consola, { type ConsolaInstance } from 'consola'
+import {
+	createConsola,
+	type ConsolaInstance,
+	type ConsolaOptions
+} from 'consola'
 
-const DEFAULT_LEVEL =
-	typeof process !== 'undefined' && process.env.NODE_ENV === 'production'
-		? 3
-		: 4
+const consola = createConsola({
+	// `fancy` is a node-only flag that isn't exposed in the browser .d.ts, so cast.
+	fancy: true
+} as Partial<ConsolaOptions> & { fancy: boolean })
+
+const DEFAULT_LEVEL = 4
 
 if (typeof consola.level === 'number') {
 	consola.level = DEFAULT_LEVEL
 }
 
-export type LoggerScope =
-	| 'server'
-	| 'web'
-	| 'desktop'
-	| 'app'
-	| (string & {})
+export type LoggerScope = 'server' | 'web' | 'desktop' | 'app' | (string & {})
 
 const DEFAULT_SCOPE: LoggerScope = 'app'
 const instances = new Map<string, ConsolaInstance>()

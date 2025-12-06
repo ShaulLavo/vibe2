@@ -1,41 +1,44 @@
-import {
-	For,
-	Show,
-	createEffect,
-	createMemo,
-	createSignal,
-	onCleanup
-} from 'solid-js'
+import { Resizable, ResizableHandle, ResizablePanel } from '@repo/ui/resizable'
+import { makePersisted } from '@solid-primitives/storage'
+import { Show, createEffect, createSignal, onCleanup } from 'solid-js'
+import { useFocusManager } from '~/focus/focusManager'
+import { dualStorage } from '~/utils/DualStorage'
 import { useFs } from '../../fs/context/FsContext'
-import type { FsSource } from '../../fs/types'
 import { SelectedFilePanel } from './SelectedFilePanel'
 import { TreeView } from './TreeView'
-import { useFocusManager } from '~/focus/focusManager'
 
-const SOURCE_OPTIONS: { id: FsSource; label: string }[] = [
-	{ id: 'local', label: 'Open Local Folder' },
-	{ id: 'opfs', label: 'Browser Storage (OPFS)' },
-	{ id: 'memory', label: 'Temporary Memory' }
-]
+// const SOURCE_OPTIONS: { id: FsSource; label: string }[] = [
+// 	{ id: 'local', label: 'Open Local Folder' },
+// 	{ id: 'opfs', label: 'Browser Storage (OPFS)' },
+// 	{ id: 'memory', label: 'Temporary Memory' }
+// ]
 
 export const Fs = () => {
-	const [state, actions] = useFs()
+	const [state] = useFs()
 	const focus = useFocusManager()
 	const [treePanel, setTreePanel] = createSignal<HTMLDivElement | undefined>()
+	const storage = typeof window === 'undefined' ? undefined : dualStorage
+	const [panelSizes, setPanelSizes] = makePersisted(
+		createSignal<number[]>([0.3, 0.7]),
+		{
+			name: 'fs-horizontal-panel-size',
+			storage
+		}
+	)
 
-	const activeDirPath = createMemo(() => {
-		const node = state.selectedNode
-		if (!node) return ''
-		return node.kind === 'dir' ? node.path : (node.parentPath ?? '')
-	})
+	// const activeDirPath = createMemo(() => {
+	// 	const node = state.selectedNode
+	// 	if (!node) return ''
+	// 	return node.kind === 'dir' ? node.path : (node.parentPath ?? '')
+	// })
 
-	const sourceButtonClass = (source: FsSource) =>
-		[
-			'rounded border px-2 py-1 text-[11px] font-medium transition',
-			state.activeSource === source
-				? 'border-emerald-400/60 bg-emerald-500/10 text-emerald-100 shadow-sm'
-				: 'border-zinc-700/70 bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
-		].join(' ')
+	// const sourceButtonClass = (source: FsSource) =>
+	// 	[
+	// 		'rounded border px-2 py-1 text-[11px] font-medium transition',
+	// 		state.activeSource === source
+	// 			? 'border-emerald-400/60 bg-emerald-500/10 text-emerald-100 shadow-sm'
+	// 			: 'border-zinc-700/70 bg-zinc-800 text-zinc-100 hover:bg-zinc-700'
+	// 	].join(' ')
 
 	createEffect(() => {
 		const panel = treePanel()
@@ -52,20 +55,33 @@ export const Fs = () => {
 				</p>
 			</Show>
 
-			<div class="flex flex-1 min-h-0">
-				<div
-					class="w-72 min-h-0 overflow-auto border-r border-zinc-800/70 bg-zinc-950/60 px-3 py-2"
+			<Resizable
+				class="flex flex-1 min-h-0"
+				orientation="horizontal"
+				onSizesChange={sizes => {
+					if (sizes.length !== 2) return
+					setPanelSizes(() => [...sizes])
+				}}
+			>
+				<ResizablePanel
+					initialSize={panelSizes()[0] ?? 0.3}
+					minSize={0.18}
+					class="min-h-0 overflow-auto border-r border-zinc-800/70 bg-zinc-950/60 px-3 py-2"
 					ref={setTreePanel}
 				>
 					<TreeView tree={() => state.tree} loading={() => state.loading} />
-				</div>
-				<div class="flex-1 min-h-0 overflow-auto bg-zinc-950/30">
+				</ResizablePanel>
+				<ResizableHandle aria-label="Resize file tree" />
+				<ResizablePanel
+					initialSize={panelSizes()[1] ?? 0.7}
+					class="flex-1 min-h-0 overflow-auto bg-zinc-950/30"
+				>
 					<SelectedFilePanel
 						isFileSelected={() => state.lastKnownFileNode?.kind === 'file'}
 						currentPath={state.lastKnownFilePath}
 					/>
-				</div>
-			</div>
+				</ResizablePanel>
+			</Resizable>
 		</div>
 	)
 }

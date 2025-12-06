@@ -1,18 +1,48 @@
-import type { Component } from 'solid-js'
-import { Fs } from './fs/components/Fs'
-import { Terminal } from './components/Terminal'
+/* eslint-disable solid/reactivity */
+import { makePersisted } from '@solid-primitives/storage'
+import { createSignal, type Component } from 'solid-js'
+import { Resizable, ResizableHandle, ResizablePanel } from '@repo/ui/resizable'
 import { StatusBar } from './components/StatusBar'
+import { Terminal } from './components/Terminal'
+import { Fs } from './fs/components/Fs'
+import { dualStorage } from './utils/DualStorage'
 
 const Main: Component = () => {
+	const [verticalPanelSize, setVerticalPanelSize] = makePersisted(
+		createSignal<number[]>([0.65, 0.35]),
+		{
+			name: 'main-vertical-panel-size',
+			storage: dualStorage
+		}
+	)
+
 	return (
 		<main class="h-screen max-h-screen overflow-hidden bg-[#0b0c0f] text-zinc-100">
-			<div class="grid h-full min-h-0 grid-rows-[13fr_7fr_auto]">
-				<div class="min-h-0">
-					<Fs />
-				</div>
-				<div class="min-h-0">
-					<Terminal />
-				</div>
+			<div class="flex h-full min-h-0 flex-col">
+				<Resizable
+					orientation="vertical"
+					class="flex flex-1 min-h-0 flex-col"
+					onSizesChange={sizes => {
+						if (sizes.length !== 2) return
+						setVerticalPanelSize(() => [...sizes])
+					}}
+				>
+					<ResizablePanel
+						initialSize={verticalPanelSize()[0] ?? 0.65}
+						minSize={0.3}
+						class="min-h-0"
+					>
+						<Fs />
+					</ResizablePanel>
+					<ResizableHandle aria-label="Resize editor and terminal" />
+					<ResizablePanel
+						initialSize={verticalPanelSize()[1] ?? 0.35}
+						minSize={0.2}
+						class="min-h-0"
+					>
+						<Terminal />
+					</ResizablePanel>
+				</Resizable>
 				<StatusBar />
 			</div>
 		</main>
