@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "@repo/logger": "*",
-    "localforage": "^1.10.0",
     "zod": "^4.1.13"
   },
   "scripts": {

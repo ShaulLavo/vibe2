@@ -13,6 +13,7 @@ type TrackOptions = {
 	metadata?: Record<string, unknown>
 	showBreakdown?: boolean
 	persist?: boolean
+	level?: 'debug' | 'info' | 'warn'
 }
 
 // Convert timing tracker's internal format to our breakdown format
@@ -83,7 +84,7 @@ export const trackOperation = async <T>(
 		return fn(noopControls)
 	}
 
-	const { metadata, showBreakdown = true, persist = true } = options
+	const { metadata, showBreakdown = true, persist = true, level } = options
 
 	const tracker = createTimingTracker()
 	const { timeSync, timeAsync } = tracker
@@ -98,7 +99,7 @@ export const trackOperation = async <T>(
 
 		if (persist) {
 			const perfRecord = await record(name, duration, breakdown, metadata)
-			logOperation(perfRecord, { showBreakdown })
+			logOperation(perfRecord, { showBreakdown, level })
 		} else {
 			const perfRecord = createTransientRecord(
 				name,
@@ -106,7 +107,7 @@ export const trackOperation = async <T>(
 				breakdown,
 				metadata
 			)
-			logOperation(perfRecord, { showBreakdown })
+			logOperation(perfRecord, { showBreakdown, level })
 		}
 	}
 }

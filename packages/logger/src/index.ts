@@ -19,6 +19,73 @@ export type LoggerScope = 'server' | 'web' | 'desktop' | 'app' | (string & {})
 
 const DEFAULT_SCOPE: LoggerScope = 'app'
 const instances = new Map<string, ConsolaInstance>()
+const FORWARDED_METHODS = new Set([
+	'trace',
+	'debug',
+	'info',
+	'log',
+	'success',
+	'warn',
+	'error',
+	'fatal',
+	'ready',
+	'start',
+	'box'
+])
+
+export type LogForwarderEntry = {
+	tag: string
+	level: string
+	args: unknown[]
+}
+
+type LogForwarder = (entry: LogForwarderEntry) => void
+
+let logForwarder: LogForwarder | undefined
+
+const createForwardingProxy = (
+	instance: ConsolaInstance,
+	tag: string
+): ConsolaInstance => {
+	return new Proxy(instance, {
+		get(target, prop, receiver) {
+			const value = Reflect.get(target, prop, receiver)
+			if (
+				typeof prop === 'string' &&
+				typeof value === 'function' &&
+				FORWARDED_METHODS.has(prop)
+			) {
+				return (...args: unknown[]) => {
+					if (logForwarder) {
+						try {
+							logForwarder({ tag, level: prop, args })
+						} catch {
+							// Swallow forwarding issues to avoid breaking logs
+						}
+					}
+
+					return value.apply(target, args)
+				}
+			}
+
+			return typeof value === 'function' ? value.bind(target) : value
+		}
+	})
+}
+
+export const setLogForwarder = (forwarder?: LogForwarder) => {
+	logForwarder = forwarder
+}
+
+const getLoggerInstance = (tag: string): ConsolaInstance => {
+	const existing = instances.get(tag)
+	if (existing) return existing
+
+	const raw = consola.withTag(tag)
+	const proxied = createForwardingProxy(raw, tag)
+	instances.set(tag, proxied)
+	return proxied
+}
 
 const buildTag = (scopes: readonly LoggerScope[]): string => {
 	const normalized = scopes
@@ -31,11 +98,7 @@ const buildTag = (scopes: readonly LoggerScope[]): string => {
 export const createLogger = (...scopes: LoggerScope[]): ConsolaInstance => {
 	const tag = buildTag(scopes)
 
-	if (!instances.has(tag)) {
-		instances.set(tag, consola.withTag(tag))
-	}
-
-	return instances.get(tag)!
+	return getLoggerInstance(tag)
 }
 
 export const createLoggerFactory = (

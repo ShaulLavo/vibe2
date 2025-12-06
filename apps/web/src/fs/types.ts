@@ -1,5 +1,6 @@
 import type { FsDirTreeNode, FsTreeNode } from '@repo/fs'
 import type { ParseResult, PieceTableSnapshot } from '@repo/utils'
+import type { DeferredDirMetadata } from './prefetch/treePrefetchWorkerTypes'
 
 export type FsSource = 'memory' | 'local' | 'opfs'
 
@@ -14,6 +15,13 @@ export type FsState = {
 	selectedFileSize?: number
 	error?: string
 	loading: boolean
+	backgroundPrefetching: boolean
+	backgroundIndexedFileCount: number
+	lastPrefetchedPath?: string
+	prefetchError?: string
+	prefetchProcessedCount: number
+	prefetchLastDurationMs: number
+	prefetchAverageDurationMs: number
 	fileStats: Record<string, ParseResult | undefined>
 	selectedFileStats?: ParseResult
 	pieceTables: Record<string, PieceTableSnapshot | undefined>
@@ -21,4 +29,5 @@ export type FsState = {
 	selectedNode?: FsTreeNode | undefined
 	lastKnownFileNode?: FsTreeNode | undefined
 	lastKnownFilePath?: string
+	deferredMetadata: Record<string, DeferredDirMetadata>
 }

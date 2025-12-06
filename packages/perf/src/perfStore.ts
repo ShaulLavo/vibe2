@@ -1,5 +1,3 @@
-import localforage from 'localforage'
-
 export type PerfBreakdownEntry = {
 	label: string
 	duration: number
@@ -30,50 +28,44 @@ export type PerfFilter = {
 	since?: number
 }
 
-type PerfStoreData = {
-	records: PerfRecord[]
-	version: number
-}
-
-const STORAGE_KEY = 'perf-history'
-const STORAGE_VERSION = 1
 const DEFAULT_MAX_ENTRIES = Infinity
 
-let cachedData: PerfStoreData | null = null
 let maxEntries = DEFAULT_MAX_ENTRIES
+let records: PerfRecord[] = []
 
 const generateId = (): string => {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
-const loadData = async (): Promise<PerfStoreData> => {
-	if (cachedData) return cachedData
+const filterRecords = (filter?: PerfFilter): PerfRecord[] => {
+	let result = records
 
-	try {
-		const stored = await localforage.getItem<PerfStoreData>(STORAGE_KEY)
-		if (stored && stored.version === STORAGE_VERSION) {
-			cachedData = stored
-			return cachedData
-		}
-	} catch {
-		// Ignore storage errors
+	if (filter?.name) {
+		result = result.filter(r => r.name === filter.name)
 	}
 
-	cachedData = { records: [], version: STORAGE_VERSION }
-	return cachedData
+	if (filter && typeof filter.since === 'number') {
+		const since = filter.since
+		result = result.filter(r => r.timestamp >= since)
+	}
+
+	return result
 }
 
-const saveData = async (data: PerfStoreData): Promise<void> => {
-	cachedData = data
-	try {
-		await localforage.setItem(STORAGE_KEY, data)
-	} catch {
-		// Ignore storage errors - data is still in memory cache
+const trimIfNeeded = () => {
+	if (maxEntries === Infinity) return
+	if (maxEntries <= 0) {
+		records = []
+		return
+	}
+	if (records.length > maxEntries) {
+		records = records.slice(-maxEntries)
 	}
 }
 
 export const configureMaxEntries = (max: number): void => {
 	maxEntries = max
+	trimIfNeeded()
 }
 
 export const record = async (
@@ -82,8 +74,6 @@ export const record = async (
 	breakdown: PerfBreakdownEntry[],
 	metadata?: Record<string, unknown>
 ): Promise<PerfRecord> => {
-	const data = await loadData()
-
 	const newRecord: PerfRecord = {
 		id: generateId(),
 		name,
@@ -93,35 +83,18 @@ export const record = async (
 		metadata
 	}
 
-	data.records.push(newRecord)
-
-	// Rolling buffer - remove oldest entries if over limit
-	if (data.records.length > maxEntries) {
-		data.records = data.records.slice(-maxEntries)
-	}
-
-	await saveData(data)
+	records.push(newRecord)
+	trimIfNeeded()
 	return newRecord
 }
 
 export const getHistory = async (filter?: PerfFilter) => {
-	let { records } = await loadData()
-
-	if (filter?.name) {
-		records = records.filter(r => r.name === filter.name)
-	}
-
-	if (filter?.since) {
-		const since = filter.since
-		records = records.filter(r => r.timestamp >= since)
-	}
-
-	return records as ReadonlyArray<PerfRecord>
+	const filtered = filterRecords(filter)
+	return [...filtered] as ReadonlyArray<PerfRecord>
 }
 
 export const clear = async (): Promise<void> => {
-	cachedData = { records: [], version: STORAGE_VERSION }
-	await saveData(cachedData)
+	records = []
 }
 
 const percentile = (sorted: number[], p: number): number => {
@@ -133,11 +106,11 @@ const percentile = (sorted: number[], p: number): number => {
 export const getSummary = async (
 	filter?: PerfFilter
 ): Promise<PerfSummary[]> => {
-	const records = await getHistory(filter)
+	const history = filterRecords(filter)
 
 	const grouped = new Map<string, number[]>()
 
-	for (const record of records) {
+	for (const record of history) {
 		const durations = grouped.get(record.name) ?? []
 		durations.push(record.duration)
 		grouped.set(record.name, durations)
@@ -167,12 +140,11 @@ export const getRecentForOperation = async (
 	name: string,
 	limit = 10
 ): Promise<PerfRecord[]> => {
-	const records = await getHistory({ name })
-	return records.slice(-limit)
+	const filtered = records.filter(r => r.name === name)
+	return filtered.slice(-limit)
 }
 
 // Export raw data for future server/data lake push
 export const exportData = async (): Promise<PerfRecord[]> => {
-	const data = await loadData()
-	return [...data.records]
+	return [...records]
 }

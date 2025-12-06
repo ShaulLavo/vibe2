@@ -1,0 +1,91 @@
+import type { FsDirTreeNode } from '@repo/fs'
+import { ComlinkPool } from '../../workers/comlinkPool'
+import { PrefetchQueue } from './prefetchQueue'
+import type {
+	TreePrefetchWorkerApi,
+	TreePrefetchWorkerCallbacks,
+	TreePrefetchWorkerInitPayload
+} from './treePrefetchWorkerTypes'
+
+const createWorkerInstance = () =>
+	new Worker(new URL('./treePrefetch.worker.ts', import.meta.url), {
+		type: 'module'
+	})
+
+const supportsWorkers =
+	typeof window !== 'undefined' && typeof Worker !== 'undefined'
+const MAX_PREFETCH_WORKERS = 4
+
+const resolveWorkerCount = () => {
+	if (typeof navigator === 'undefined') {
+		return 1
+	}
+
+	const hardware = navigator.hardwareConcurrency ?? 2
+	return Math.max(1, Math.min(MAX_PREFETCH_WORKERS, hardware))
+}
+
+export type TreePrefetchClient = {
+	init(payload: TreePrefetchWorkerInitPayload): Promise<void>
+	seedTree(tree: FsDirTreeNode): Promise<void>
+	ingestSubtree(node: FsDirTreeNode): Promise<void>
+	markDirLoaded(path: string): Promise<void>
+	dispose(): Promise<void>
+}
+
+const createNoopTreePrefetchClient = (): TreePrefetchClient => ({
+	async init() {},
+	async seedTree() {},
+	async ingestSubtree() {},
+	async markDirLoaded() {},
+	async dispose() {}
+})
+
+export const createTreePrefetchClient = (
+	callbacks: TreePrefetchWorkerCallbacks
+): TreePrefetchClient => {
+	if (!supportsWorkers) {
+		return createNoopTreePrefetchClient()
+	}
+
+	const workerCount = resolveWorkerCount()
+	const pool = new ComlinkPool<TreePrefetchWorkerApi>(
+		workerCount,
+		createWorkerInstance
+	)
+	const queue = new PrefetchQueue({
+		workerCount,
+		callbacks,
+		loadDirectory: target => pool.api.loadDirectory(target)
+	})
+	let destroyed = false
+	let initialized = false
+
+	return {
+		async init(payload) {
+			if (destroyed) return
+			await queue.resetForSource(payload.source)
+			await pool.broadcast(remote => remote.init(payload))
+			initialized = true
+		},
+		async seedTree(tree) {
+			if (destroyed || !initialized) return
+			await queue.seedTree(tree)
+		},
+		async ingestSubtree(node) {
+			if (destroyed || !initialized) return
+			queue.enqueueSubtree(node)
+		},
+		async markDirLoaded(path) {
+			if (destroyed || !initialized) return
+			queue.markDirLoaded(path)
+		},
+		async dispose() {
+			if (destroyed) return
+			destroyed = true
+			await queue.dispose()
+			await pool.broadcast(remote => remote.dispose())
+			await pool.destroy()
+		}
+	}
+}
