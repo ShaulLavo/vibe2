@@ -42,7 +42,6 @@ export const Line = (props: LineProps) => {
 
 		props.onPreciseClick(props.entry.index, column, event.shiftKey)
 	}
-
 	return (
 		<div
 			data-index={props.virtualRow.index}
@@ -62,11 +61,12 @@ export const Line = (props: LineProps) => {
 				ref={el => {
 					textContentElement = el
 				}}
-				class="relative h-full whitespace-pre"
+				class="relative h-full"
 				style={{
 					width: `${props.contentWidth}px`,
 					height: `${props.virtualRow.size || props.lineHeight}px`,
-					'tab-size': `${Math.max(1, props.tabSize)}`
+					'tab-size': Math.max(1, props.tabSize),
+					'white-space': 'pre'
 				}}
 			>
 				{props.entry.text}

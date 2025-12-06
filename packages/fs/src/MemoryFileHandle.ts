@@ -35,10 +35,9 @@ export class MemoryFileHandle implements FileSystemFileHandle {
 			}
 
 			if (ArrayBuffer.isView(data)) {
-				const view = data as ArrayBufferView
-				const slice = view.buffer.slice(
-					view.byteOffset,
-					view.byteOffset + view.byteLength
+				const slice = data.buffer.slice(
+					data.byteOffset,
+					data.byteOffset + data.byteLength
 				)
 				chunks.push(new Uint8Array(slice))
 				return

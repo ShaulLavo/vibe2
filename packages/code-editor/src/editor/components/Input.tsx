@@ -17,12 +17,13 @@ type InputProps = {
 export const Input = (props: InputProps) => (
 	<textarea
 		ref={props.inputRef}
-		class="absolute opacity-0"
+		class="absolute"
 		style={{
 			left: `${props.layout.inputX()}px`,
 			top: `${props.layout.inputY()}px`,
 			width: `${props.layout.charWidth()}px`,
-			height: `${props.layout.lineHeight()}px`
+			height: `${props.layout.lineHeight()}px`,
+			opacity: 0
 		}}
 		autocomplete="off"
 		autocorrect="off"

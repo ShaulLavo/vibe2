@@ -39,7 +39,6 @@
     "@solid-primitives/deep": "^0.3.3",
     "@solid-primitives/event-listener": "^2.4.3",
     "@solid-primitives/storage": "^4.3.3",
-    "@tailwindcss/vite": "^4.1.17",
     "@tanstack/solid-virtual": "^3.13.12",
     "@xterm/xterm": "^5.5.0",
     "shell-quote": "^1.8.2",
@@ -47,6 +46,7 @@
     "nanoid": "^5.1.6",
     "solid-js": "^1.9.5",
     "tailwindcss": "^4.1.17",
+    "@tailwindcss/vite": "^4.1.17",
     "zod": "^4.1.13"
   }
 }

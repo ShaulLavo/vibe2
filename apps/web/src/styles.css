@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@source "../../packages/code-editor/src/**/*.{js,ts,jsx,tsx}";
+
 :root {
 	--font-mono: 'JetBrains Mono Variable', monospace;
 	--font-serif: 'Geist Variable', sans-serif;

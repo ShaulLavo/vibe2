@@ -9,6 +9,7 @@ import {
 import type { LineEntry } from '../types'
 import type { CursorState, CursorActions } from '../cursor'
 import { getSelectionBounds, hasSelection } from '../cursor'
+import { clipboard } from '../utils/clipboard'
 import { createKeyRepeat } from './createKeyRepeat'
 
 type ArrowKey = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown'
@@ -157,7 +158,7 @@ export function createTextEditorInput(
 		if (ctrlOrMeta && event.key === 'c') {
 			const selectedText = options.cursorActions.getSelectedText()
 			if (selectedText) {
-				navigator.clipboard.writeText(selectedText)
+				void clipboard.writeText(selectedText)
 			}
 			return
 		}
@@ -166,7 +167,7 @@ export function createTextEditorInput(
 		if (ctrlOrMeta && event.key === 'x') {
 			const selectedText = options.cursorActions.getSelectedText()
 			if (selectedText) {
-				navigator.clipboard.writeText(selectedText)
+				void clipboard.writeText(selectedText)
 				deleteSelection()
 				options.scrollCursorIntoView()
 			}
@@ -176,7 +177,7 @@ export function createTextEditorInput(
 		// Paste (Ctrl+V)
 		if (ctrlOrMeta && event.key === 'v') {
 			event.preventDefault()
-			navigator.clipboard.readText().then(text => {
+			clipboard.readText().then(text => {
 				if (text) {
 					deleteSelection()
 					applyInsert(text)

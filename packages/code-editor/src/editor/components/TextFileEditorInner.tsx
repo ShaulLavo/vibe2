@@ -21,7 +21,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 	const cursorActions = cursor.actions
 	const lineEntries = cursor.lineEntries
 	const pieceTableText = cursor.documentText
-	const tabSizeAccessor = props.tabSize ?? (() => DEFAULT_TAB_SIZE)
+	const tabSize = () => props.tabSize?.() ?? DEFAULT_TAB_SIZE
 
 	let scrollElement: HTMLDivElement = null!
 	let inputElement: HTMLTextAreaElement = null!
@@ -34,17 +34,20 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		fontSize: () => props.fontSize(),
 		fontFamily: () => props.fontFamily(),
 		isFileSelected: () => props.isFileSelected(),
-		tabSize: tabSizeAccessor,
+		tabSize,
 		scrollElement: () => scrollElement
 	})
 
 	createEffect(
-		on(() => props.document.filePath(), () => {
-			if (scrollElement) {
-				scrollElement.scrollTop = 0
-				scrollElement.scrollLeft = 0
+		on(
+			() => props.document.filePath(),
+			() => {
+				if (scrollElement) {
+					scrollElement.scrollTop = 0
+					scrollElement.scrollLeft = 0
+				}
 			}
-		})
+		)
 	)
 
 	const cursorScroll = createCursorScrollSync({
@@ -63,14 +66,17 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		cursorState,
 		cursorActions,
 		visibleLineRange: layout.visibleLineRange,
-		updatePieceTable: props.document.updatePieceTable,
+		updatePieceTable: updater => props.document.updatePieceTable(updater),
 		pieceTableText,
 		isFileSelected: () => props.isFileSelected(),
 		getInputElement: () => inputElement,
 		scrollCursorIntoView
 	})
 
-	const handleInput: JSX.EventHandlerUnion<HTMLTextAreaElement, InputEvent> = event => {
+	const handleInput: JSX.EventHandlerUnion<
+		HTMLTextAreaElement,
+		InputEvent
+	> = event => {
 		if (!isEditable()) return
 		input.handleInput(event)
 	}
@@ -83,10 +89,12 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		input.handleKeyDown(event)
 	}
 
-	const handleKeyUp: JSX.EventHandlerUnion<HTMLTextAreaElement, KeyboardEvent> =
-		event => {
-			if (!isEditable()) return
-			input.handleKeyUp(event)
+	const handleKeyUp: JSX.EventHandlerUnion<
+		HTMLTextAreaElement,
+		KeyboardEvent
+	> = event => {
+		if (!isEditable()) return
+		input.handleKeyUp(event)
 	}
 
 	const handleRowClick = (entry: LineEntry) => {
@@ -113,7 +121,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		scrollElement: () => scrollElement,
 		lineEntries,
 		charWidth: layout.charWidth,
-		tabSize: tabSizeAccessor,
+		tabSize: tabSize,
 		lineHeight: layout.lineHeight,
 		cursorActions,
 		getLineIndexFromY: (y: number) => {
@@ -184,7 +192,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 						lineNumberWidth={LINE_NUMBER_WIDTH}
 						paddingLeft={0}
 						charWidth={layout.charWidth}
-						tabSize={tabSizeAccessor}
+						tabSize={tabSize}
 						getColumnOffset={layout.getColumnOffset}
 						getLineY={layout.getLineY}
 					/>
@@ -219,7 +227,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 							rowVirtualizer={layout.rowVirtualizer}
 							lineHeight={layout.lineHeight}
 							charWidth={layout.charWidth}
-							tabSize={tabSizeAccessor}
+							tabSize={tabSize}
 							onRowClick={handleRowClick}
 							onPreciseClick={handlePreciseClick}
 							onMouseDown={handleLineMouseDown}

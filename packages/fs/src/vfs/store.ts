@@ -506,9 +506,9 @@ class VfsStoreImpl implements VfsStore {
 
 		const reader = await this.#dataFile.createReader()
 		try {
-			const buffer = (await reader.read(pointer.length, {
+			const buffer = await reader.read(pointer.length, {
 				at: pointer.start
-			})) as ArrayBuffer
+			})
 			return new Uint8Array(buffer)
 		} finally {
 			await reader.close()

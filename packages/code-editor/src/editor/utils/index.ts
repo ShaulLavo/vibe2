@@ -4,8 +4,8 @@ import {
 	LINE_HEIGHT_RATIO,
 	MIN_ESTIMATED_LINE_HEIGHT,
 	DEFAULT_TAB_SIZE
-} from './consts'
-import type { LineEntry } from './types'
+} from '../consts'
+import type { LineEntry } from '../types'
 
 export const estimateLineHeight = (fontSize: number) =>
 	Math.max(Math.round(fontSize * LINE_HEIGHT_RATIO), MIN_ESTIMATED_LINE_HEIGHT)
