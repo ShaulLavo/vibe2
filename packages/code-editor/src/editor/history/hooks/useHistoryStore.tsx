@@ -1,6 +1,6 @@
 import { createMemo } from 'solid-js'
 import { ReactiveMap } from '@solid-primitives/map'
-import { logger } from '@repo/logger'
+import { loggers } from '@repo/logger'
 import {
 	createPieceTableSnapshot,
 	deleteFromPieceTable,
@@ -22,7 +22,7 @@ import {
 	mergeHistoryEntries
 } from '../utils/historyEntries'
 
-const historyLogger = logger.withTag('history')
+const historyLogger = loggers.codeEditor.withTag('history')
 
 const historyStore = new ReactiveMap<string, HistoryState>()
 

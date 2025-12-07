@@ -29,7 +29,8 @@ type ShortcutConfig = {
 	options?: KeybindingOptions
 }
 
-const KEYMAP_SCOPE = 'editor' as const
+const KEYMAP_SCOPE_EDITING = 'editor' as const
+const KEYMAP_SCOPE_NAVIGATION = 'editor.navigation' as const
 
 export type TextEditorInputOptions = {
 	visibleLineRange: Accessor<VisibleLineRange>
@@ -65,7 +66,6 @@ export function createTextEditorInput(
 	const cursor = useCursor()
 	const history = useHistory()
 	const focusInput = () => {
-		if (!options.isEditable()) return
 		const element = options.getInputElement()
 		if (!element) return
 		try {
@@ -76,7 +76,7 @@ export function createTextEditorInput(
 	}
 
 	createEffect(() => {
-		if (options.isFileSelected() && options.isEditable()) {
+		if (options.isFileSelected()) {
 			focusInput()
 		}
 	})
@@ -250,7 +250,8 @@ export function createTextEditorInput(
 
 	const registerCommandWithShortcuts = (
 		command: Pick<CommandDescriptor<unknown>, 'id' | 'run'>,
-		shortcuts: ShortcutConfig[]
+		shortcuts: ShortcutConfig[],
+		scope: string = KEYMAP_SCOPE_EDITING
 	) => {
 		const disposeCommand = keymap.registerCommand(command)
 		keymapDisposers.push(disposeCommand)
@@ -266,7 +267,7 @@ export function createTextEditorInput(
 			keymapDisposers.push(binding.dispose)
 
 			const disposeBinding = keymap.bindCommand({
-				scope: KEYMAP_SCOPE,
+				scope,
 				bindingId: binding.id,
 				commandId: command.id
 			})
@@ -275,12 +276,18 @@ export function createTextEditorInput(
 	}
 
 	createEffect(() => {
-		const scopes = options.activeScopes?.()
-		if (scopes && scopes.length > 0) {
-			keymap.setActiveScopes(scopes)
-			return
-		}
-		keymap.setActiveScopes([KEYMAP_SCOPE])
+		const extraScopes = options.activeScopes?.() ?? []
+		const editable = options.isEditable()
+		const baseScopes = editable
+			? [KEYMAP_SCOPE_NAVIGATION, KEYMAP_SCOPE_EDITING]
+			: [KEYMAP_SCOPE_NAVIGATION]
+
+		const scopes =
+			extraScopes.length > 0
+				? Array.from(new Set([...baseScopes, ...extraScopes]))
+				: baseScopes
+
+		keymap.setActiveScopes(scopes)
 	})
 
 	onCleanup(() => {
@@ -296,7 +303,8 @@ export function createTextEditorInput(
 				cursor.actions.selectAll()
 			}
 		},
-		[{ shortcut: 'primary+a' }]
+		[{ shortcut: 'primary+a' }],
+		KEYMAP_SCOPE_NAVIGATION
 	)
 
 	registerCommandWithShortcuts(
@@ -309,7 +317,8 @@ export function createTextEditorInput(
 				}
 			}
 		},
-		[{ shortcut: 'primary+c' }]
+		[{ shortcut: 'primary+c' }],
+		KEYMAP_SCOPE_NAVIGATION
 	)
 
 	registerCommandWithShortcuts(
@@ -329,13 +338,15 @@ export function createTextEditorInput(
 	registerCommandWithShortcuts(
 		{
 			id: 'editor.paste',
-			run: () =>
-				clipboard.readText().then(text => {
-					if (text) {
+			run: () => {
+				if (!options.isEditable()) return
+				return clipboard.readText().then(text => {
+					if (text && options.isEditable()) {
 						deleteSelection()
 						applyInsert(text)
 					}
 				})
+			}
 		},
 		[{ shortcut: 'primary+v' }]
 	)
@@ -368,6 +379,7 @@ export function createTextEditorInput(
 		{
 			id: 'editor.tab',
 			run: () => {
+				if (!options.isEditable()) return
 				deleteSelection()
 				applyInsert('\t')
 			}
@@ -379,6 +391,7 @@ export function createTextEditorInput(
 		{
 			id: 'editor.deleteKey',
 			run: context => {
+				if (!options.isEditable()) return
 				const key = context.event.key === 'Backspace' ? 'Backspace' : 'Delete'
 				const ctrlOrMeta = context.event.ctrlKey || context.event.metaKey
 				performDelete(key, ctrlOrMeta, context.event.shiftKey)
@@ -396,7 +409,8 @@ export function createTextEditorInput(
 				options.scrollCursorIntoView()
 			}
 		},
-		[{ shortcut: 'home' }, { shortcut: 'primary+home' }]
+		[{ shortcut: 'home' }, { shortcut: 'primary+home' }],
+		KEYMAP_SCOPE_NAVIGATION
 	)
 
 	registerCommandWithShortcuts(
@@ -408,7 +422,8 @@ export function createTextEditorInput(
 				options.scrollCursorIntoView()
 			}
 		},
-		[{ shortcut: 'end' }, { shortcut: 'primary+end' }]
+		[{ shortcut: 'end' }, { shortcut: 'primary+end' }],
+		KEYMAP_SCOPE_NAVIGATION
 	)
 
 	registerCommandWithShortcuts(
@@ -421,7 +436,8 @@ export function createTextEditorInput(
 				options.scrollCursorIntoView()
 			}
 		},
-		[{ shortcut: 'pageup' }]
+		[{ shortcut: 'pageup' }],
+		KEYMAP_SCOPE_NAVIGATION
 	)
 
 	registerCommandWithShortcuts(
@@ -434,7 +450,8 @@ export function createTextEditorInput(
 				options.scrollCursorIntoView()
 			}
 		},
-		[{ shortcut: 'pagedown' }]
+		[{ shortcut: 'pagedown' }],
+		KEYMAP_SCOPE_NAVIGATION
 	)
 
 	const deleteKeyRepeat = createKeyRepeat<RepeatableDeleteKey>(
@@ -462,11 +479,12 @@ export function createTextEditorInput(
 	})
 
 	const handleKeyDown = (event: KeyboardEvent) => {
-		if (!options.isEditable()) return
 		const ctrlOrMeta = event.ctrlKey || event.metaKey
 		const shiftKey = event.shiftKey
+		const editable = options.isEditable()
 
 		if (event.key === 'Backspace') {
+			if (!editable) return
 			event.preventDefault()
 			if (!event.repeat && !deleteKeyRepeat.isActive('Backspace')) {
 				deleteKeyRepeat.start('Backspace', ctrlOrMeta, shiftKey)
@@ -493,7 +511,6 @@ export function createTextEditorInput(
 	}
 
 	const handleKeyUp = (event: KeyboardEvent) => {
-		if (!options.isEditable()) return
 		if (event.key === 'Backspace' && deleteKeyRepeat.isActive('Backspace')) {
 			deleteKeyRepeat.stop()
 		}
@@ -511,7 +528,6 @@ export function createTextEditorInput(
 	}
 
 	const handleRowClick = (entry: LineEntry) => {
-		if (!options.isEditable()) return
 		cursor.actions.setCursorFromClick(entry.index, entry.text.length)
 		focusInput()
 	}
@@ -521,7 +537,6 @@ export function createTextEditorInput(
 		column: number,
 		shiftKey = false
 	) => {
-		if (!options.isEditable()) return
 		cursor.actions.setCursorFromClick(lineIndex, column, shiftKey)
 		focusInput()
 	}
