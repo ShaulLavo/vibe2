@@ -1,4 +1,11 @@
-import { Show, createEffect, on, onCleanup, onMount } from 'solid-js'
+import {
+	Show,
+	createEffect,
+	on,
+	onCleanup,
+	onMount,
+	type Accessor
+} from 'solid-js'
 import { Lines } from '../line/components/Lines'
 import { Cursor } from '../cursor/components/Cursor'
 import { SelectionLayer } from '../selection/components/SelectionLayer'
@@ -12,9 +19,13 @@ import {
 	createTextEditorLayout,
 	createMouseSelection
 } from '../hooks'
-import type { TextFileEditorProps } from '../types'
+import type { BracketDepthMap, TextFileEditorProps } from '../types'
 
-export const TextFileEditorInner = (props: TextFileEditorProps) => {
+type TextFileEditorInnerProps = TextFileEditorProps & {
+	bracketDepths: Accessor<BracketDepthMap | undefined>
+}
+
+export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 	const cursor = useCursor()
 
 	const tabSize = () => props.tabSize?.() ?? DEFAULT_TAB_SIZE
@@ -58,7 +69,7 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		scrollElement: () => scrollElement,
 		charWidth: layout.charWidth,
 		tabSize: tabSize,
-		lineHeight: layout.lineHeight,
+		lineHeight: layout.lineHeight
 	})
 
 	const handleLineMouseDown = (
@@ -91,6 +102,9 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 		}
 	})
 
+	/* TODO: move off TanStack virtualization so we control windowing
+		and can let features like bracket coloring share the custom
+		visible-range state */
 	return (
 		<Show
 			when={layout.hasLineEntries()}
@@ -165,10 +179,12 @@ export const TextFileEditorInner = (props: TextFileEditorProps) => {
 							lineHeight={layout.lineHeight}
 							charWidth={layout.charWidth}
 							tabSize={tabSize}
+							isEditable={isEditable}
 							onRowClick={input.handleRowClick}
 							onPreciseClick={input.handlePreciseClick}
 							onMouseDown={handleLineMouseDown}
 							activeLineIndex={layout.activeLineIndex}
+							bracketDepths={props.bracketDepths}
 						/>
 					</div>
 				</div>

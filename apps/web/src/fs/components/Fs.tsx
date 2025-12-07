@@ -2,7 +2,7 @@ import { Resizable, ResizableHandle, ResizablePanel } from '@repo/ui/resizable'
 import { makePersisted } from '@solid-primitives/storage'
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
-import { dualStorage } from '~/utils/dualStorage'
+import { dualStorage } from '~/utils/DualStorage'
 import { useFs } from '../../fs/context/FsContext'
 import { SelectedFilePanel } from './SelectedFilePanel'
 import { TreeView } from './TreeView'
@@ -19,6 +19,7 @@ export const Fs = () => {
 	const [treePanel, setTreePanel] = createSignal<HTMLDivElement | undefined>()
 	const storage = typeof window === 'undefined' ? undefined : dualStorage
 	const [panelSizes, setPanelSizes] = makePersisted(
+		// eslint-disable-next-line solid/reactivity
 		createSignal<number[]>([0.3, 0.7]),
 		{
 			name: 'fs-horizontal-panel-size',

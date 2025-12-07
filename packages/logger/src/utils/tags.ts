@@ -5,7 +5,6 @@ export type LoggerScope =
 	| 'app'
 	| 'code-editor'
 	| 'fs'
-	| 'perf'
 	| (string & {})
 
 const DEFAULT_SCOPE: LoggerScope = 'app'

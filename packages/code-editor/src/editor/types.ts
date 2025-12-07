@@ -2,6 +2,9 @@ import type { VirtualItem, Virtualizer } from '@tanstack/virtual-core'
 import type { Accessor } from 'solid-js'
 import type { ParseResult } from '@repo/utils/parse'
 import type { PieceTableSnapshot } from '@repo/utils'
+import type { BracketDepthMap as InternalBracketDepthMap } from './utils/bracketDepths'
+
+export type BracketDepthMap = InternalBracketDepthMap
 
 export type CursorMode = 'regular' | 'terminal'
 
@@ -49,8 +52,13 @@ export type LineProps = {
 	contentWidth: number
 	charWidth: number
 	tabSize: number
+	isEditable: Accessor<boolean>
 	onRowClick: (entry: LineEntry) => void
-	onPreciseClick: (lineIndex: number, column: number, shiftKey?: boolean) => void
+	onPreciseClick: (
+		lineIndex: number,
+		column: number,
+		shiftKey?: boolean
+	) => void
 	onMouseDown?: (
 		event: MouseEvent,
 		lineIndex: number,
@@ -58,6 +66,7 @@ export type LineProps = {
 		textElement: HTMLElement | null
 	) => void
 	isActive: boolean
+	bracketDepths: Accessor<BracketDepthMap | undefined>
 }
 
 export type LinesProps = {
@@ -67,8 +76,13 @@ export type LinesProps = {
 	lineHeight: Accessor<number>
 	charWidth: Accessor<number>
 	tabSize: Accessor<number>
+	isEditable: Accessor<boolean>
 	onRowClick: (entry: LineEntry) => void
-	onPreciseClick: (lineIndex: number, column: number, shiftKey?: boolean) => void
+	onPreciseClick: (
+		lineIndex: number,
+		column: number,
+		shiftKey?: boolean
+	) => void
 	onMouseDown?: (
 		event: MouseEvent,
 		lineIndex: number,
@@ -76,6 +90,7 @@ export type LinesProps = {
 		textElement: HTMLElement | null
 	) => void
 	activeLineIndex: Accessor<number | null>
+	bracketDepths: Accessor<BracketDepthMap | undefined>
 }
 
 export type LineGuttersProps = {

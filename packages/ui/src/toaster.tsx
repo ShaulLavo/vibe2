@@ -1,6 +1,6 @@
 import type { Component, ComponentProps } from 'solid-js'
 
-import { Toaster as Sonner } from 'solid-sonner'
+import { Toaster as Sonner, toast } from 'solid-sonner'
 
 type ToasterProps = ComponentProps<typeof Sonner>
 
@@ -24,4 +24,4 @@ const Toaster: Component<ToasterProps> = props => {
 	)
 }
 
-export { Toaster }
+export { Toaster, toast }

@@ -6,7 +6,7 @@
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css"
   },
-  "scripts": {
+ "scripts": {
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit"
   },
@@ -15,6 +15,7 @@
 		"@repo/icons": "*",
 		"@repo/keyboard": "*",
 		"@repo/logger": "*",
+		"@repo/perf": "*",
 		"@repo/utils": "*",
 		"@tanstack/solid-virtual": "^3.13.12",
 		"@tanstack/virtual-core": "^3.13.12",

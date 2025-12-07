@@ -25,6 +25,10 @@ const LOCAL_ROOT_KEY = 'fs-local-root-handle'
 const OPFS_ROOT_KEY = 'fs-opfs-root-handle'
 let localRootPromise: Promise<FileSystemDirectoryHandle> | null = null
 
+export type GetRootOptions = {
+	onAwaitingInteraction?: () => void
+}
+
 function assertHasDirectoryPicker(
 	target: Window
 ): asserts target is DirectoryPickerWindow {
@@ -36,13 +40,14 @@ function assertHasDirectoryPicker(
 
 export async function getRootDirectory(
 	type: FsType,
-	rootName = 'root'
+	rootName = 'root',
+	options?: GetRootOptions
 ): Promise<FileSystemDirectoryHandle> {
 	switch (type) {
 		case 'opfs':
 			return getOpfsRoot(rootName)
 		case 'local':
-			return getLocalRoot()
+			return getLocalRoot(options)
 		case 'memory':
 			return getMemoryRoot(rootName)
 		default:
@@ -65,21 +70,6 @@ export async function getOpfsRoot(
 	return appDir
 }
 
-// maybe useful if restoreHandle start to blow up
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function ensureReadWritePermission(
-	handle: FileSystemDirectoryHandle
-): Promise<boolean> {
-	const state = await queryHandlePermission(handle, 'readwrite')
-
-	if (state === 'granted') return true
-	if (state === 'prompt') {
-		const next = await requestHandlePermission(handle, 'readwrite')
-		return next === 'granted'
-	}
-	return false
-}
-
 function isUserGestureError(error: unknown): boolean {
 	if (!error || typeof error !== 'object') return false
 	const name = (error as DOMException).name
@@ -92,7 +82,8 @@ function isUserGestureError(error: unknown): boolean {
 }
 
 async function pickDirectoryWithRetry(
-	pickerWindow: DirectoryPickerWindow
+	pickerWindow: DirectoryPickerWindow,
+	options?: GetRootOptions
 ): Promise<FileSystemDirectoryHandle> {
 	// First attempt – assumes we're already inside a user gesture
 	try {
@@ -104,6 +95,7 @@ async function pickDirectoryWithRetry(
 		}
 
 		// Retry on *next* user interaction
+		options?.onAwaitingInteraction?.()
 		return new Promise<FileSystemDirectoryHandle>((resolve, reject) => {
 			const tryAgain = async () => {
 				cleanup()
@@ -129,26 +121,79 @@ async function pickDirectoryWithRetry(
 	}
 }
 
+async function clearPersistedHandle(key: string): Promise<void> {
+	try {
+		await localforage.removeItem(key)
+	} catch {
+		// ignore removal failures
+	}
+}
+
+function isPermissionDenied(error: unknown): boolean {
+	if (!error || typeof error !== 'object') return false
+	const name = (error as DOMException).name
+	return name === 'NotAllowedError' || name === 'SecurityError'
+}
+
+async function canUseHandle(
+	handle: FileSystemDirectoryHandle
+): Promise<boolean> {
+	try {
+		// Try a non-creating lookup; succeeds fast when permission is valid
+		await handle.getFileHandle('__fs_permission_probe__', { create: false })
+		return true
+	} catch (error) {
+		const name = (error as DOMException).name
+		if (name === 'NotFoundError') {
+			// Not found still proves permission is intact
+			return true
+		}
+		if (isPermissionDenied(error)) return false
+		return false
+	}
+}
+
 async function resolveLocalRoot(
-	pickerWindow: DirectoryPickerWindow
+	pickerWindow: DirectoryPickerWindow,
+	options?: GetRootOptions
 ): Promise<FileSystemDirectoryHandle> {
 	const persisted =
 		await restoreHandle<FileSystemDirectoryHandle>(LOCAL_ROOT_KEY)
 
-	if (persisted) return persisted
+	if (persisted) {
+		// Fast path: if we can touch the handle, return immediately
+		if (await canUseHandle(persisted)) {
+			return persisted
+		}
 
-	const handle = await pickDirectoryWithRetry(pickerWindow)
+		// Try requesting permission directly (skip queryPermission)
+		try {
+			const permission = await requestHandlePermission(persisted, 'readwrite')
+			if (permission === 'granted' && (await canUseHandle(persisted))) {
+				return persisted
+			}
+		} catch {
+			// requestPermission failed (no user gesture or denied)
+		}
+
+		// Permission revoked or denied - clear stale handle
+		await clearPersistedHandle(LOCAL_ROOT_KEY)
+	}
+
+	const handle = await pickDirectoryWithRetry(pickerWindow, options)
 	await persistHandle(LOCAL_ROOT_KEY, handle)
 	return handle
 }
 
-export async function getLocalRoot(): Promise<FileSystemDirectoryHandle> {
+export async function getLocalRoot(
+	options?: GetRootOptions
+): Promise<FileSystemDirectoryHandle> {
 	if (localRootPromise) return localRootPromise
 
 	assertHasDirectoryPicker(window)
 	const pickerWindow = window as DirectoryPickerWindow
 
-	localRootPromise = resolveLocalRoot(pickerWindow).catch(err => {
+	localRootPromise = resolveLocalRoot(pickerWindow, options).catch(err => {
 		localRootPromise = null
 		throw err
 	})
@@ -172,20 +217,6 @@ async function persistHandle(
 		await localforage.setItem(key, handle)
 	} catch {
 		// ignore persistence failures; we'll fall back to prompting again
-	}
-}
-
-async function queryHandlePermission(
-	handle: FileSystemDirectoryHandle,
-	mode: 'read' | 'readwrite'
-): Promise<PermissionState> {
-	const candidate = handle as PermissionCapableDirectoryHandle
-	if (typeof candidate.queryPermission !== 'function') return 'prompt'
-
-	try {
-		return await candidate.queryPermission({ mode })
-	} catch {
-		return 'prompt'
 	}
 }
 

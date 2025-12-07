@@ -1,0 +1,59 @@
+---
+alwaysApply: true
+---
+
+# Monorepo Rules (Vibe)
+- Turbo + Bun workspace; apps in `apps/` (`web` Solid+Vite, `server` Bun+Elysia, `desktop` Tauri shell); shared packages under `packages/` (`fs`, `code-editor`, `ui`, `logger`, `utils`, `keyboard`, `icons`, `eslint-config`, `typescript-config`, `perf`).
+
+## Dev & Build
+- Install: `bun install` (Node/Bun 18+).
+- Dev: `bun run dev` (or `bun run dev --filter web|server|desktop`); build: `bun run build`; lint: `bun run lint`; format: `bun run format`; type-check: `bun run check-types`.
+- Logger toggles: `bun run generate:logger-toggles` regenerates `packages/logger/src/utils/toggleDefaults.ts` (runs in predev/prebuild).
+
+## Env & Security
+- Each app keeps its own `.env`; copy from `apps/web/.env.example` and `apps/server/.env.example`. App `.env` overrides repo-root `.env`; `WEB_ORIGIN` should mirror `VITE_WEB_ORIGIN`. Turbo hashes env files/vars.
+- Never commit secrets or `.env` files; document new vars in the relevant `.env.example`.
+- Server env loader (`apps/server/src/env.ts`) uses zod; prefer extending it when adding config.
+
+## Coding Style
+- TypeScript/TSX; tabs; single quotes; no semicolons.
+- Components `PascalCase`; utilities `camelCase`; file names follow component/utility convention.
+- Prefer named exports (avoid default exports for components/utilities, especially in `apps/web`).
+- Follow shared ESLint config; fix reported issues before PRs.
+- Solid naming: `create*` = reactive primitive, `make*` = non-reactive foundation, `use*` = consume existing resource.
+
+## Architecture & Patterns
+- Web layout (`apps/web/src/Main.tsx`) uses `@repo/ui/resizable`; split sizes persist via `makePersisted` + `dualStorage`.
+- FS access goes through `FsProvider` (`apps/web/src/fs/context/FsProvider.tsx`) for tree building (`local|opfs|memory`), handle caching, streaming bytes/text, parse stats, and mutations; keep FS changes within provider to sync piece tables/state.
+- File viewing: `@repo/code-editor` for text (piece tables, cursor/selection virtualization); `BinaryFileViewer` for hex/ASCII; expanded folders, selection, preview bytes, piece tables persist via `localforage`.
+- Focus: register keyboard-focusable regions with `FocusProvider` (`useFocusManager().registerArea`) so `StatusBar`/editor scope stay accurate.
+- Terminal: use `apps/web/src/terminal/commands.ts` + `createTerminalController`; `xterm.js` with LocalEcho owns prompt/fit; commands include `help`, `echo`, `clear`.
+- Server: routes in `apps/server/src/index.ts` (`/`, `/id/:id`, `POST /mirror` with validation); CORS/env handled via `apps/server/src/env.ts`.
+- Desktop: thin Tauri wrapper around web build; dev/build via `bun run dev --filter=desktop` / `bun run build --filter=desktop`.
+- Shared packages: `@repo/fs` virtual FS helpers; `@repo/code-editor` Solid editor stack; `@repo/ui` headless primitives/resizable/toaster; `@repo/utils` parsing/bytes/piece-table helpers; `@repo/logger` Consola loggers; `@repo/perf` tracing; `@repo/keyboard` keymap/parser utilities; `@repo/icons` Solid icon wrappers.
+
+## Logging & Telemetry
+- Use `@repo/logger` (`logger.withTag('feature')`) for runtime logging; avoid `console.*` except short-lived debugging.
+- Instrument expensive work (tree building, streaming, parsing) with `@repo/perf` helpers.
+
+## Persistence & State
+- Use `makePersisted` for long-lived UI state; store large FS/tree data in `localforage`, and use `dualStorage` when values must exist in both session/local storage (e.g., split sizes, focus prefs).
+
+## Testing
+- No global runner; place tests next to code (`*.test.ts[x]`); add a `test` script when introducing tests to a package.
+- Web app: prefer Vitest colocated; cover FS, utils, terminal flows.
+- Keyboard package tests: `bun run test --filter=@repo/keyboard`.
+- Keep tests fast/deterministic; avoid real external services.
+
+## Commit & PR Hygiene
+- Commits: short, present/imperative (optionally scoped, e.g., `web: improve terminal resizing`); keep changesets focused.
+- PRs: include purpose, high-level changes, testing notes (commands/browsers/platforms), screenshots/recordings for UI changes, and call out breaking changes/migrations.
+
+## Terminology (Solid)
+- Use Solid terms consistently: computation, root, scope, tracking scope; reactive value = tracked value (signals, memos, props, stores). Prefer `Solid` (not “SolidJS”) internally unless external-facing.
+
+## Known TODOs
+- `apps/web/src/styles.css`: replace stopgap native scrollbar styling with a full custom implementation.
+- `apps/web/src/fs/context/FsProvider.tsx`: rework syncing of last-opened file path to `localStorage`.
+- `apps/web/src/components/BinaryFileViewer.tsx`: replace TanStack Virtualizer with a leaner implementation for large binaries.
+- `packages/code-editor/src/editor/components/Input.tsx`: optimize hidden textarea input for very large files.

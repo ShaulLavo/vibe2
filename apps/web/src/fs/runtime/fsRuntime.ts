@@ -5,7 +5,9 @@ import {
 	getRootDirectory,
 	type FsContext as VfsContext
 } from '@repo/fs'
+import { loggers } from '@repo/logger'
 import { trackOperation } from '@repo/perf'
+import { toast } from '@repo/ui/toaster'
 import { OPFS_ROOT_NAME } from '../config/constants'
 import type { FsSource } from '../types'
 
@@ -13,6 +15,22 @@ const fsCache: Partial<Record<FsSource, VfsContext>> = {}
 const initPromises: Partial<Record<FsSource, Promise<void>>> = {}
 
 export const fileHandleCache = new Map<string, FileSystemFileHandle>()
+
+let awaitingPermissionToastId: string | number | null = null
+
+const showAwaitingPermissionToast = () => {
+	if (awaitingPermissionToastId !== null) return
+	awaitingPermissionToastId = toast('Waiting for permission', {
+		description: 'Click or press a key to continue the directory picker.',
+		duration: Infinity
+	})
+}
+
+const clearAwaitingPermissionToast = () => {
+	if (awaitingPermissionToastId === null) return
+	toast.dismiss(awaitingPermissionToastId)
+	awaitingPermissionToastId = null
+}
 
 export function invalidateFs(source: FsSource) {
 	delete fsCache[source]
@@ -27,11 +45,15 @@ export async function ensureFs(source: FsSource): Promise<VfsContext> {
 			'fs:ensureFs:init',
 			async ({ timeAsync, timeSync }) => {
 				const rootHandle = await timeAsync('get-root', () =>
-					getRootDirectory(source, OPFS_ROOT_NAME)
-				)
+					getRootDirectory(source, OPFS_ROOT_NAME, {
+						onAwaitingInteraction: showAwaitingPermissionToast
+					})
+				).finally(() => {
+					clearAwaitingPermissionToast()
+				})
 				fsCache[source] = timeSync('create-fs', () => createFs(rootHandle))
 			},
-			{ metadata: { source } }
+			{ metadata: { source }, logger: loggers.fs }
 		)
 	}
 
@@ -119,7 +141,7 @@ export async function buildTree(
 
 			return root
 		},
-		{ metadata: { source, rootPath } }
+		{ metadata: { source, rootPath }, logger: loggers.fs }
 	)
 }
 

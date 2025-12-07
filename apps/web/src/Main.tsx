@@ -1,11 +1,11 @@
 /* eslint-disable solid/reactivity */
+import { Resizable, ResizableHandle, ResizablePanel } from '@repo/ui/resizable'
 import { makePersisted } from '@solid-primitives/storage'
 import { createSignal, type Component } from 'solid-js'
-import { Resizable, ResizableHandle, ResizablePanel } from '@repo/ui/resizable'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
 import { Fs } from './fs/components/Fs'
-import { dualStorage } from './utils/dualStorage'
+import { dualStorage } from './utils/DualStorage'
 
 const Main: Component = () => {
 	const [verticalPanelSize, setVerticalPanelSize] = makePersisted(

@@ -5,6 +5,7 @@ import {
 	parseFileBuffer,
 	createPieceTableSnapshot
 } from '@repo/utils'
+import { loggers } from '@repo/logger'
 import type { PieceTableSnapshot } from '@repo/utils'
 import { trackOperation } from '@repo/perf'
 import {
@@ -164,7 +165,8 @@ export const useFileSelection = ({
 					})
 				},
 				{
-					metadata: perfMetadata
+					metadata: perfMetadata,
+					logger: loggers.fs
 				}
 			).catch(error => {
 				if (requestId !== selectRequestId) return

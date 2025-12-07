@@ -1,12 +1,10 @@
-import { loggers } from '@repo/logger'
+import { loggers, type Logger } from '@repo/logger'
 import type { PerfBreakdownEntry, PerfRecord, PerfSummary } from './perfStore'
 import { getSummary, getRecentForOperation } from './perfStore'
 
 type LogLevel = 'debug' | 'info' | 'warn'
 
 let currentLogLevel: LogLevel = 'debug'
-
-const perfLogger = loggers.perf
 
 export const setLogLevel = (level: LogLevel): void => {
 	currentLogLevel = level
@@ -105,23 +103,29 @@ const formatBreakdownTable = (
 	].join('\n')
 }
 
-const logLevelMethods: Record<LogLevel, (msg: string) => void> = {
-	debug: msg => perfLogger.debug(msg),
-	info: msg => perfLogger.info(msg),
-	warn: msg => perfLogger.warn(msg)
-}
+const getTargetLogger = (logger?: Logger): Logger | null => logger ?? null
 
-const logWithLevel = (level: LogLevel, message: string): void => {
-	logLevelMethods[level](message)
+const logWithLevel = (logger: Logger, level: LogLevel, message: string): void => {
+	if (level === 'debug') {
+		logger.debug(message)
+		return
+	}
+	if (level === 'info') {
+		logger.info(message)
+		return
+	}
+	logger.warn(message)
 }
 
 export const logOperation = (
 	record: PerfRecord,
-	options: { showBreakdown?: boolean; level?: LogLevel } = {}
+	options: { showBreakdown?: boolean; level?: LogLevel; logger?: Logger } = {}
 ): void => {
-	const { showBreakdown = true, level = 'debug' } = options
+	const { showBreakdown = true, level = 'debug', logger } = options
 	if (!shouldLog(level)) return
 
+	const targetLogger = getTargetLogger(logger)
+	if (!targetLogger) return
 	const metaStr = record.metadata
 		? `\n${Object.entries(record.metadata)
 				.map(([k, v]) => `${k}: ${v}`)
@@ -144,23 +148,27 @@ export const logOperation = (
 		message = `${message}\n${sizeLine}`
 	}
 
-	logWithLevel(level, message)
+	logWithLevel(targetLogger, level, message)
 }
 
 export const logOperationSimple = (
 	name: string,
 	duration: number,
-	metadata?: Record<string, unknown>
+	metadata?: Record<string, unknown>,
+	options: { logger?: Logger; level?: LogLevel } = {}
 ): void => {
-	if (!shouldLog('debug')) return
+	const { logger, level = 'debug' } = options
+	if (!shouldLog(level)) return
 
+	const targetLogger = getTargetLogger(logger)
+	if (!targetLogger) return
 	const metaStr = metadata
 		? ` | ${Object.entries(metadata)
 				.map(([k, v]) => `${k}: ${v}`)
 				.join(', ')}`
 		: ''
 
-	perfLogger.debug(`⏱ ${name} ${formatDuration(duration)}${metaStr}`)
+	logWithLevel(targetLogger, level, `⏱ ${name} ${formatDuration(duration)}${metaStr}`)
 }
 
 const formatSummaryTable = (summaries: PerfSummary[]): string => {
@@ -192,27 +200,31 @@ const formatSummaryTable = (summaries: PerfSummary[]): string => {
 	return [divider, headerRow, divider, ...dataRows, divider].join('\n')
 }
 
-export const logSummary = async (filter?: {
-	name?: string
-	since?: number
-}): Promise<void> => {
+export const logSummary = async (
+	filter?: {
+		name?: string
+		since?: number
+	},
+	logger: Logger = loggers.app
+): Promise<void> => {
 	const summaries = await getSummary(filter)
 
-	perfLogger.info('📊 Performance Summary')
-	perfLogger.info(formatSummaryTable(summaries))
+	logger.info('📊 Performance Summary')
+	logger.info(formatSummaryTable(summaries))
 }
 
 export const logRecentOperations = async (
 	name: string,
-	limit = 10
+	limit = 10,
+	logger: Logger = loggers.app
 ): Promise<void> => {
 	const records = await getRecentForOperation(name, limit)
 
-	perfLogger.info(`📈 Recent "${name}" operations (${records.length})`)
+	logger.info(`📈 Recent "${name}" operations (${records.length})`)
 
 	for (const record of records) {
 		const time = new Date(record.timestamp).toLocaleTimeString()
-		perfLogger.debug(`${time} ${formatDuration(record.duration)}`)
+		logger.debug(`${time} ${formatDuration(record.duration)}`)
 	}
 }
 
