@@ -214,20 +214,17 @@ export const useHistoryStore = (
 		})
 	}
 
-	const canUndoMemo = createMemo(() => {
+	const canUndo = createMemo(() => {
 		const path = filePath()
 		if (!path) return false
 		return getHistoryState(path).undoStack.length > 0
 	})
 
-	const canRedoMemo = createMemo(() => {
+	const canRedo = createMemo(() => {
 		const path = filePath()
 		if (!path) return false
 		return getHistoryState(path).redoStack.length > 0
 	})
-
-	const canUndo = () => canUndoMemo()
-	const canRedo = () => canRedoMemo()
 
 	const clear = () => {
 		const path = filePath()
