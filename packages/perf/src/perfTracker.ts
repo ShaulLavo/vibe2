@@ -1,10 +1,5 @@
 import type { Logger } from '@repo/logger'
-import {
-	createTimingTracker,
-	type TimingControls,
-	type TimingTracker
-} from './timing'
-import { PERF_TRACKING_ENABLED } from './config'
+import { createTimingTracker, type TimingControls } from './timing'
 import { record, type PerfBreakdownEntry, type PerfRecord } from './perfStore'
 import { logOperation, logOperationSimple } from './perfLogger'
 
@@ -53,12 +48,6 @@ const convertBreakdown = (tableOutput: string): PerfBreakdownEntry[] => {
 	return entries
 }
 
-// No-op controls for when tracking is disabled
-const noopControls: TimingControls = {
-	timeSync: (_label, fn) => fn(noopControls),
-	timeAsync: (_label, fn) => fn(noopControls)
-}
-
 const createTransientRecord = (
 	name: string,
 	duration: number,
@@ -81,12 +70,13 @@ export const trackOperation = async <T>(
 	fn: (controls: TimingControls) => Promise<T>,
 	options: TrackOptions = {}
 ): Promise<T> => {
-	// Skip instrumentation entirely when tracking is disabled
-	if (!PERF_TRACKING_ENABLED) {
-		return fn(noopControls)
-	}
-
-	const { metadata, showBreakdown = true, persist = true, level, logger } = options
+	const {
+		metadata,
+		showBreakdown = true,
+		persist = true,
+		level,
+		logger
+	} = options
 
 	const tracker = createTimingTracker()
 	const { timeSync, timeAsync } = tracker
@@ -122,11 +112,6 @@ export const trackSync = <T>(
 	fn: (controls: TimingControls) => T,
 	options: TrackOptions = {}
 ): T => {
-	// Skip instrumentation entirely when tracking is disabled
-	if (!PERF_TRACKING_ENABLED) {
-		return fn(noopControls)
-	}
-
 	const { metadata, showBreakdown = true, persist = true, logger } = options
 
 	const tracker = createTimingTracker()
@@ -165,13 +150,12 @@ export const trackSync = <T>(
 export const trackMicro = <T>(
 	name: string,
 	fn: () => T,
-	options: { metadata?: Record<string, unknown>; threshold?: number; logger?: Logger } = {}
+	options: {
+		metadata?: Record<string, unknown>
+		threshold?: number
+		logger?: Logger
+	} = {}
 ): T => {
-	// Skip instrumentation entirely when tracking is disabled
-	if (!PERF_TRACKING_ENABLED) {
-		return fn()
-	}
-
 	const { metadata, threshold = 1, logger } = options
 	const start = performance.now()
 
@@ -202,11 +186,15 @@ export const createOperationTracker = (
 	trackSync: <T>(fn: (controls: TimingControls) => T, options?: TrackOptions) =>
 		trackSync(operationName, fn, { ...defaultOptions, ...options }),
 
-		trackMicro: <T>(
-			fn: () => T,
-			options?: { metadata?: Record<string, unknown>; threshold?: number; logger?: Logger }
-		) => trackMicro(operationName, fn, options)
-	})
+	trackMicro: <T>(
+		fn: () => T,
+		options?: {
+			metadata?: Record<string, unknown>
+			threshold?: number
+			logger?: Logger
+		}
+	) => trackMicro(operationName, fn, options)
+})
 
 // Re-export store functions for convenience
 export {

@@ -51,7 +51,16 @@ type ResolveCandidate = {
 }
 
 const TS_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts'])
-const JS_EXTENSIONS = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']
+const JS_EXTENSIONS = [
+	'.ts',
+	'.tsx',
+	'.mts',
+	'.cts',
+	'.js',
+	'.jsx',
+	'.mjs',
+	'.cjs'
+]
 const IGNORED_DIRS = new Set([
 	'.git',
 	'.turbo',
@@ -90,7 +99,8 @@ for (const tag of loggerBaseTags.values()) {
 
 const candidateFiles = collectCandidateFiles(repoRoot)
 for (const filePath of candidateFiles) {
-	const content = fileContentCache.get(filePath) ?? readFileSync(filePath, 'utf8')
+	const content =
+		fileContentCache.get(filePath) ?? readFileSync(filePath, 'utf8')
 	const tags = collectTagsFromFile(filePath, content)
 	for (const tag of tags) {
 		discoveredTags.add(tag)
@@ -100,11 +110,8 @@ for (const filePath of candidateFiles) {
 const sortedTags = Array.from(discoveredTags).sort((a, b) => a.localeCompare(b))
 const tree = buildTree(sortedTags, previousStates)
 const treeObject = convertTreeToObject(tree)
-const flatDefaults = Object.fromEntries(
-	sortedTags.map(tag => [tag, previousStates.get(tag) ?? false])
-)
 
-const nextFileContent = buildFileContents(treeObject, flatDefaults)
+const nextFileContent = buildFileContents(treeObject)
 const currentContent = existsSync(toggleDefaultsPath)
 	? readFileSync(toggleDefaultsPath, 'utf8')
 	: ''
@@ -138,7 +145,9 @@ function loadPreviousStates(): Promise<Map<string, boolean>> {
 		.catch(() => new Map())
 }
 
-function flattenTree(tree: Record<string, RawToggleNode>): Map<string, boolean> {
+function flattenTree(
+	tree: Record<string, RawToggleNode>
+): Map<string, boolean> {
 	const result = new Map<string, boolean>()
 
 	for (const [key, value] of Object.entries(tree ?? {})) {
@@ -196,7 +205,10 @@ function collectCandidateFiles(root: string): string[] {
 
 function collectTagsFromFile(filePath: string, content: string): Set<string> {
 	const tags = new Set<string>()
-	const { sourceFile, resolveExpressionTag } = parseFileForTags(filePath, content)
+	const { sourceFile, resolveExpressionTag } = parseFileForTags(
+		filePath,
+		content
+	)
 	const aliasTags = new Map<string, string>()
 
 	const registerAlias = (name: string, tag: string | undefined) => {
@@ -226,10 +238,7 @@ function collectTagsFromFile(filePath: string, content: string): Set<string> {
 	return tags
 }
 
-function parseFileForTags(
-	filePath: string,
-	content: string
-): FileTagParser {
+function parseFileForTags(filePath: string, content: string): FileTagParser {
 	const sourceFile = createSourceFile(filePath, content)
 	const importBindings = new Map<string, ImportBinding>()
 	const loggersAliases = new Set<string>()
@@ -304,7 +313,10 @@ function parseFileForTags(
 			ts.isPropertyAccessExpression(expr.expression) &&
 			expr.expression.name.text === 'withTag'
 		) {
-			const baseTag = resolveExpressionTag(expr.expression.expression, aliasTags)
+			const baseTag = resolveExpressionTag(
+				expr.expression.expression,
+				aliasTags
+			)
 			if (!baseTag) return undefined
 			const arg = expr.arguments[0]
 			if (!arg || !ts.isStringLiteralLike(arg)) return undefined
@@ -347,7 +359,10 @@ function resolveScriptKind(filePath: string): ts.ScriptKind {
 	return ts.ScriptKind.TS
 }
 
-function resolveModule(fromFile: string, specifier: string): string | undefined {
+function resolveModule(
+	fromFile: string,
+	specifier: string
+): string | undefined {
 	const cacheKey = `${fromFile}::${specifier}`
 	if (moduleResolutionCache.has(cacheKey)) {
 		return moduleResolutionCache.get(cacheKey)
@@ -479,11 +494,7 @@ function resolveEslintConfigPackage(
 		candidates.push({ path: path.join(packageRoot, 'solid') })
 	}
 	candidates.push(
-		...buildGenericRepoPackageCandidates(
-			packageRoot,
-			packageJson,
-			subpath
-		)
+		...buildGenericRepoPackageCandidates(packageRoot, packageJson, subpath)
 	)
 	return tryResolveCandidates(candidates)
 }
@@ -504,11 +515,7 @@ function resolveIconsPackage(
 		candidates.push({ path: path.join(packageRoot, packageJson.main) })
 	}
 	candidates.push(
-		...buildGenericRepoPackageCandidates(
-			packageRoot,
-			packageJson,
-			subpath
-		)
+		...buildGenericRepoPackageCandidates(packageRoot, packageJson, subpath)
 	)
 	return tryResolveCandidates(candidates)
 }
@@ -563,15 +570,10 @@ function resolveTypeScriptConfigPackage(
 		})
 	}
 	candidates.push(
-		...buildGenericRepoPackageCandidates(
-			packageRoot,
-			packageJson,
-			subpath,
-			{
-				extraExtensions,
-				exportKeys: Array.from(exportKeys)
-			}
-		)
+		...buildGenericRepoPackageCandidates(packageRoot, packageJson, subpath, {
+			extraExtensions,
+			exportKeys: Array.from(exportKeys)
+		})
 	)
 	return tryResolveCandidates(candidates)
 }
@@ -592,11 +594,7 @@ function resolveUiPackage(
 		candidates.push({ path: path.join(packageRoot, 'src', 'utils') })
 	}
 	candidates.push(
-		...buildGenericRepoPackageCandidates(
-			packageRoot,
-			packageJson,
-			subpath
-		)
+		...buildGenericRepoPackageCandidates(packageRoot, packageJson, subpath)
 	)
 	return tryResolveCandidates(candidates)
 }
@@ -605,10 +603,7 @@ function tryResolveCandidates(
 	candidates: ResolveCandidate[]
 ): string | undefined {
 	for (const candidate of candidates) {
-		const resolved = resolveWithExtensions(
-			candidate.path,
-			candidate.options
-		)
+		const resolved = resolveWithExtensions(candidate.path, candidate.options)
 		if (resolved) {
 			return resolved
 		}
@@ -778,10 +773,8 @@ function getExportedTags(filePath: string): ExportMap {
 	exportStack.add(normalized)
 
 	const content = readFileSync(normalized, 'utf8')
-	const { sourceFile, resolveIdentifierTag, resolveExpressionTag } = parseFileForTags(
-		normalized,
-		content
-	)
+	const { sourceFile, resolveIdentifierTag, resolveExpressionTag } =
+		parseFileForTags(normalized, content)
 	const localAliasTags = new Map<string, string>()
 	const exportsMap: ExportMap = new Map()
 	const resolveIdentifier = (name: string): string | undefined =>
@@ -822,7 +815,10 @@ function getExportedTags(filePath: string): ExportMap {
 				const modulePath = resolveModule(normalized, spec.text)
 				if (!modulePath) continue
 				const targetExports = getExportedTags(modulePath)
-				if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
+				if (
+					statement.exportClause &&
+					ts.isNamedExports(statement.exportClause)
+				) {
 					for (const element of statement.exportClause.elements) {
 						const targetName = element.propertyName?.text ?? element.name.text
 						const tag = targetExports.get(targetName)
@@ -835,7 +831,10 @@ function getExportedTags(filePath: string): ExportMap {
 						exportsMap.set(key, value)
 					}
 				}
-			} else if (statement.exportClause && ts.isNamedExports(statement.exportClause)) {
+			} else if (
+				statement.exportClause &&
+				ts.isNamedExports(statement.exportClause)
+			) {
 				for (const element of statement.exportClause.elements) {
 					const localName = element.propertyName?.text ?? element.name.text
 					const tag = localAliasTags.get(localName)
@@ -923,36 +922,25 @@ function serializeNode(node: TreeBuilderNode): RawToggleNode {
 	return payload
 }
 
-function buildFileContents(
-	treeObject: Record<string, RawToggleNode>,
-	defaults: Record<string, boolean>
-): string {
+function buildFileContents(treeObject: Record<string, RawToggleNode>): string {
 	const header =
-		"// This file is auto-generated by scripts/generate-logger-toggle-defaults.ts.\n" +
-		"// Run `bun run generate:logger-toggles` to refresh it.\n\n"
+		'// This file is auto-generated by scripts/generate-logger-toggle-defaults.ts.\n' +
+		'// Run `bun run generate:logger-toggles` to refresh it.\n\n'
 
-	const typeBlock =
-		'type LoggerToggleEntry =\n' +
-		'\t| boolean\n' +
-		'\t| {\n' +
-		'\t\t\t$self?: boolean\n' +
-		'\t\t\t[key: string]: LoggerToggleEntry | undefined\n' +
-		'\t  }\n\n' +
-		'type LoggerToggleTree = Record<string, LoggerToggleEntry>\n\n'
+	const importBlock =
+		"import { flattenTree, type LoggerToggleTree } from './flattenToggleTree'\n\n"
 
 	const treeConst = `const LOGGER_TOGGLE_TREE = ${serializeObject(
 		treeObject,
 		0
 	)} as const satisfies LoggerToggleTree\n\n`
 
-	const defaultsConst = `const LOGGER_TOGGLE_DEFAULTS = ${serializeObject(
-		defaults,
-		0
-	)} as const satisfies Record<string, boolean>\n\n`
+	const defaultsConst =
+		'const LOGGER_TOGGLE_DEFAULTS = flattenTree(LOGGER_TOGGLE_TREE)\n\n'
 
 	const exportsBlock = 'export { LOGGER_TOGGLE_DEFAULTS, LOGGER_TOGGLE_TREE }\n'
 
-	return `${header}${typeBlock}${treeConst}${defaultsConst}${exportsBlock}`
+	return `${header}${importBlock}${treeConst}${defaultsConst}${exportsBlock}`
 }
 
 function serializeObject(

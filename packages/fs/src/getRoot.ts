@@ -129,13 +129,76 @@ async function pickDirectoryWithRetry(
 	}
 }
 
+async function verifyHandlePermission(
+	handle: FileSystemDirectoryHandle
+): Promise<boolean> {
+	const permission = await queryHandlePermission(handle, 'readwrite')
+	if (permission === 'granted') return true
+
+	if (permission === 'prompt') {
+		try {
+			const requested = await requestHandlePermission(handle, 'readwrite')
+			return requested === 'granted'
+		} catch {
+			return false
+		}
+	}
+
+	return false
+}
+
+async function clearPersistedHandle(key: string): Promise<void> {
+	try {
+		await localforage.removeItem(key)
+	} catch {
+		// ignore removal failures
+	}
+}
+
 async function resolveLocalRoot(
 	pickerWindow: DirectoryPickerWindow
 ): Promise<FileSystemDirectoryHandle> {
 	const persisted =
 		await restoreHandle<FileSystemDirectoryHandle>(LOCAL_ROOT_KEY)
 
-	if (persisted) return persisted
+	if (persisted) {
+		// Optimistic: assume permission is still valid, skip verification
+		return persisted
+	}
+
+	const handle = await pickDirectoryWithRetry(pickerWindow)
+	await persistHandle(LOCAL_ROOT_KEY, handle)
+	return handle
+}
+
+/**
+ * Clears the cached local root handle and promise.
+ * Call this when FS operations fail due to permission errors,
+ * then call getLocalRoot() again to re-prompt the user.
+ */
+export async function invalidateLocalRoot(): Promise<void> {
+	localRootPromise = null
+	await clearPersistedHandle(LOCAL_ROOT_KEY)
+}
+
+/**
+ * Force-verifies permission on the cached handle. Use when you need
+ * a guaranteed-valid handle (e.g., before a critical operation).
+ */
+export async function getLocalRootVerified(): Promise<FileSystemDirectoryHandle> {
+	assertHasDirectoryPicker(window)
+	const pickerWindow = window as DirectoryPickerWindow
+
+	const persisted =
+		await restoreHandle<FileSystemDirectoryHandle>(LOCAL_ROOT_KEY)
+
+	if (persisted) {
+		const hasPermission = await verifyHandlePermission(persisted)
+		if (hasPermission) return persisted
+
+		// Permission revoked - clear stale handle
+		await clearPersistedHandle(LOCAL_ROOT_KEY)
+	}
 
 	const handle = await pickDirectoryWithRetry(pickerWindow)
 	await persistHandle(LOCAL_ROOT_KEY, handle)

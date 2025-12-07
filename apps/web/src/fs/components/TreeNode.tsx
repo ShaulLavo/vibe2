@@ -45,10 +45,16 @@ export const TreeNode = (props: TreeNodeProps) => {
 						class="pointer-events-none absolute left-1 top-1/2 w-2.5 translate-y-1/2 border-t border-zinc-800"
 					/>
 				</Show>
+				{/* TODO: Move keyboard controls (Enter/Space to toggle) to keyboard manager */}
 				<button
 					type="button"
 					onMouseDown={handleClick}
-					onClick={handleClick}
+					onKeyDown={e => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault()
+							handleClick()
+						}
+					}}
 					aria-expanded={isDir() ? isOpen() : undefined}
 					class={`flex w-full items-center overflow-hidden rounded border border-transparent  text-left text-sm transition hover:border-zinc-700/60 hover:bg-zinc-800/30 ${
 						isSelected() ? 'border-zinc-700 bg-zinc-900/50' : ''

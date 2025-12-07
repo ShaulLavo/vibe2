@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "generate:logger-toggles": "bun scripts/generate-logger-toggle-defaults.ts",
-    "predev": "bun run generate:logger-toggles",
-    "prebuild": "bun run generate:logger-toggles",
+    "predev": "bun run generate:logger-toggles && (test -d packages/icons/dist/vs || bun run --filter @repo/icons build)",
+    "prebuild": "bun run generate:logger-toggles && (test -d packages/icons/dist/vs || bun run --filter @repo/icons build)",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
@@ -13,6 +13,7 @@
     "test": "turbo run test"
   },
   "devDependencies": {
+    "@types/node": "^24.10.1",
     "prettier": "^3.6.2",
     "turbo": "^2.6.1",
     "typescript": "5.9.2"
