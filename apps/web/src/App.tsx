@@ -80,10 +80,21 @@ const runTreeSitterDemo = async () => {
 	}
 }
 
+const runStoreBenchInDev = async () => {
+	if (!import.meta.env.DEV) return
+	try {
+		const { runStoreBenchmarks } = await import('./bench/vfsStoreBench')
+		await runStoreBenchmarks()
+	} catch (error) {
+		console.error('[VfsStore bench] failed to start', error)
+	}
+}
+
 const App: Component = () => {
 	onMount(() => {
 		void pingServerRoutes()
 		void runTreeSitterDemo()
+		void runStoreBenchInDev()
 	})
 	onCleanup(() => {
 		void disposeTreeSitterWorker()

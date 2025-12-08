@@ -7,5 +7,6 @@ export {
 	type CreateVfsStoreOptions,
 	type VfsStoreSource
 } from './store'
+export { createWorkerStorage, createSyncStore } from './utils/workerStorage'
 export type { FsContext } from './types'
 export * from './types'

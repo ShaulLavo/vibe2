@@ -3,7 +3,8 @@ import {
 	createMinimalBinaryParseResult,
 	detectBinaryFromPreview,
 	parseFileBuffer,
-	createPieceTableSnapshot
+	createPieceTableSnapshot,
+	getPieceTableText
 } from '@repo/utils'
 import { loggers } from '@repo/logger'
 import type { PieceTableSnapshot } from '@repo/utils'
@@ -103,14 +104,29 @@ export const useFileSelection = ({
 						)
 						if (requestId !== selectRequestId) return
 
+						const existingSnapshot = state.pieceTables[path]
+						const existingFileStats = state.fileStats[path]
 						const detection = detectBinaryFromPreview(path, previewBytes)
 						const isBinary = !detection.isText
 
-						if (isBinary) {
+						if (existingSnapshot) {
+							selectedFileContentValue = getPieceTableText(existingSnapshot)
+							fileStatsResult =
+								existingFileStats ??
+								timeSync('parse-file-buffer', () =>
+									parseFileBuffer(selectedFileContentValue, {
+										path,
+										textHeuristic: detection
+									})
+								)
+							pieceTableSnapshot = existingSnapshot
+						} else if (isBinary) {
 							binaryPreviewBytes = previewBytes
-							fileStatsResult = timeSync('binary-file-metadata', () =>
-								createMinimalBinaryParseResult('', detection)
-							)
+							fileStatsResult =
+								existingFileStats ??
+								timeSync('binary-file-metadata', () =>
+									createMinimalBinaryParseResult('', detection)
+								)
 						} else {
 							const text = await timeAsync('read-file-text', () =>
 								readFileText(source, path)
@@ -127,13 +143,9 @@ export const useFileSelection = ({
 							)
 
 							if (fileStatsResult.contentKind === 'text') {
-								const existingSnapshot = state.pieceTables[path]
-
-								pieceTableSnapshot =
-									existingSnapshot ??
-									timeSync('create-piece-table', () =>
-										createPieceTableSnapshot(text)
-									)
+								pieceTableSnapshot = timeSync('create-piece-table', () =>
+									createPieceTableSnapshot(text)
+								)
 							}
 						}
 					}

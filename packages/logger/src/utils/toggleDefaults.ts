@@ -12,7 +12,7 @@ const LOGGER_TOGGLE_TREE = {
 		TextFileEditor: false
 	},
 	desktop: false,
-	fs: true,
+	fs: false,
 	server: false,
 	web: {
 		$self: false,

@@ -1,5 +1,6 @@
 export { getRootDirectory } from './getRoot'
 export { createFs, createStore, VDir, VFile } from './vfs'
+export { createWorkerStorage, createSyncStore } from './vfs'
 export { buildFsTree, walkDirectory } from './vfs/utils/tree'
 export type {
 	FsContext,
