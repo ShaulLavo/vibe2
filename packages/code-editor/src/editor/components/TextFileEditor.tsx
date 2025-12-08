@@ -3,10 +3,15 @@ import { trackSync } from '@repo/perf'
 import { loggers } from '@repo/logger'
 import { getPieceTableText } from '@repo/utils'
 import { computeBracketDepths, textToLineEntries } from '../utils'
+import { toLineHighlightSegments } from '../utils/highlights'
 import { CursorProvider } from '../cursor'
 import { HistoryProvider } from '../history'
 import { TextFileEditorInner } from './TextFileEditorInner'
-import type { LineEntry, TextFileEditorProps } from '../types'
+import type {
+	LineEntry,
+	LineHighlightSegment,
+	TextFileEditorProps
+} from '../types'
 
 const textFileEditorLogger = loggers.codeEditor.withTag('TextFileEditor')
 
@@ -24,8 +29,8 @@ export const TextFileEditor = (props: TextFileEditorProps) => {
 		return textToLineEntries(pieceTableText())
 	})
 
-	const bracketDepths = createMemo(() => {
-		if (!props.isFileSelected()) return undefined
+		const bracketDepths = createMemo(() => {
+			if (!props.isFileSelected()) return undefined
 		const text = pieceTableText()
 		if (!text || text.length === 0) return undefined
 		const stats = props.stats()
@@ -50,9 +55,20 @@ export const TextFileEditor = (props: TextFileEditorProps) => {
 				logger: textFileEditorLogger
 			}
 		)
-	})
+		})
 
-	const documentLength = createMemo(() => pieceTableText().length)
+		const lineHighlights = createMemo<LineHighlightSegment[][]>(() => {
+			if (!props.isFileSelected()) return []
+			const entries = lineEntries()
+			const captures = props.highlights?.()
+			if (!captures?.length || !entries.length) return []
+			return toLineHighlightSegments(entries, captures)
+		})
+
+		const getLineHighlights = (lineIndex: number) =>
+			lineHighlights()[lineIndex]
+
+		const documentLength = createMemo(() => pieceTableText().length)
 
 	return (
 		<CursorProvider
@@ -62,7 +78,11 @@ export const TextFileEditor = (props: TextFileEditorProps) => {
 			documentLength={documentLength}
 		>
 			<HistoryProvider document={props.document}>
-				<TextFileEditorInner {...props} bracketDepths={bracketDepths} />
+					<TextFileEditorInner
+						{...props}
+						bracketDepths={bracketDepths}
+						getLineHighlights={getLineHighlights}
+					/>
 			</HistoryProvider>
 		</CursorProvider>
 	)

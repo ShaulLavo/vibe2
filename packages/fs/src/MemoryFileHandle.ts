@@ -74,6 +74,105 @@ export class MemoryFileHandle implements FileSystemFileHandle {
 		} as unknown as FileSystemWritableFileStream
 	}
 
+	async createSyncAccessHandle(): Promise<FileSystemSyncAccessHandle> {
+		let closed = false
+
+		const ensureOpen = () => {
+			if (closed) {
+				throw new DOMException('InvalidStateError', 'InvalidStateError')
+			}
+		}
+
+		const toUint8Array = (source: AllowSharedBufferSource): Uint8Array => {
+			if (
+				source instanceof ArrayBuffer ||
+				(typeof SharedArrayBuffer !== 'undefined' &&
+					source instanceof SharedArrayBuffer)
+			) {
+				return new Uint8Array(source as ArrayBufferLike)
+			}
+
+			if (ArrayBuffer.isView(source)) {
+				const view = source as ArrayBufferView
+				return new Uint8Array(
+					view.buffer,
+					view.byteOffset,
+					view.byteLength
+				)
+			}
+
+			throw new TypeError('Unsupported buffer source')
+		}
+
+		return {
+			close: () => {
+				ensureOpen()
+				closed = true
+			},
+			flush: () => {
+				ensureOpen()
+			},
+			getSize: () => {
+				ensureOpen()
+				return this.#data.length
+			},
+			read: (buffer, options) => {
+				ensureOpen()
+
+				const view = toUint8Array(buffer)
+				const position = Math.max(0, options?.at ?? 0)
+				const end = Math.min(position + view.length, this.#data.length)
+				const bytesRead = Math.max(0, end - position)
+
+				if (bytesRead > 0) {
+					view.set(this.#data.subarray(position, position + bytesRead), 0)
+				}
+
+				if (bytesRead < view.length) {
+					view.fill(0, bytesRead)
+				}
+
+				return bytesRead
+			},
+			write: (buffer, options) => {
+				ensureOpen()
+
+				const view = toUint8Array(buffer)
+				const position = Math.max(0, options?.at ?? 0)
+				const requiredSize = position + view.length
+
+				if (requiredSize > this.#data.length) {
+					const next = new Uint8Array(requiredSize)
+					next.set(this.#data)
+					this.#data = next
+				}
+
+				this.#data.set(view, position)
+				return view.length
+			},
+			truncate: newSize => {
+				ensureOpen()
+
+				if (newSize < 0) {
+					throw new RangeError('newSize must be non-negative')
+				}
+
+				if (newSize === this.#data.length) {
+					return
+				}
+
+				if (newSize < this.#data.length) {
+					this.#data = this.#data.subarray(0, newSize)
+					return
+				}
+
+				const next = new Uint8Array(newSize)
+				next.set(this.#data)
+				this.#data = next
+			}
+		}
+	}
+
 	async queryPermission(): Promise<PermissionState> {
 		return 'granted'
 	}

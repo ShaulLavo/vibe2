@@ -11,7 +11,11 @@
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "ts-prune",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

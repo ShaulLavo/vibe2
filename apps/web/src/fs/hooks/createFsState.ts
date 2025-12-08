@@ -11,9 +11,10 @@ import { createFileDisplayState } from './createFileDisplayState'
 import { createPrefetchState } from './createPrefetchState'
 import { createFileStatsState } from './createFileStatsState'
 import { createPieceTableState } from './createPieceTableState'
+import { createHighlightState } from './createHighlightState'
 
 export const createFsState = () => {
-	const { tree, setTree, hydration } = createTreeState()
+	const { tree, setTree } = createTreeState()
 	const { expanded, setExpanded } = createExpandedState()
 	const { selectedPath, setSelectedPath, activeSource, setActiveSource } =
 		createSelectionState()
@@ -53,6 +54,8 @@ export const createFsState = () => {
 	const { fileStats, setFileStats, clearParseResults } = createFileStatsState()
 	const { pieceTables, setPieceTable, clearPieceTables } =
 		createPieceTableState()
+	const { fileHighlights, setHighlights, clearHighlights } =
+		createHighlightState()
 
 	const selectedNode = createMemo<FsTreeNode | undefined>(() =>
 		tree ? findNode(tree, selectedPath()) : undefined
@@ -71,6 +74,7 @@ export const createFsState = () => {
 		expanded,
 		fileStats,
 		pieceTables,
+		fileHighlights,
 		get selectedPath() {
 			return selectedPath()
 		},
@@ -138,6 +142,10 @@ export const createFsState = () => {
 			const path = lastKnownFilePath()
 			return path ? pieceTables[path] : undefined
 		},
+		get selectedFileHighlights() {
+			const path = lastKnownFilePath()
+			return path ? fileHighlights[path] : undefined
+		},
 		get selectedNode() {
 			return selectedNode()
 		},
@@ -151,7 +159,6 @@ export const createFsState = () => {
 
 	return {
 		state,
-		hydration,
 		setTree,
 		setExpanded,
 		setSelectedPath,
@@ -174,6 +181,8 @@ export const createFsState = () => {
 		setFileStats,
 		clearParseResults,
 		setPieceTable,
-		clearPieceTables
+		clearPieceTables,
+		setHighlights,
+		clearHighlights
 	}
 }

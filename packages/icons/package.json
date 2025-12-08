@@ -1,51 +1,55 @@
 {
-	"name": "@repo/icons",
-	"version": "0.0.0",
-	"private": true,
-	"exports": {
-		".": {
-			"types": "./dist/lib/index.d.ts",
-			"import": "./dist/lib/index.jsx",
-			"require": "./dist/lib/index.cjs",
-			"default": "./dist/lib/index.jsx"
-		},
-		"./lib": {
-			"types": "./dist/lib/index.d.ts",
-			"import": "./dist/lib/index.jsx",
-			"require": "./dist/lib/index.cjs",
-			"default": "./dist/lib/index.jsx"
-		},
-		"./vs": {
-			"types": "./dist/vs/index.d.ts",
-			"import": "./dist/vs/index.js",
-			"require": "./dist/vs/index.cjs",
-			"default": "./dist/vs/index.js"
-		},
-		"./vs/*": {
-			"types": "./dist/vs/*.d.ts",
-			"import": "./dist/vs/*.js",
-			"require": "./dist/vs/*.cjs",
-			"default": "./dist/vs/*.js"
-		}
-	},
-	"scripts": {
-		"prebuild": "bun ./scripts/fetch-packs.ts",
-		"lint": "eslint . --max-warnings 0",
-		"check-types": "tsc --noEmit",
-		"build": "bun ./scripts/build.ts",
-		"fetch-packs": "bun ./scripts/fetch-packs.ts"
-	},
-	"dependencies": {
-		"cheerio": "^1.1.2",
-		"solid-js": "^1.9.5"
-	},
-	"devDependencies": {
-		"@repo/eslint-config": "*",
-		"@repo/typescript-config": "*",
-		"@types/node": "^24.10.1",
-		"eslint": "^9.39.1",
-		"svgo": "^3.3.2",
-		"typescript": "5.9.2",
-		"zod": "^4.1.13"
-	}
+  "name": "@repo/icons",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/lib/index.jsx",
+      "require": "./dist/lib/index.cjs",
+      "default": "./dist/lib/index.jsx"
+    },
+    "./lib": {
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/lib/index.jsx",
+      "require": "./dist/lib/index.cjs",
+      "default": "./dist/lib/index.jsx"
+    },
+    "./vs": {
+      "types": "./dist/vs/index.d.ts",
+      "import": "./dist/vs/index.js",
+      "require": "./dist/vs/index.cjs",
+      "default": "./dist/vs/index.js"
+    },
+    "./vs/*": {
+      "types": "./dist/vs/*.d.ts",
+      "import": "./dist/vs/*.js",
+      "require": "./dist/vs/*.cjs",
+      "default": "./dist/vs/*.js"
+    }
+  },
+  "scripts": {
+    "prebuild": "bun ./scripts/fetch-packs.ts",
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "build": "bun ./scripts/build.ts",
+    "fetch-packs": "bun ./scripts/fetch-packs.ts",
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "ts-prune",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "solid-js": "^1.9.5"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "svgo": "^3.3.2",
+    "typescript": "5.9.2",
+    "zod": "^4.1.13"
+  }
 }

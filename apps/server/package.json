@@ -3,7 +3,11 @@
   "version": "1.0.50",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/index.ts",
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "ts-prune",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.0",

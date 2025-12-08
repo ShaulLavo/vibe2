@@ -1,9 +1,10 @@
-import type { TextEditorDocument } from '@repo/code-editor'
+import type { EditorSyntaxHighlight, TextEditorDocument } from '@repo/code-editor'
 import { Editor } from '@repo/code-editor'
 import { Accessor, Match, Switch, createMemo } from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { BinaryFileViewer } from '../../components/BinaryFileViewer'
 import { useFs } from '../../fs/context/FsContext'
+import { sendIncrementalTreeEdit } from '../../treeSitter/incrementalEdits'
 
 const FONT_OPTIONS = [
 	{
@@ -24,7 +25,8 @@ type SelectedFilePanelProps = {
 }
 
 export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
-	const [state, { updateSelectedFilePieceTable }] = useFs()
+	const [state, { updateSelectedFilePieceTable, updateSelectedFileHighlights }] =
+		useFs()
 	const focus = useFocusManager()
 	// const [fontSize, setFontSize] = createSignal(DEFAULT_FONT_SIZE)
 	// const [fontFamily, setFontFamily] = createSignal(DEFAULT_FONT_FAMILY)
@@ -65,8 +67,33 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		content: () => state.selectedFileContent,
 		pieceTable: () => state.selectedFilePieceTable,
 		updatePieceTable: updateSelectedFilePieceTable,
-		isEditable
+		isEditable,
+		applyIncrementalEdit: edit => {
+			if (isBinary()) return
+			const highlightsPromise = sendIncrementalTreeEdit(
+				state.lastKnownFilePath,
+				edit
+			)
+			if (!highlightsPromise) return
+			void highlightsPromise.then(highlights => {
+				updateSelectedFileHighlights(highlights)
+			})
+		}
 	}
+
+	const editorHighlights = createMemo<EditorSyntaxHighlight[] | undefined>(
+		() => {
+			const captures = state.selectedFileHighlights
+			if (!captures || captures.length === 0) {
+				return undefined
+			}
+			return captures.map(capture => ({
+				startIndex: capture.startIndex,
+				endIndex: capture.endIndex,
+				scope: capture.captureName
+			}))
+		}
+	)
 
 	const currentFileLabel = createMemo(() => {
 		const path = props.currentPath
@@ -94,13 +121,14 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						}
 						activeScopes={focus.activeScopes}
 						previewBytes={() => state.selectedFilePreviewBytes}
+						highlights={editorHighlights}
 					/>
 				}
 			>
 				<Match when={!props.isFileSelected()}>
 					<p class="mt-2 text-sm text-zinc-500">
-						Select a file to view its contents. Click folders to toggle
-						visibility.
+						{/* Select a file to view its contents. Click folders to toggle
+						visibility. */}
 					</p>
 				</Match>
 

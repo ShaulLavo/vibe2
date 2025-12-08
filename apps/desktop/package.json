@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "echo 'ts-prune skipped (no tsconfig in package)'",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
   },
   "license": "MIT",
   "devDependencies": {

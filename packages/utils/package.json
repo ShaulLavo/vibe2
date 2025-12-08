@@ -12,11 +12,15 @@
   "dependencies": {
     "@repo/perf": "*"
   },
-	"scripts": {
-		"lint": "eslint . --max-warnings 0",
-		"check-types": "tsc --noEmit",
-		"test": "bun test"
-	},
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "test": "bun test",
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "ts-prune",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
+  },
   "devDependencies": {
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",

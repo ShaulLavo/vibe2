@@ -19,10 +19,15 @@ import {
 	createTextEditorLayout,
 	createMouseSelection
 } from '../hooks'
-import type { BracketDepthMap, TextFileEditorProps } from '../types'
+import type {
+	BracketDepthMap,
+	LineHighlightSegment,
+	TextFileEditorProps
+} from '../types'
 
 type TextFileEditorInnerProps = TextFileEditorProps & {
 	bracketDepths: Accessor<BracketDepthMap | undefined>
+	getLineHighlights: (index: number) => LineHighlightSegment[] | undefined
 }
 
 export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
@@ -62,7 +67,8 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 		isEditable,
 		getInputElement: () => inputElement,
 		scrollCursorIntoView,
-		activeScopes: () => props.activeScopes?.() ?? ['editor', 'global']
+		activeScopes: () => props.activeScopes?.() ?? ['editor', 'global'],
+		onIncrementalEdit: edit => props.document.applyIncrementalEdit?.(edit)
 	})
 
 	const mouseSelection = createMouseSelection({
@@ -105,7 +111,7 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 	/* TODO: move off TanStack virtualization so we control windowing
 		and can let features like bracket coloring share the custom
 		visible-range state
-		And we can not read ALL the text at once from the piece table 
+		And we can not read ALL the text at once from the piece table
 		just the needed chunks
 		*/
 	return (
@@ -188,6 +194,7 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 							onMouseDown={handleLineMouseDown}
 							activeLineIndex={layout.activeLineIndex}
 							bracketDepths={props.bracketDepths}
+							getLineHighlights={props.getLineHighlights}
 						/>
 					</div>
 				</div>

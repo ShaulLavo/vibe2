@@ -5,6 +5,32 @@ import type { PieceTableSnapshot } from '@repo/utils'
 import type { BracketDepthMap as InternalBracketDepthMap } from './utils/bracketDepths'
 
 export type BracketDepthMap = InternalBracketDepthMap
+export type EditorSyntaxHighlight = {
+	startIndex: number
+	endIndex: number
+	scope: string
+}
+export type LineHighlightSegment = {
+	start: number
+	end: number
+	className: string
+	scope: string
+}
+export type EditorPoint = {
+	row: number
+	column: number
+}
+
+export type DocumentIncrementalEdit = {
+	startIndex: number
+	oldEndIndex: number
+	newEndIndex: number
+	startPosition: EditorPoint
+	oldEndPosition: EditorPoint
+	newEndPosition: EditorPoint
+	deletedText: string
+	insertedText: string
+}
 
 export type CursorMode = 'regular' | 'terminal'
 
@@ -22,6 +48,7 @@ export type TextEditorDocument = {
 		) => PieceTableSnapshot | undefined
 	) => void
 	isEditable: Accessor<boolean>
+	applyIncrementalEdit?: (edit: DocumentIncrementalEdit) => void
 }
 
 export type EditorProps = {
@@ -35,6 +62,7 @@ export type EditorProps = {
 	registerEditorArea?: EditorAreaRegistration
 	previewBytes?: Accessor<Uint8Array | undefined>
 	activeScopes?: Accessor<string[]>
+	highlights?: Accessor<EditorSyntaxHighlight[] | undefined>
 }
 
 export type LineEntry = {
@@ -67,6 +95,7 @@ export type LineProps = {
 	) => void
 	isActive: boolean
 	bracketDepths: Accessor<BracketDepthMap | undefined>
+	highlights?: LineHighlightSegment[]
 }
 
 export type LinesProps = {
@@ -91,6 +120,7 @@ export type LinesProps = {
 	) => void
 	activeLineIndex: Accessor<number | null>
 	bracketDepths: Accessor<BracketDepthMap | undefined>
+	getLineHighlights?: (lineIndex: number) => LineHighlightSegment[] | undefined
 }
 
 export type LineGuttersProps = {

@@ -106,6 +106,7 @@ class VfsStoreImpl implements VfsStore {
 			return
 		}
 
+		this.#dirty = false
 		const handle = await this.#fileHandle
 		const content = JSON.stringify(this.#data)
 
@@ -113,8 +114,11 @@ class VfsStoreImpl implements VfsStore {
 		await writable.write(content)
 		await writable.close()
 
-		this.#dirty = false
 		this.#flushPromise = null
+
+		if (this.#dirty) {
+			this.#scheduleFlush()
+		}
 	}
 
 	async flush(): Promise<void> {

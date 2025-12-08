@@ -21,6 +21,7 @@ import {
 	createHistoryEntry,
 	mergeHistoryEntries
 } from '../utils/historyEntries'
+import { describeIncrementalEdit } from '../../utils'
 
 const historyLogger = loggers.codeEditor.withTag('history')
 
@@ -75,6 +76,19 @@ export const useHistoryStore = (
 		direction: 'undo' | 'redo'
 	) => {
 		const docText = cursor.documentText()
+		const lineEntriesSnapshot = cursor.lineEntries().slice()
+		const deletedTextForTree =
+			direction === 'undo' ? entry.insertedText : entry.deletedText
+		const insertedTextForTree =
+			direction === 'undo' ? entry.deletedText : entry.insertedText
+		const incrementalEdit =
+			document.applyIncrementalEdit &&
+			describeIncrementalEdit(
+				lineEntriesSnapshot,
+				entry.offset,
+				deletedTextForTree,
+				insertedTextForTree
+			)
 
 		document.updatePieceTable(current => {
 			const baseSnapshot = current ?? createPieceTableSnapshot(docText)
@@ -119,6 +133,10 @@ export const useHistoryStore = (
 			applyCursorSnapshot(entry.cursorBefore, entry.selectionBefore)
 		} else {
 			applyCursorSnapshot(entry.cursorAfter, entry.selectionAfter)
+		}
+
+		if (incrementalEdit) {
+			document.applyIncrementalEdit?.(incrementalEdit)
 		}
 	}
 

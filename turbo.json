@@ -6,7 +6,8 @@
     "VITE_WEB_PORT",
     "VITE_API_ORIGIN",
     "VITE_WEB_ORIGIN",
-    "WEB_ORIGIN"
+    "WEB_ORIGIN",
+    "DEV"
   ],
   "globalDependencies": [".env*", "apps/*/.env*"],
   "tasks": {
@@ -23,6 +24,19 @@
     },
     "test": {
       "dependsOn": ["^test"]
+    },
+    "depcheck": {
+      "dependsOn": ["^depcheck"]
+    },
+    "unimported": {
+      "dependsOn": ["^unimported"]
+    },
+    "tsprune": {
+      "dependsOn": ["^tsprune"]
+    },
+    "repo:health": {
+      "dependsOn": ["^repo:health"],
+      "outputs": []
     },
     "dev": {
       "cache": false,

@@ -43,9 +43,13 @@ const decodeKey = (hex: string): string => {
 
 export interface WorkerStorage {
 	getItem(key: string): string | null
+	getItemAsync(key: string): Promise<string | null>
 	setItem(key: string, value: string): void
+	setItemAsync(key: string, value: string): Promise<void>
 	removeItem(key: string): void
+	removeItemAsync(key: string): Promise<void>
 	clear(): void
+	clearAsync(): Promise<void>
 	key(index: number): string | null
 	keys(): string[]
 	readonly length: number
@@ -54,60 +58,172 @@ export interface WorkerStorage {
 
 async function createWorkerStorage(): Promise<WorkerStorage> {
 	const handles = new Map<string, FileSystemSyncAccessHandle>()
+	const filenames = new Set<string>()
+	const globalScope = globalThis as typeof globalThis & {
+		addEventListener?: (type: string, listener: () => void) => void
+	}
+
+	const nav = (globalThis as typeof globalThis & { navigator?: Navigator }).navigator
+	const storageManager = nav?.storage
+	if (!storageManager?.getDirectory) {
+		throw new Error('navigator.storage.getDirectory is not available in this context')
+	}
+
+	const root = await storageManager.getDirectory()
+
+	const fireAndForget = (promise: Promise<unknown>, context: string): void => {
+		promise.catch(error => {
+			log.error(context, error)
+		})
+	}
+
+	const loadInitialKeys = async () => {
+		if (!root.entries) return
+		try {
+			for await (const [name, handle] of root.entries()) {
+				if ((handle as FileSystemHandle)?.kind === 'file') {
+					filenames.add(name)
+				}
+			}
+		} catch (error) {
+			log.warn('Failed to enumerate OPFS directory', error)
+		}
+	}
+
+	await loadInitialKeys()
 
 	const closeHandle = (filename: string): void => {
 		const handle = handles.get(filename)
 		if (handle) {
-			handle.close()
+			try {
+				handle.close()
+			} catch (error) {
+				log.error('Failed to close handle', error)
+			}
 			handles.delete(filename)
+		}
+	}
+
+	const isNotFoundError = (error: unknown): boolean => {
+		return error instanceof DOMException ? error.name === 'NotFoundError' : false
+	}
+
+	const openHandle = async (
+		filename: string,
+		options: { create: boolean }
+	): Promise<FileSystemSyncAccessHandle | null> => {
+		const existing = handles.get(filename)
+		if (existing) return existing
+
+		try {
+			const fileHandle = await root.getFileHandle(filename, { create: options.create })
+			const syncHandle = await fileHandle.createSyncAccessHandle()
+			handles.set(filename, syncHandle)
+			filenames.add(filename)
+			return syncHandle
+		} catch (error) {
+			if (!options.create && isNotFoundError(error)) return null
+			throw error
+		}
+	}
+
+	const readFromHandle = (handle: FileSystemSyncAccessHandle): string | null => {
+		const size = handle.getSize()
+		if (size === 0) return null
+		const buffer = new Uint8Array(size)
+		handle.read(buffer, { at: 0 })
+		try {
+			return JSON.parse(textDecoder.decode(buffer))
+		} catch {
+			return null
+		}
+	}
+
+	const writeToHandle = (handle: FileSystemSyncAccessHandle, value: string): void => {
+		const data = textEncoder.encode(JSON.stringify(value))
+		handle.truncate(0)
+		handle.write(data, { at: 0 })
+		handle.flush()
+	}
+
+	const readValue = async (filename: string): Promise<string | null> => {
+		const handle = await openHandle(filename, { create: false })
+		if (!handle) return null
+		return readFromHandle(handle)
+	}
+
+	const writeValue = async (filename: string, value: string): Promise<void> => {
+		const handle = await openHandle(filename, { create: true })
+		if (!handle) return
+		writeToHandle(handle, value)
+	}
+
+	const deleteFile = async (filename: string): Promise<void> => {
+		closeHandle(filename)
+		try {
+			await root.removeEntry(filename)
+		} catch (error) {
+			if (!isNotFoundError(error)) throw error
+		} finally {
+			filenames.delete(filename)
+		}
+	}
+
+	const clearFiles = async (): Promise<void> => {
+		for (const filename of Array.from(filenames)) {
+			await deleteFile(filename)
 		}
 	}
 
 	const storage: WorkerStorage = {
 		getItem(key: string): string | null {
 			const filename = encodeKey(key)
-
 			const handle = handles.get(filename)
-			if (!handle) return null
-
-			const size = handle.getSize()
-			if (size === 0) return null
-
-			const buffer = new Uint8Array(size)
-			handle.read(buffer, { at: 0 })
-			try {
-				return JSON.parse(textDecoder.decode(buffer))
-			} catch {
-				return null
+			if (handle) {
+				return readFromHandle(handle)
 			}
+			fireAndForget(storage.getItemAsync(key), `Failed to warm handle for key ${key}`)
+			return null
+		},
+
+		async getItemAsync(key: string): Promise<string | null> {
+			const filename = encodeKey(key)
+			return readValue(filename)
 		},
 
 		setItem(key: string, value: string): void {
 			const filename = encodeKey(key)
 			const handle = handles.get(filename)
-			if (!handle) {
-				throw new Error('Handle not pre-opened. Use async setItemAsync.')
+			if (handle) {
+				writeToHandle(handle, value)
+				return
 			}
+			fireAndForget(storage.setItemAsync(key, value), `Failed to persist key ${key} synchronously`)
+		},
 
-			const data = textEncoder.encode(JSON.stringify(value))
-			handle.truncate(0)
-			handle.write(data, { at: 0 })
-			handle.flush()
+		async setItemAsync(key: string, value: string): Promise<void> {
+			const filename = encodeKey(key)
+			await writeValue(filename, value)
 		},
 
 		removeItem(key: string): void {
-			const filename = encodeKey(key)
-			closeHandle(filename)
+			fireAndForget(deleteFile(encodeKey(key)), `Failed to remove key ${key}`)
+		},
+
+		removeItemAsync(key: string): Promise<void> {
+			return deleteFile(encodeKey(key))
 		},
 
 		clear(): void {
-			for (const [filename] of handles) {
-				closeHandle(filename)
-			}
+			fireAndForget(storage.clearAsync(), 'Failed to clear storage synchronously')
+		},
+
+		clearAsync(): Promise<void> {
+			return clearFiles()
 		},
 
 		key(index: number): string | null {
-			const keys = Array.from(handles.keys())
+			const keys = Array.from(filenames)
 			if (index >= keys.length) return null
 			try {
 				return decodeKey(keys[index]!)
@@ -118,7 +234,7 @@ async function createWorkerStorage(): Promise<WorkerStorage> {
 
 		keys(): string[] {
 			const result: string[] = []
-			for (const filename of handles.keys()) {
+			for (const filename of filenames) {
 				try {
 					result.push(decodeKey(filename))
 				} catch {}
@@ -127,18 +243,22 @@ async function createWorkerStorage(): Promise<WorkerStorage> {
 		},
 
 		get length(): number {
-			return handles.size
+			return filenames.size
 		},
 
 		close(): void {
 			for (const handle of handles.values()) {
-				handle.close()
+				try {
+					handle.close()
+				} catch (error) {
+					log.error('Failed to close handle during shutdown', error)
+				}
 			}
 			handles.clear()
 		}
 	}
 
-	self.addEventListener('unload', () => {
+	globalScope.addEventListener?.('unload', () => {
 		storage.close()
 	})
 

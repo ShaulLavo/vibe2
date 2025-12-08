@@ -11,13 +11,20 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "test": "turbo run test",
-    "postinstall": "bun --cwd apps/web run copy-tree-sitter-assets"
+    "postinstall": "bun --cwd apps/web run copy-tree-sitter-assets",
+    "depcheck": "turbo run depcheck --parallel",
+    "unimported": "turbo run unimported --parallel",
+    "tsprune": "turbo run tsprune --parallel",
+    "repo:health": "turbo run repo:health --parallel"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "depcheck": "^1.4.7",
     "prettier": "^3.6.2",
+    "ts-prune": "^0.10.3",
     "turbo": "^2.6.1",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "unimported": "^1.31.1"
   },
   "engines": {
     "node": ">=18"

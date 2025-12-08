@@ -18,5 +18,11 @@
     "globals": "^16.5.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.46.3"
+  },
+  "scripts": {
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "echo 'ts-prune skipped (no tsconfig in package)'",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
   }
 }

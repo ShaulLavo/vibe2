@@ -15,6 +15,18 @@ const assets = [
 		source: path.join(appRoot, 'node_modules', 'tree-sitter-javascript', 'tree-sitter-javascript.wasm'),
 		destination: path.join(publicDir, 'tree-sitter-javascript.wasm'),
 	},
+	{
+		source: path.join(appRoot, 'node_modules', 'tree-sitter-typescript', 'tree-sitter-typescript.wasm'),
+		destination: path.join(publicDir, 'tree-sitter-typescript.wasm'),
+	},
+	{
+		source: path.join(appRoot, 'node_modules', 'tree-sitter-typescript', 'tree-sitter-tsx.wasm'),
+		destination: path.join(publicDir, 'tree-sitter-tsx.wasm'),
+	},
+	{
+		source: path.join(appRoot, 'node_modules', 'tree-sitter-typescript', 'queries', 'highlights.scm'),
+		destination: path.join(publicDir, 'typescript-highlights.scm'),
+	},
 ]
 
 mkdirSync(publicDir, { recursive: true })

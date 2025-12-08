@@ -6,20 +6,24 @@
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css"
   },
- "scripts": {
+  "scripts": {
     "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "ts-prune",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
   },
-	"dependencies": {
-		"@solid-primitives/map": "^0.7.2",
-		"@repo/icons": "*",
-		"@repo/keyboard": "*",
-		"@repo/logger": "*",
-		"@repo/perf": "*",
-		"@repo/utils": "*",
-		"@tanstack/solid-virtual": "^3.13.12",
-		"@tanstack/virtual-core": "^3.13.12",
-		"solid-js": "^1.9.5"
+  "dependencies": {
+    "@solid-primitives/map": "^0.7.2",
+    "@repo/icons": "*",
+    "@repo/keyboard": "*",
+    "@repo/logger": "*",
+    "@repo/perf": "*",
+    "@repo/utils": "*",
+    "@tanstack/solid-virtual": "^3.13.12",
+    "@tanstack/virtual-core": "^3.13.12",
+    "solid-js": "^1.9.5"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

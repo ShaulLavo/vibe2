@@ -12,13 +12,16 @@ import { trackOperation } from '@repo/perf'
 import {
 	getFileSize,
 	readFilePreviewBytes,
-	readFileText
+	readFileBuffer
 } from '../runtime/streaming'
 import { DEFAULT_SOURCE } from '../config/constants'
 import type { FsState } from '../types'
 import type { FsContextValue, SelectPathOptions } from '../context/FsContext'
 import { findNode } from '../runtime/tree'
 import type { FileCacheController } from '../cache/fileCacheController'
+import { parseBufferWithTreeSitter } from '../../treeSitter/workerClient'
+
+const textDecoder = new TextDecoder()
 
 type UseFileSelectionOptions = {
 	state: FsState
@@ -92,14 +95,16 @@ export const useFileSelection = ({
 
 					if (fileSize > MAX_FILE_SIZE_BYTES) {
 						// Skip processing for large files
-					} else {
+						} else {
 						const previewBytes = await timeAsync('read-preview-bytes', () =>
 							readFilePreviewBytes(source, path)
 						)
 						if (requestId !== selectRequestId) return
 
-						const { pieceTable: existingSnapshot, stats: existingFileStats } =
-							fileCache.get(path)
+						const {
+							pieceTable: existingSnapshot,
+							stats: existingFileStats
+						} = fileCache.get(path)
 						const detection = detectBinaryFromPreview(path, previewBytes)
 						const isBinary = !detection.isText
 
@@ -122,26 +127,44 @@ export const useFileSelection = ({
 									createMinimalBinaryParseResult('', detection)
 								)
 						} else {
-							const text = await timeAsync('read-file-text', () =>
-								readFileText(source, path)
-							)
-							if (requestId !== selectRequestId) return
+						const buffer = await timeAsync('read-file-buffer', () =>
+							readFileBuffer(source, path)
+						)
+						if (requestId !== selectRequestId) return
 
-							selectedFileContentValue = text
+						const textBytes = new Uint8Array(buffer)
+						const text = textDecoder.decode(textBytes)
+						selectedFileContentValue = text
 
-							fileStatsResult = timeSync('parse-file-buffer', () =>
-								parseFileBuffer(text, {
-									path,
-									textHeuristic: detection
+						const highlightsPromise = parseBufferWithTreeSitter(path, buffer)
+						if (highlightsPromise) {
+							void highlightsPromise
+								.then(highlights => {
+									if (requestId !== selectRequestId) return
+									fileCache.set(path, { highlights })
 								})
-							)
-
-							if (fileStatsResult.contentKind === 'text') {
-								pieceTableSnapshot = timeSync('create-piece-table', () =>
-									createPieceTableSnapshot(text)
-								)
-							}
+								.catch(error => {
+									console.error(
+										'[Tree-sitter worker] highlight failed',
+										path,
+										error
+									)
+								})
 						}
+
+						fileStatsResult = timeSync('parse-file-buffer', () =>
+							parseFileBuffer(text, {
+								path,
+								textHeuristic: detection
+							})
+						)
+
+						if (fileStatsResult.contentKind === 'text') {
+							pieceTableSnapshot = timeSync('create-piece-table', () =>
+								createPieceTableSnapshot(text)
+							)
+						}
+					}
 					}
 
 					timeSync('apply-selection-state', ({ timeSync }) => {
@@ -196,8 +219,16 @@ export const useFileSelection = ({
 			fileCache.set(path, { pieceTable: next })
 		}
 
+	const updateSelectedFileHighlights: FsContextValue[1]['updateSelectedFileHighlights'] =
+		highlights => {
+			const path = state.lastKnownFilePath
+			if (!path) return
+			fileCache.set(path, { highlights })
+		}
+
 	return {
 		selectPath,
-		updateSelectedFilePieceTable
+		updateSelectedFilePieceTable,
+		updateSelectedFileHighlights
 	}
 }

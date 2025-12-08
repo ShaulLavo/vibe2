@@ -10,7 +10,11 @@
     "serve": "vite preview",
     "lint": "eslint . --max-warnings 0",
     "copy-tree-sitter-assets": "bun scripts/install-tree-sitter-assets.ts",
-    "postinstall": "bun run copy-tree-sitter-assets"
+    "postinstall": "bun run copy-tree-sitter-assets",
+    "depcheck": "depcheck",
+    "unimported": "unimported",
+    "tsprune": "ts-prune",
+    "repo:health": "npm run depcheck && npm run unimported && npm run tsprune"
   },
   "license": "MIT",
   "devDependencies": {

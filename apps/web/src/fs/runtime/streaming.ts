@@ -3,6 +3,8 @@ import { getOrCreateFileHandle } from './fileHandles'
 import { ensureFs } from './fsRuntime'
 
 const pendingFileTextReads = new Map<string, Promise<string>>()
+const pendingFileBufferReads = new Map<string, Promise<ArrayBuffer>>()
+const utf8Decoder = new TextDecoder()
 const pendingSafeFileTextReads = new Map<string, Promise<SafeReadResult>>()
 const pendingStreamReads = new Map<string, Promise<string>>()
 const streamControllers = new Map<string, AbortController>()
@@ -64,6 +66,7 @@ export function resetStreamingState() {
 	streamControllers.forEach(controller => controller.abort())
 	streamControllers.clear()
 	pendingFileTextReads.clear()
+	pendingFileBufferReads.clear()
 	pendingSafeFileTextReads.clear()
 	pendingStreamReads.clear()
 }
@@ -82,10 +85,20 @@ export async function readFileText(
 	path: string
 ): Promise<string> {
 	return trackPendingRead(pendingFileTextReads, path, async () => {
+		const buffer = await readFileBuffer(source, path)
+		return utf8Decoder.decode(new Uint8Array(buffer))
+	})
+}
+
+export async function readFileBuffer(
+	source: FsSource,
+	path: string
+): Promise<ArrayBuffer> {
+	return trackPendingRead(pendingFileBufferReads, path, async () => {
 		const ctx = await ensureFs(source)
 		const handle = await getOrCreateFileHandle(ctx, path)
 		const file = await handle.getFile()
-		return file.text()
+		return file.arrayBuffer()
 	})
 }
 

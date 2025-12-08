@@ -10,11 +10,12 @@ import {
 	type CommandDescriptor,
 	type KeybindingOptions
 } from '@repo/keyboard'
-import type { LineEntry } from '../types'
+import type { DocumentIncrementalEdit, LineEntry } from '../types'
 import { useCursor, getSelectionBounds, hasSelection } from '../cursor'
 import { useHistory, type HistoryMergeMode } from '../history'
 import { clipboard } from '../utils/clipboard'
 import { createKeyRepeat } from './createKeyRepeat'
+import { describeIncrementalEdit } from '../utils'
 
 type ArrowKey = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown'
 type RepeatableDeleteKey = 'Backspace'
@@ -44,6 +45,7 @@ export type TextEditorInputOptions = {
 	getInputElement: () => HTMLTextAreaElement | null
 	scrollCursorIntoView: () => void
 	activeScopes?: Accessor<string[]>
+	onIncrementalEdit?: (edit: DocumentIncrementalEdit) => void
 }
 
 export type TextEditorInputHandlers = {
@@ -123,6 +125,7 @@ export function createTextEditorInput(
 		const deletedText =
 			deleteLength > 0 ? documentText.slice(clampedStart, clampedEnd) : ''
 
+		const lineEntriesSnapshot = cursor.lineEntries().slice()
 		const cursorBefore = snapshotCursorPosition()
 		const selectionBefore = snapshotSelection()
 
@@ -167,6 +170,18 @@ export function createTextEditorInput(
 				mergeMode: changeOptions?.mergeMode
 			}
 		)
+
+		if (options.onIncrementalEdit) {
+			const incrementalEdit = describeIncrementalEdit(
+				lineEntriesSnapshot,
+				clampedStart,
+				deletedText,
+				insertedText
+			)
+			if (incrementalEdit) {
+				options.onIncrementalEdit(incrementalEdit)
+			}
+		}
 
 		options.scrollCursorIntoView()
 		return true

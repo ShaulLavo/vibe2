@@ -15,7 +15,7 @@ export const TreeView = (props: TreeViewProps) => (
 			when={!props.loading() && props.tree()}
 			fallback={
 				<p class="text-sm text-zinc-500">
-					{props.loading() ? 'Loading filesystem...' : 'No filesystem loaded.'}
+					{props.loading() ? '' : 'No filesystem loaded.'}
 				</p>
 			}
 		>

@@ -175,3 +175,4 @@ export const calculateColumnFromClick = (
 }
 
 export * from './bracketDepths'
+export * from './incrementalEdits'

@@ -70,11 +70,12 @@ export const Line = (props: LineProps) => {
 					'tab-size': Math.max(1, props.tabSize)
 				}}
 			>
-				<BracketizedLineText
-					text={props.entry.text}
-					lineStart={props.entry.start}
-					bracketDepths={props.bracketDepths}
-				/>
+					<BracketizedLineText
+						text={props.entry.text}
+						lineStart={props.entry.start}
+						bracketDepths={props.bracketDepths}
+						highlightSegments={props.highlights}
+					/>
 			</div>
 		</div>
 	)
