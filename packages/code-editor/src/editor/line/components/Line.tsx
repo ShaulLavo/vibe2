@@ -1,7 +1,7 @@
 /* eslint-disable solid/prefer-for */
-import { BracketizedLineText } from './BracketizedLineText'
-import { calculateColumnFromClick } from '../../utils'
 import type { LineProps } from '../../types'
+import { calculateColumnFromClick } from '../../utils'
+import { BracketizedLineText } from './BracketizedLineText'
 
 export const Line = (props: LineProps) => {
 	let rowElement: HTMLDivElement | null = null
@@ -70,12 +70,12 @@ export const Line = (props: LineProps) => {
 					'tab-size': Math.max(1, props.tabSize)
 				}}
 			>
-					<BracketizedLineText
-						text={props.entry.text}
-						lineStart={props.entry.start}
-						bracketDepths={props.bracketDepths}
-						highlightSegments={props.highlights}
-					/>
+				<BracketizedLineText
+					text={props.entry.text}
+					lineStart={props.entry.start}
+					bracketDepths={props.bracketDepths}
+					highlightSegments={props.highlights}
+				/>
 			</div>
 		</div>
 	)

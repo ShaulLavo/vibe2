@@ -10,9 +10,17 @@ export type BracketInfo = {
 	depth: number
 }
 
+export type TreeSitterError = {
+	startIndex: number
+	endIndex: number
+	message: string // Might be useful if we can get it, otherwise just type
+	isMissing: boolean
+}
+
 export type TreeSitterParseResult = {
 	captures: TreeSitterCapture[]
 	brackets: BracketInfo[]
+	errors: TreeSitterError[]
 }
 
 export type TreeSitterWorkerApi = {

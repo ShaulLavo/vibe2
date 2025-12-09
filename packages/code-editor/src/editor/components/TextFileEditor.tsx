@@ -1,7 +1,7 @@
 import { createMemo } from 'solid-js'
 import { getPieceTableText } from '@repo/utils'
 import { textToLineEntries } from '../utils'
-import { toLineHighlightSegments } from '../utils/highlights'
+import { mergeLineSegments, toLineHighlightSegments } from '../utils/highlights'
 import { CursorProvider } from '../cursor'
 import { HistoryProvider } from '../history'
 import { TextFileEditorInner } from './TextFileEditorInner'
@@ -45,8 +45,27 @@ export const TextFileEditor = (props: TextFileEditorProps) => {
 			return toLineHighlightSegments(entries, captures)
 		})
 
+		const errorHighlights = createMemo<LineHighlightSegment[][]>(() => {
+			if (!props.isFileSelected()) return []
+			const entries = lineEntries()
+			const errors = props.errors?.()
+			if (!errors?.length || !entries.length) return []
+
+			const mapped = errors.map(e => ({
+				startIndex: e.startIndex,
+				endIndex: e.endIndex,
+				scope: e.isMissing ? 'missing' : 'error'
+			}))
+
+			return toLineHighlightSegments(entries, mapped)
+		})
+
 		const getLineHighlights = (lineIndex: number) =>
-			lineHighlights()[lineIndex]
+			mergeLineSegments(
+				lineHighlights()[lineIndex],
+				errorHighlights()[lineIndex]
+			)
+
 
 		const documentLength = createMemo(() => pieceTableText().length)
 

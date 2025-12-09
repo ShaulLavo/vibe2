@@ -144,7 +144,8 @@ export const useFileSelection = ({
 											if (result) {
 												fileCache.set(path, {
 													highlights: result.captures,
-													brackets: result.brackets
+													brackets: result.brackets,
+													errors: result.errors
 												})
 											}
 										})
@@ -238,10 +239,18 @@ export const useFileSelection = ({
 			fileCache.set(path, { brackets })
 		}
 
+	const updateSelectedFileErrors: FsContextValue[1]['updateSelectedFileErrors'] =
+		errors => {
+			const path = state.lastKnownFilePath
+			if (!path) return
+			fileCache.set(path, { errors })
+		}
+
 	return {
 		selectPath,
 		updateSelectedFilePieceTable,
 		updateSelectedFileHighlights,
-		updateSelectedFileBrackets
+		updateSelectedFileBrackets,
+		updateSelectedFileErrors
 	}
 }

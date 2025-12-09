@@ -32,6 +32,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		clearPieceTables,
 		setHighlights,
 		setBrackets,
+		setErrors,
 		setBackgroundPrefetching,
 		setBackgroundIndexedFileCount,
 		setLastPrefetchedPath,
@@ -48,7 +49,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setPieceTable,
 		setFileStats,
 		setHighlights,
-		setBrackets
+		setBrackets,
+		setErrors
 	})
 
 	const setDirNode = (path: string, node: FsDirTreeNode) => {
@@ -86,7 +88,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		treePrefetchClient
 	})
 
-	const { selectPath, updateSelectedFilePieceTable, updateSelectedFileHighlights, updateSelectedFileBrackets } =
+	const { selectPath, updateSelectedFilePieceTable, updateSelectedFileHighlights, updateSelectedFileBrackets, updateSelectedFileErrors } =
 		useFileSelection({
 			state,
 			setSelectedPath,
@@ -169,7 +171,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 			deleteNode,
 			updateSelectedFilePieceTable,
 			updateSelectedFileHighlights,
-			updateSelectedFileBrackets
+			updateSelectedFileBrackets,
+			updateSelectedFileErrors
 		}
 	]
 

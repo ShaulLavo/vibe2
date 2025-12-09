@@ -1,5 +1,5 @@
 import type { ParseResult, PieceTableSnapshot } from '@repo/utils'
-import type { TreeSitterCapture, BracketInfo } from '../../workers/treeSitterWorkerTypes'
+import type { TreeSitterCapture, BracketInfo, TreeSitterError } from '../../workers/treeSitterWorkerTypes'
 import type { FsState } from '../types'
 
 export type FileCacheEntry = {
@@ -8,6 +8,7 @@ export type FileCacheEntry = {
 	previewBytes?: Uint8Array
 	highlights?: TreeSitterCapture[]
 	brackets?: BracketInfo[]
+	errors?: TreeSitterError[]
 }
 
 export type FileCacheController = {
@@ -18,11 +19,12 @@ export type FileCacheController = {
 }
 
 type FileCacheControllerOptions = {
-	state: Pick<FsState, 'pieceTables' | 'fileStats' | 'fileHighlights' | 'fileBrackets'>
+	state: Pick<FsState, 'pieceTables' | 'fileStats' | 'fileHighlights' | 'fileBrackets' | 'fileErrors'>
 	setPieceTable: (path: string, snapshot?: PieceTableSnapshot) => void
 	setFileStats: (path: string, stats?: ParseResult) => void
 	setHighlights: (path: string, highlights?: TreeSitterCapture[]) => void
 	setBrackets: (path: string, brackets?: BracketInfo[]) => void
+	setErrors: (path: string, errors?: TreeSitterError[]) => void
 }
 
 export const createFileCacheController = ({
@@ -30,7 +32,8 @@ export const createFileCacheController = ({
 	setPieceTable,
 	setFileStats,
 	setHighlights,
-	setBrackets
+	setBrackets,
+	setErrors
 }: FileCacheControllerOptions): FileCacheController => {
 	// TODO: add eviction and persistence so all artifacts are released together.
 	const previews: Record<string, Uint8Array | undefined> = {}
@@ -41,7 +44,8 @@ export const createFileCacheController = ({
 			stats: state.fileStats[path],
 			previewBytes: previews[path],
 			highlights: state.fileHighlights[path],
-			brackets: state.fileBrackets[path]
+			brackets: state.fileBrackets[path],
+			errors: state.fileErrors[path]
 		}
 	}
 
@@ -62,6 +66,9 @@ export const createFileCacheController = ({
 		if (entry.brackets !== undefined) {
 			setBrackets(path, entry.brackets)
 		}
+		if (entry.errors !== undefined) {
+			setErrors(path, entry.errors)
+		}
 	}
 
 
@@ -71,6 +78,7 @@ export const createFileCacheController = ({
 		setFileStats(path, undefined)
 		setHighlights(path, undefined)
 		setBrackets(path, undefined)
+		setErrors(path, undefined)
 		delete previews[path]
 	}
 
@@ -86,6 +94,9 @@ export const createFileCacheController = ({
 		}
 		for (const path of Object.keys(state.fileBrackets)) {
 			setBrackets(path, undefined)
+		}
+		for (const path of Object.keys(state.fileErrors)) {
+			setErrors(path, undefined)
 		}
 		for (const path of Object.keys(previews)) {
 			delete previews[path]

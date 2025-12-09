@@ -33,7 +33,7 @@ type SelectedFilePanelProps = {
 export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	const [
 		state,
-		{ selectPath, updateSelectedFilePieceTable, updateSelectedFileHighlights, updateSelectedFileBrackets }
+		{ selectPath, updateSelectedFilePieceTable, updateSelectedFileHighlights, updateSelectedFileBrackets, updateSelectedFileErrors }
 	] = useFs()
 	const focus = useFocusManager()
 	// const [fontSize, setFontSize] = createSignal(DEFAULT_FONT_SIZE)
@@ -97,6 +97,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 				if (result && path === state.lastKnownFilePath) {
 					updateSelectedFileHighlights(result.captures)
 					updateSelectedFileBrackets(result.brackets)
+					updateSelectedFileErrors(result.errors)
 				}
 			})
 		}
@@ -115,6 +116,9 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			}))
 		}
 	)
+
+	
+	const editorErrors = createMemo(() => state.selectedFileErrors)
 
 	return (
 		<div class="flex h-full flex-col font-mono overflow-hidden">
@@ -141,6 +145,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						previewBytes={() => state.selectedFilePreviewBytes}
 						highlights={editorHighlights}
 						brackets={() => state.selectedFileBrackets}
+						errors={editorErrors}
 					/>
 				}
 			>

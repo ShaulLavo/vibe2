@@ -5,7 +5,8 @@ import type {
 	TreeSitterEditPayload,
 	TreeSitterCapture,
 	BracketInfo,
-	TreeSitterParseResult
+	TreeSitterParseResult,
+	TreeSitterError
 } from './treeSitterWorkerTypes'
 // Import highlight queries - custom ones + JSX from npm
 import jsHighlightsQuerySource from '../treeSitter/queries/javascript-highlights.scm?raw'
@@ -107,30 +108,29 @@ const extractBrackets = (tree: Tree): BracketInfo[] => {
 
 	const walk = (node: SyntaxNode) => {
 		if (!node) return
-		const text = node.text
-		// Only process single-character leaf nodes that are brackets
-		if (node.childCount === 0 && text.length === 1) {
-			if (OPEN_BRACKETS.has(text)) {
-				stack.push({ char: text, index: node.startIndex })
-				brackets.push({
-					index: node.startIndex,
-					char: text,
-					depth: stack.length
-				})
-			} else if (CLOSE_BRACKETS.has(text)) {
-				const depth = stack.length > 0 ? stack.length : 1
-				brackets.push({
-					index: node.startIndex,
-					char: text,
-					depth
-				})
-				// Pop matching open bracket
-				const last = stack[stack.length - 1]
-				if (last && BRACKET_PAIRS[last.char] === text) {
-					stack.pop()
-				}
+		const type = node.type
+		
+		if (OPEN_BRACKETS.has(type)) {
+			stack.push({ char: type, index: node.startIndex })
+			brackets.push({
+				index: node.startIndex,
+				char: type,
+				depth: stack.length
+			})
+		} else if (CLOSE_BRACKETS.has(type)) {
+			const depth = stack.length > 0 ? stack.length : 1
+			brackets.push({
+				index: node.startIndex,
+				char: type,
+				depth
+			})
+			// Pop matching open bracket
+			const last = stack[stack.length - 1]
+			if (last && BRACKET_PAIRS[last.char] === type) {
+				stack.pop()
 			}
 		}
+
 		// Recurse into children
 		for (let i = 0; i < node.childCount; i++) {
 			walk(node.child(i)!)
@@ -138,7 +138,39 @@ const extractBrackets = (tree: Tree): BracketInfo[] => {
 	}
 
 	walk(tree.rootNode)
+    if (brackets.length > 0) {
+        console.log('[Tree-sitter worker] extracted brackets:', brackets.length, brackets[0])
+    } else {
+        console.log('[Tree-sitter worker] no brackets found')
+    }
 	return brackets
+}
+
+const extractErrors = (tree: Tree): TreeSitterError[] => {
+	const errors: TreeSitterError[] = []
+
+	const walk = (node: SyntaxNode) => {
+		if (!node) return
+
+		if (node.type === 'ERROR' || node.isMissing) {
+			errors.push({
+				startIndex: node.startIndex,
+				endIndex: node.endIndex,
+				isMissing: node.isMissing,
+				message: node.type
+			})
+			return
+		}
+
+		if (node.hasError) {
+			for (let i = 0; i < node.childCount; i++) {
+				walk(node.child(i)!)
+			}
+		}
+	}
+
+	walk(tree.rootNode)
+	return errors
 }
 
 const runHighlightQueries = async (
@@ -180,7 +212,8 @@ const parseAndCacheText = async (
 	setCachedEntry(path, { tree, text })
 	const captures = await runHighlightQueries(tree)
 	const brackets = extractBrackets(tree)
-	return { captures: captures ?? [], brackets }
+	const errors = extractErrors(tree)
+	return { captures: captures ?? [], brackets, errors }
 }
 
 const reparseWithEdit = async (
@@ -213,7 +246,8 @@ const reparseWithEdit = async (
 	setCachedEntry(path, { tree: nextTree, text: updatedText })
 	const captures = await runHighlightQueries(nextTree)
 	const brackets = extractBrackets(nextTree)
-	return { captures: captures ?? [], brackets }
+	const errors = extractErrors(nextTree)
+	return { captures: captures ?? [], brackets, errors }
 }
 
 const api: TreeSitterWorkerApi = {
@@ -226,8 +260,9 @@ const api: TreeSitterWorkerApi = {
 		if (!tree) return undefined
 		const captures = await runHighlightQueries(tree)
 		const brackets = extractBrackets(tree)
+		const errors = extractErrors(tree)
 		tree.delete()
-		return { captures: captures ?? [], brackets }
+		return { captures: captures ?? [], brackets, errors }
 	},
 	async parseBuffer(payload) {
 		const text = textDecoder.decode(new Uint8Array(payload.buffer))

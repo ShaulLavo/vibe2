@@ -58,6 +58,13 @@ export type TextEditorDocument = {
 	applyIncrementalEdit?: (edit: DocumentIncrementalEdit) => void
 }
 
+export type EditorError = {
+	startIndex: number
+	endIndex: number
+	message: string
+	isMissing: boolean
+}
+
 export type EditorProps = {
 	document: TextEditorDocument
 	isFileSelected: Accessor<boolean>
@@ -71,6 +78,7 @@ export type EditorProps = {
 	activeScopes?: Accessor<string[]>
 	highlights?: Accessor<EditorSyntaxHighlight[] | undefined>
 	brackets?: Accessor<BracketInfo[] | undefined>
+	errors?: Accessor<EditorError[] | undefined>
 }
 
 export type LineEntry = {

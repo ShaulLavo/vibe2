@@ -24,8 +24,67 @@ const EXACT_SCOPE_CLASS: Record<string, string> = {
 	// Variables
 	'variable.parameter': 'text-pink-300',
 	'variable.builtin': 'text-orange-300',
-	'punctuation.bracket': 'text-zinc-300'
+	'punctuation.bracket': 'text-zinc-300',
+	// Errors
+	error: 'underline decoration-wavy decoration-red-500 underline-offset-2 decoration-[1px]',
+	missing: 'underline decoration-wavy decoration-red-500 underline-offset-2 decoration-[1px]'
 }
+
+// ...
+
+export const mergeLineSegments = (
+	segsA: LineHighlightSegment[] | undefined,
+	segsB: LineHighlightSegment[] | undefined
+): LineHighlightSegment[] => {
+	if (!segsA?.length) return segsB || []
+	if (!segsB?.length) return segsA || []
+
+	const points = new Set<number>()
+	for (const s of segsA) {
+		points.add(s.start)
+		points.add(s.end)
+	}
+	for (const s of segsB) {
+		points.add(s.start)
+		points.add(s.end)
+	}
+	const sortedPoints = Array.from(points).sort((a, b) => a - b)
+	const result: LineHighlightSegment[] = []
+
+	for (let i = 0; i < sortedPoints.length - 1; i++) {
+		const start = sortedPoints[i]!
+		const end = sortedPoints[i + 1]!
+		if (start >= end) continue
+
+		const mid = (start + end) / 2
+		const activeA = segsA.filter(s => s.start <= mid && s.end >= mid)
+		const activeB = segsB.filter(s => s.start <= mid && s.end >= mid)
+
+		if (activeA.length === 0 && activeB.length === 0) continue
+
+		const classNames = new Set<string>()
+		const scopes: string[] = []
+
+		for (const s of activeA) {
+			if (s.className) classNames.add(s.className)
+			if (s.scope) scopes.push(s.scope)
+		}
+		for (const s of activeB) {
+			if (s.className) classNames.add(s.className)
+			if (s.scope) scopes.push(s.scope)
+		}
+
+		result.push({
+			start,
+			end,
+			className: Array.from(classNames).join(' '),
+			scope: scopes.join(' ')
+		})
+	}
+
+	return result
+}
+
 
 const PREFIX_SCOPE_CLASS: Record<string, string> = {
 	keyword: 'text-emerald-300',
