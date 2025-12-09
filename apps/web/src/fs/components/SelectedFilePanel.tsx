@@ -1,10 +1,15 @@
-import type { EditorSyntaxHighlight, TextEditorDocument } from '@repo/code-editor'
+import type {
+	EditorSyntaxHighlight,
+	TextEditorDocument
+} from '@repo/code-editor'
 import { Editor } from '@repo/code-editor'
 import { Accessor, Match, Switch, createMemo } from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { BinaryFileViewer } from '../../components/BinaryFileViewer'
 import { useFs } from '../../fs/context/FsContext'
 import { sendIncrementalTreeEdit } from '../../treeSitter/incrementalEdits'
+import { useTabs } from '../hooks/useTabs'
+import { Tabs } from './Tabs'
 
 const FONT_OPTIONS = [
 	{
@@ -18,6 +23,7 @@ const FONT_OPTIONS = [
 ]
 const DEFAULT_FONT_SIZE = 14
 const DEFAULT_FONT_FAMILY = FONT_OPTIONS[0]?.value ?? 'monospace'
+const MAX_EDITOR_TABS = 1000
 
 type SelectedFilePanelProps = {
 	isFileSelected: Accessor<boolean>
@@ -25,8 +31,10 @@ type SelectedFilePanelProps = {
 }
 
 export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
-	const [state, { updateSelectedFilePieceTable, updateSelectedFileHighlights }] =
-		useFs()
+	const [
+		state,
+		{ selectPath, updateSelectedFilePieceTable, updateSelectedFileHighlights }
+	] = useFs()
 	const focus = useFocusManager()
 	// const [fontSize, setFontSize] = createSignal(DEFAULT_FONT_SIZE)
 	// const [fontFamily, setFontFamily] = createSignal(DEFAULT_FONT_FAMILY)
@@ -58,6 +66,17 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	// const cursorModeLabel = createMemo(() =>
 	// 	cursorMode() === 'terminal' ? 'Terminal' : 'Regular'
 	// )
+
+	const tabs = useTabs(() => state.lastKnownFilePath, {
+		maxTabs: MAX_EDITOR_TABS
+	})
+
+	const handleTabSelect = (path: string) => {
+		if (!path || path === state.selectedPath) return
+		void selectPath(path)
+	}
+
+	const tabLabel = (path: string) => path.split('/').pop() || path
 
 	const isEditable = () =>
 		props.isFileSelected() && !state.selectedFileLoading && !state.loading
@@ -95,17 +114,14 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		}
 	)
 
-	const currentFileLabel = createMemo(() => {
-		const path = props.currentPath
-		if (!path) return 'No file selected'
-		return path.split('/').pop() || 'No file selected'
-	})
-
 	return (
 		<div class="flex h-full flex-col font-mono overflow-hidden">
-			<p class="text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-				{currentFileLabel()}
-			</p>
+			<Tabs
+				values={tabs()}
+				activeValue={state.lastKnownFilePath}
+				onSelect={handleTabSelect}
+				getLabel={tabLabel}
+			/>
 
 			<Switch
 				fallback={

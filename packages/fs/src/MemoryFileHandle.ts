@@ -162,7 +162,7 @@ export class MemoryFileHandle implements FileSystemFileHandle {
 				}
 
 				if (newSize < this.#data.length) {
-					this.#data = this.#data.subarray(0, newSize)
+					this.#data = this.#data.slice(0, newSize)
 					return
 				}
 

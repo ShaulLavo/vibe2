@@ -88,6 +88,7 @@ class VfsStoreImpl implements VfsStore {
 		if (this.#flushDelay === 0) {
 			if (!this.#flushPromise) {
 				this.#flushPromise = Promise.resolve().then(() => this.#doFlush())
+				this.#markFlushHandled()
 			}
 			return
 		}
@@ -97,7 +98,13 @@ class VfsStoreImpl implements VfsStore {
 		this.#flushTimer = setTimeout(() => {
 			this.#flushTimer = null
 			this.#flushPromise = this.#doFlush()
+			this.#markFlushHandled()
 		}, this.#flushDelay)
+	}
+	#markFlushHandled(): void {
+		this.#flushPromise?.catch(() => {
+			// Avoid unhandled rejections from scheduled flushes; `flush()` callers still see errors
+		})
 	}
 
 	async #doFlush(): Promise<void> {
