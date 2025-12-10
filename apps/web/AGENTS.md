@@ -16,6 +16,7 @@
 ## Coding Style & Naming
 - Use TypeScript and SolidJS with functional components (`PascalCase` filenames, e.g. `EditorPane.tsx`).
 - Prefer named exports; avoid default exports for components and utilities.
+- When updating more than one Solid signal/store in the same tick, wrap the setters in `batch(() => { ... })` to prevent redundant recomputations.
 - Keep modules focused; colocate feature-specific code under `src/fs`, `src/terminal`, or `src/components/fs`.
 - Follow the shared ESLint config; fix all reported issues before committing.
 

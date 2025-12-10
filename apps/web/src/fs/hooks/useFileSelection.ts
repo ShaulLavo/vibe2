@@ -67,9 +67,11 @@ export const useFileSelection = ({
 		if (!node) return
 
 		if (node.kind === 'dir') {
-			setSelectedPath(path)
-			setSelectedFileSize(undefined)
-			setSelectedFileLoading(false)
+			batch(() => {
+				setSelectedPath(path)
+				setSelectedFileSize(undefined)
+				setSelectedFileLoading(false)
+			})
 			return
 		}
 

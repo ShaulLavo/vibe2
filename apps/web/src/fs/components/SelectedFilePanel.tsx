@@ -80,7 +80,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 
 	const handleTabSelect = (path: string) => {
 		if (!path || path === state.selectedPath) return
-		void selectPath(path, { forceReload: true })
+		void selectPath(path)
 	}
 
 	const tabLabel = (path: string) => path.split('/').pop() || path

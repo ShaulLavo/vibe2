@@ -112,12 +112,14 @@ export const useFsRefresh = ({
 				await selectPath(restorablePath, { forceReload: true })
 			}
 		} catch (error) {
-			setError(
-				error instanceof Error ? error.message : 'Failed to load filesystem'
-			)
-			setBackgroundPrefetching(false)
-			setBackgroundIndexedFileCount(0)
-			setLastPrefetchedPath(undefined)
+			batch(() => {
+				setError(
+					error instanceof Error ? error.message : 'Failed to load filesystem'
+				)
+				setBackgroundPrefetching(false)
+				setBackgroundIndexedFileCount(0)
+				setLastPrefetchedPath(undefined)
+			})
 		} finally {
 			setLoading(false)
 		}
