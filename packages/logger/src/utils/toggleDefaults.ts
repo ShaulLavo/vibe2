@@ -8,8 +8,7 @@ const LOGGER_TOGGLE_TREE = {
 	'code-editor': {
 		$self: false,
 		clipboard: false,
-		history: false,
-		TextFileEditor: false
+		history: false
 	},
 	desktop: false,
 	fs: false,
@@ -18,7 +17,8 @@ const LOGGER_TOGGLE_TREE = {
 		$self: false,
 		focus: false,
 		prefetch: false,
-		terminal: false
+		terminal: false,
+		treeSitter: false
 	}
 } as const satisfies LoggerToggleTree
 

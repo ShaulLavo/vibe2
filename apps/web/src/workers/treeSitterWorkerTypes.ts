@@ -1,3 +1,7 @@
+import type { FoldRange } from '@repo/code-editor'
+
+export type { FoldRange }
+
 export type TreeSitterCapture = {
 	startIndex: number
 	endIndex: number
@@ -15,12 +19,6 @@ export type TreeSitterError = {
 	endIndex: number
 	message: string // Might be useful if we can get it, otherwise just type
 	isMissing: boolean
-}
-
-export type FoldRange = {
-	startLine: number
-	endLine: number
-	type: string
 }
 
 export type TreeSitterParseResult = {

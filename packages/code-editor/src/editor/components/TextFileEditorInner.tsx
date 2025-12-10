@@ -83,7 +83,12 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 
 	const toggleFold = (startLine: number) => {
 		const foldRanges = props.folds?.()
-		if (!foldRanges?.some(range => range.startLine === startLine && range.endLine > range.startLine)) {
+		if (
+			!foldRanges?.some(
+				range =>
+					range.startLine === startLine && range.endLine > range.startLine
+			)
+		) {
 			return
 		}
 
@@ -117,13 +122,8 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 					scrollElement.scrollTop = 0
 					scrollElement.scrollLeft = 0
 				}
+				setFoldedStarts(new Set<number>())
 			}
-		)
-	)
-	createEffect(
-		on(
-			() => props.document.filePath(),
-			() => setFoldedStarts(new Set())
 		)
 	)
 	createEffect(
@@ -131,7 +131,7 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 			() => props.folds?.(),
 			folds => {
 				setFoldedStarts(prev => {
-					if (!folds?.length) return new Set()
+					if (!folds?.length) return new Set<number>()
 					const next = new Set<number>()
 					for (const fold of folds) {
 						if (fold.endLine > fold.startLine && prev.has(fold.startLine)) {
