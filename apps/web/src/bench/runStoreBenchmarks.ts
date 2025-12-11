@@ -1,118 +1,105 @@
-type Scenario = {
-	name: string
-	items: number
-	valueBytes: number
-	order: 'sequential' | 'random'
+import type {
+	BenchProgressPayload,
+	BenchScenario,
+	BenchScenarioResultsPayload,
+	WorkerMessage
+} from './types'
+import { emitStoreBenchEvent } from './storeBenchEvents'
+
+export type RunStoreBenchmarksHandlers = {
+	onManifest?(scenarios: BenchScenario[]): void
+	onScenarioComplete?(payload: BenchScenarioResultsPayload): void
+	onProgress?(payload: BenchProgressPayload): void
+	onComplete?(payload: BenchScenarioResultsPayload[]): void
+	onSkipped?(reason?: string): void
+	onError?(error: Error): void
 }
 
-type ScenarioResult = {
-	store: string
-	items: number
-	valueBytes: number
-	writeMs: number
-	readMs: number
-	removeMs: number
-	totalMs: number
-}
+export const formatNumber = (value: number, digits = 2) =>
+	Number(value.toFixed(digits))
 
-type WorkerResultsMessage = {
-	type: 'results'
-	payload: { scenario: Scenario; results: ScenarioResult[] }[]
-}
-
-type WorkerSkippedMessage = { type: 'skipped'; reason?: string }
-
-type WorkerErrorMessage = { type: 'error'; error: string }
-
-type WorkerMessage = WorkerResultsMessage | WorkerSkippedMessage | WorkerErrorMessage
-
-const formatNumber = (value: number, digits = 2) => Number(value.toFixed(digits))
-
-const logScenarioResults = (scenario: Scenario, results: ScenarioResult[]) => {
-	const rows = results.map(result => ({
-		store: result.store,
-		items: result.items,
-		valueBytes: result.valueBytes,
-		writeMs: formatNumber(result.writeMs),
-		readMs: formatNumber(result.readMs),
-		removeMs: formatNumber(result.removeMs),
-		totalMs: formatNumber(result.totalMs)
-	}))
-
-	const winner = rows.reduce((best, current) =>
-		current.totalMs < best.totalMs ? current : best
-	)
-
-	console.group(
-		`[store bench] ${scenario.name} — items=${scenario.items} valueBytes=${scenario.valueBytes}`
-	)
-	console.table(rows)
-	console.info(
-		`👑 Winner: ${winner.store} (${winner.totalMs.toFixed(2)} ms total)`
-	)
-	console.groupEnd()
-}
-
-export const runStoreBenchmarks = async (): Promise<void> => {
+export const runStoreBenchmarks = async (
+	handlers: RunStoreBenchmarksHandlers = {}
+): Promise<void> => {
+	emitStoreBenchEvent({ type: 'reset' })
 	if (typeof Worker === 'undefined') {
+		const reason = 'Worker API is unavailable'
 		console.info('[store bench] skipped: Worker API is unavailable')
+		emitStoreBenchEvent({ type: 'skipped', reason })
+		handlers.onSkipped?.(reason)
 		return
 	}
 
-	try {
+	await new Promise<void>((resolve, reject) => {
 		const worker = new Worker(
 			new URL('./vfsStoreBench.worker.ts', import.meta.url),
 			{ type: 'module' }
 		)
 
-		const scenarioResults = await new Promise<
-			{ scenario: Scenario; results: ScenarioResult[] }[]
-		>((resolve, reject) => {
-			worker.onmessage = event => {
-				const message = event.data as WorkerMessage
-				if (!message || typeof message !== 'object') return
-
-				if (message.type === 'results') {
-					resolve(message.payload)
-					worker.terminate()
-					return
-				}
-
-				if (message.type === 'skipped') {
-					console.info(
-						`[store bench] skipped: ${message.reason ?? 'no available adapters'}`
-					)
-					resolve([])
-					worker.terminate()
-					return
-				}
-
-				if (message.type === 'error') {
-					reject(new Error(message.error))
-					worker.terminate()
-				}
-			}
-
-			worker.onerror = error => {
-				reject(error.error ?? error.message ?? error)
-				worker.terminate()
-			}
-
-			worker.postMessage({ type: 'run' })
-		})
-
-		if (scenarioResults.length === 0) return
-
-		for (const { scenario, results } of scenarioResults) {
-			if (results.length === 0) {
-				console.info(
-					`[store bench] ${scenario.name} skipped: no runnable adapters`
-				)
-				continue
-			}
-			logScenarioResults(scenario, results)
+		const cleanup = () => {
+			worker.terminate()
 		}
-	} catch (error) {
-		console.error('[store bench] failed', error)
-	}
+
+		worker.onmessage = event => {
+			const message = event.data as WorkerMessage
+			if (!message || typeof message !== 'object') return
+
+			switch (message.type) {
+				case 'manifest':
+					emitStoreBenchEvent({ type: 'manifest', payload: message.payload })
+					handlers.onManifest?.(message.payload.scenarios)
+					return
+				case 'progress':
+					console.info('[store bench]', message.payload.message)
+					emitStoreBenchEvent({ type: 'progress', payload: message.payload })
+					handlers.onProgress?.(message.payload)
+					return
+				case 'scenario-complete':
+					emitStoreBenchEvent({
+						type: 'scenario-complete',
+						payload: message.payload
+					})
+					handlers.onScenarioComplete?.(message.payload)
+					return
+				case 'results':
+					emitStoreBenchEvent({ type: 'results', payload: message.payload })
+					handlers.onComplete?.(message.payload)
+					cleanup()
+					resolve()
+					return
+				case 'skipped': {
+					const reason =
+						message.reason ?? 'no available adapters'
+					console.info(`[store bench] skipped: ${reason}`)
+					emitStoreBenchEvent({ type: 'skipped', reason })
+					handlers.onSkipped?.(reason)
+					cleanup()
+					resolve()
+					return
+				}
+				case 'error': {
+					const error = new Error(message.error)
+					emitStoreBenchEvent({ type: 'error', error })
+					handlers.onError?.(error)
+					cleanup()
+					reject(error)
+					return
+				}
+			}
+		}
+
+		worker.onerror = event => {
+			const error =
+				event.error instanceof Error
+					? event.error
+					: new Error(event.message ?? 'Unknown worker error')
+			console.error('[store bench] worker error', error)
+			emitStoreBenchEvent({ type: 'error', error })
+			handlers.onError?.(error)
+			cleanup()
+			reject(error)
+		}
+
+		worker.postMessage({ type: 'run' })
+	})
 }

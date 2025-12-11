@@ -13,5 +13,7 @@
 		"opfs",
 		"sharrattj",
 		"wasmer"
-	]
+	],
+	"chatgpt.openOnStartup": true,
+	"chatgpt.commentCodeLensEnabled": false
 }
