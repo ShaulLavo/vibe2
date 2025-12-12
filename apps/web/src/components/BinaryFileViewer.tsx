@@ -1,9 +1,8 @@
-import { createVirtualizer } from '@tanstack/solid-virtual'
-<<<<<<< HEAD
-import type { VirtualItem, Virtualizer } from '@tanstack/solid-virtual'
-=======
-import type { VirtualItem, Virtualizer } from '@tanstack/virtual-core'
->>>>>>> 96160b2 (foramt)
+import {
+	createVirtualizer,
+	type VirtualItem,
+	type Virtualizer,
+} from '@tanstack/solid-virtual'
 import { type Accessor, For, Show, createMemo, createSignal } from 'solid-js'
 import type { ParseResult } from '@repo/utils'
 
