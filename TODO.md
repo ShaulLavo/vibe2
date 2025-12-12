@@ -1,4 +1,5 @@
 # Editor & Layout
+
 - [x] Resizable multi-pane layout with persisted sizes
 - [ ] Pane drag/drop to rearrange/split; layout persistence after DnD
 - [ ] Tabbed editors: dumb wrapper over existing K-recent cache (no extra buffering), dirty indicators, close + middle-click close, return to last active tab on close
@@ -7,12 +8,14 @@
 - [ ] Minimap; code lens; peek/go-to definition/references; breadcrumbs
 
 # File System & Explorer
+
 - [x] Local/OPFS/memory FS roots via `FsProvider` with caching/lazy load
 - [ ] Explorer DnD: move/copy files/folders (modifiers), hover-to-expand, conflict prompts, undo for moves
 - [ ] External drop to upload/import; drag-out where the browser allows
 - [ ] SCM view: git status, staging, commits, gutter blame, inline diffs
 
 # Editing & Language Features
+
 - [x] Piece-table-backed text editing with virtualized lines/cursor/selection
 - [ ] Tree-sitter syntax highlighting (multi-language) + semantic tokens
 - [ ] Folding driven by syntax; outline/symbol view; breadcrumbs
@@ -21,6 +24,7 @@
 - [ ] Formatter integration per language; on-save hooks
 
 # Search & Navigation
+
 - [ ] Command palette (global actions, jump-to-file/symbol, extensible commands)
 - [ ] Workspace search: text (regex, include/exclude), replace-in-files
 - [ ] Symbol search (workspace/file), fuzzy file search
@@ -30,12 +34,14 @@
 - [ ] AI/vector hybrid search (optional embeddings for similarity)
 
 # Terminal & Tasks
+
 - [x] Basic xterm + local-echo scaffold (help/echo/clear)
 - [ ] Real terminal sessions (PTY-backed), multi-session tabs, scrollback, resize/focus sync
 - [ ] Terminal DnD: move tabs between panes; drop files to paste path/upload where supported
 - [ ] Tasks/build integration; problem matchers
 
 # Theming & Customization
+
 - [x] Theming hooks (ThemedToaster, UI primitives)
 - [ ] Theme packs (light/dark), full token color customization, icon themes
 - [ ] Settings UI: searchable categories, user/workspace settings, JSON editor
@@ -44,26 +50,30 @@
 - [ ] Custom scrollbar styling across app (replace native stopgap)
 
 # Extensions & Ecosystem
+
 - [ ] Extension system: manifest, activation events, contribution points (commands, keybindings, themes, snippets, languages)
 - [ ] Sandboxed runtime for extensions; permissions; lifecycle management
 
 # Viewing & Extras
+
 - [x] Binary viewer (hex/ASCII preview with stats)
 - [ ] Notebook/markdown preview (live/side-by-side)
 - [ ] Diff/merge UI (2-way/3-way)
 
 # Accessibility & UX
+
 - [ ] Full keyboard equivalents for DnD actions; focus preservation
 - [ ] Screen reader roles/labels; announcements for drops/actions
 - [ ] High-contrast themes; zoom/font-size controls
 - [ ] Persisted focus/selection after layout/tab moves
 
 # Logging, Perf, Infrastructure
+
 - [x] Logger/perf scaffolding (`@repo/logger`, `@repo/perf`)
 - [ ] More tracing around FS/search/indexing; perf dashboards
 - [ ] Offline/persistence for indexes; eviction policies
 
 # Testing
+
 - [ ] Playwright E2E coverage for core flows (fs, editor, search, DnD, tabs)
 - [ ] Broader unit tests using Bun (key packages: fs, code-editor, search engine)
-
