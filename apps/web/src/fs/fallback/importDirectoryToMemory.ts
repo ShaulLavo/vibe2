@@ -1,13 +1,13 @@
 import {
 	getMemoryRoot,
 	MemoryDirectoryHandle,
-	MemoryFileHandle,
+	MemoryFileHandle
 } from '@repo/fs'
 import {
 	DEFAULT_ROOT_NAME,
 	deriveRelativeSegments,
 	getSharedTopSegment,
-	normalizeEntries,
+	normalizeEntries
 } from './importDirectoryEntries'
 
 /** Default number of concurrent file operations */
@@ -28,7 +28,7 @@ class Semaphore {
 			this.running++
 			return
 		}
-		return new Promise<void>((resolve) => {
+		return new Promise<void>(resolve => {
 			this.queue.push(resolve)
 		})
 	}
@@ -81,7 +81,7 @@ const ensureDirectory = async (
 				current = await existingPromise
 			} else {
 				const dirPromise = current.getDirectoryHandle(segment, {
-					create: true,
+					create: true
 				}) as Promise<MemoryDirectoryHandle>
 				dirCache.set(pathSoFar, dirPromise)
 				current = await dirPromise
@@ -103,7 +103,7 @@ const writeFileToMemory = async (
 	const fileName = segments[segments.length - 1]!
 	const targetDir = await ensureDirectory(root, directorySegments)
 	const handle = (await targetDir.getFileHandle(fileName, {
-		create: true,
+		create: true
 	})) as MemoryFileHandle
 	const writable = await handle.createWritable()
 	let aborted = false
@@ -153,7 +153,7 @@ export async function importDirectoryToMemory(
 	let completed = 0
 
 	// Process all files with bounded concurrency
-	const tasks = entries.map((entry) =>
+	const tasks = entries.map(entry =>
 		semaphore.run(async () => {
 			const segments = deriveRelativeSegments(entry, sharedTop)
 			await writeFileToMemory(root, segments, entry.file)
@@ -170,7 +170,7 @@ export async function importDirectoryToMemory(
 	// Collect and report any errors
 	const errors = results
 		.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-		.map((r) => r.reason)
+		.map(r => r.reason)
 
 	if (errors.length > 0) {
 		const message =

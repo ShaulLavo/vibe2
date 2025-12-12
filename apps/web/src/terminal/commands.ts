@@ -3,7 +3,7 @@ import {
 	createMinimalBinaryParseResult,
 	detectBinaryFromPreview,
 	getPieceTableOriginalText,
-	parseFileBuffer,
+	parseFileBuffer
 } from '@repo/utils'
 import type { Terminal } from 'ghostty-web'
 import { FsState } from '~/fs/types'
@@ -129,7 +129,7 @@ const printHelp = (ctx: CommandContext) => {
 		['mkdir <path>', 'Create a directory'],
 		['touch <path>', 'Create an empty file'],
 		['rm <path>', 'Delete a file or directory'],
-		['echo', 'Echo back the provided text'],
+		['echo', 'Echo back the provided text']
 	])
 }
 
@@ -175,7 +175,7 @@ const handleLs = async (ctx: CommandContext, rawPath?: string) => {
 		return
 	}
 
-	const labels = children.map((child) =>
+	const labels = children.map(child =>
 		child.kind === 'dir' ? `${child.name}/` : child.name
 	)
 	ctx.localEcho?.printWide(labels.sort())
@@ -214,7 +214,7 @@ const handleCat = async (ctx: CommandContext, rawPath?: string) => {
 		if (!cached.stats || !cached.previewBytes) {
 			ctx.shell.actions.fileCache.set(target, {
 				stats: createMinimalBinaryParseResult('', detection),
-				previewBytes,
+				previewBytes
 			})
 		}
 		ctx.localEcho?.println('cat: binary file not displayed')
@@ -227,13 +227,13 @@ const handleCat = async (ctx: CommandContext, rawPath?: string) => {
 		cached.stats ??
 		parseFileBuffer(text, {
 			path: target,
-			textHeuristic: detection,
+			textHeuristic: detection
 		})
 
 	if (!cached.stats || !cached.previewBytes) {
 		ctx.shell.actions.fileCache.set(target, {
 			stats,
-			previewBytes,
+			previewBytes
 		})
 	}
 

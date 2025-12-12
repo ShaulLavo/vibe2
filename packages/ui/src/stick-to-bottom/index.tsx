@@ -15,7 +15,7 @@ import {
 	onCleanup,
 	onMount,
 	splitProps,
-	useContext,
+	useContext
 } from 'solid-js'
 
 // ---------------------------------------
@@ -50,7 +50,7 @@ export interface StickToBottomState {
 const DEFAULT_SPRING_ANIMATION = {
 	damping: 0.7,
 	stiffness: 0.05,
-	mass: 1.25,
+	mass: 1.25
 }
 
 export type SpringAnimation = Partial<typeof DEFAULT_SPRING_ANIMATION>
@@ -195,7 +195,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 				Math.min(
 					get(target, {
 						scrollElement: scrollRef.current!,
-						contentElement: contentRef.current!,
+						contentElement: contentRef.current!
 					}),
 					target
 				),
@@ -208,7 +208,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 		},
 		get isNearBottom() {
 			return this.scrollDifference <= STICK_TO_BOTTOM_OFFSET_PX
-		},
+		}
 	}
 
 	// keep derived state in sync with signals when we update them
@@ -258,7 +258,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 		}
 
 		const next = async (): Promise<boolean> => {
-			const promise = new Promise<boolean>((resolve) => {
+			const promise = new Promise<boolean>(resolve => {
 				requestAnimationFrame(() => {
 					if (!state.isAtBottom) {
 						state.animation = undefined
@@ -274,7 +274,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 					const anim = (state.animation ||= {
 						behavior,
 						promise: undefined,
-						ignoreEscapes,
+						ignoreEscapes
 					})
 
 					if (anim.behavior === behavior) {
@@ -319,8 +319,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 							scrollToBottom({
 								animation: mergeAnimations(optionsRef(), optionsRef().resize),
 								ignoreEscapes,
-								duration:
-									Math.max(0, durationElapsed - Date.now()) || undefined,
+								duration: Math.max(0, durationElapsed - Date.now()) || undefined
 							}) as Promise<boolean>
 						)
 					}
@@ -329,7 +328,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 				})
 			})
 
-			return promise.then((val) => {
+			return promise.then(val => {
 				requestAnimationFrame(() => {
 					if (!state.animation) {
 						state.lastTick = undefined
@@ -423,7 +422,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 		}
 	}
 
-	const scrollRef = createRefCallback<HTMLElement>((scroll) => {
+	const scrollRef = createRefCallback<HTMLElement>(scroll => {
 		if (scrollRef.current) {
 			scrollRef.current.removeEventListener('scroll', handleScroll)
 			scrollRef.current.removeEventListener('wheel', handleWheel)
@@ -437,7 +436,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 		}
 	})
 
-	const contentRef = createRefCallback<HTMLElement>((content) => {
+	const contentRef = createRefCallback<HTMLElement>(content => {
 		state.resizeObserver?.disconnect()
 		if (!content) return
 
@@ -464,7 +463,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 					wait: true,
 					preserveScrollPosition: true,
 					duration:
-						animation === 'instant' ? undefined : RETAIN_ANIMATION_DURATION_MS,
+						animation === 'instant' ? undefined : RETAIN_ANIMATION_DURATION_MS
 				})
 			} else {
 				if (state.isNearBottom) {
@@ -510,7 +509,7 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 		isAtBottom: () => isAtBottom() || isNearBottom(),
 		isNearBottom,
 		escapedFromLock,
-		state,
+		state
 	}
 }
 
@@ -545,7 +544,7 @@ export const StickToBottom: Component<StickToBottomProps> & {
 			children: ((ctx: StickToBottomContext) => JSX.Element) | JSX.Element
 		}
 	>
-} = (props) => {
+} = props => {
 	const [p, rest] = splitProps(props, [
 		'instance',
 		'children',
@@ -554,7 +553,7 @@ export const StickToBottom: Component<StickToBottomProps> & {
 		'mass',
 		'damping',
 		'stiffness',
-		'targetScrollTop',
+		'targetScrollTop'
 	])
 
 	let customTarget: GetTargetScrollTop | null = null
@@ -576,7 +575,7 @@ export const StickToBottom: Component<StickToBottomProps> & {
 			return p.initial
 		},
 		targetScrollTop: (target, els) =>
-			customTarget?.(target, els) ?? p.targetScrollTop?.(target, els) ?? target,
+			customTarget?.(target, els) ?? p.targetScrollTop?.(target, els) ?? target
 	})
 
 	const inst = () => p.instance ?? defaultInstance
@@ -600,7 +599,7 @@ export const StickToBottom: Component<StickToBottomProps> & {
 		},
 		set targetScrollTop(v: GetTargetScrollTop | null) {
 			customTarget = v
-		},
+		}
 	}
 
 	onMount(() => {
@@ -622,7 +621,7 @@ export const StickToBottom: Component<StickToBottomProps> & {
 	)
 }
 
-StickToBottom.Content = (props) => {
+StickToBottom.Content = props => {
 	const ctx = useStickToBottomContext()
 	const [p, rest] = splitProps(props, ['children'])
 
