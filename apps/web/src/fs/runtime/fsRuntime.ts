@@ -79,11 +79,7 @@ export async function ensureFs(source: FsSource): Promise<VfsContext> {
 				fsCache[source] = timeSync('create-fs', () => createFs(rootHandle))
 			},
 			{ metadata: { source }, logger: loggers.fs }
-		).catch((error) => {
-			delete initPromises[source]
-			delete fsCache[source]
-			throw error
-		})
+		)
 	}
 
 	await initPromises[source]
