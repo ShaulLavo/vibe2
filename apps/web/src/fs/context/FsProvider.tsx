@@ -44,7 +44,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setPrefetchLastDurationMs,
 		setPrefetchAverageDurationMs,
 		registerDeferredMetadata,
-		clearDeferredMetadata
+		clearDeferredMetadata,
 	} = createFsState()
 
 	const fileCache = createFileCacheController({
@@ -54,7 +54,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setHighlights,
 		setFolds,
 		setBrackets,
-		setErrors
+		setErrors,
 	})
 
 	const setDirNode = (path: string, node: FsDirTreeNode) => {
@@ -79,7 +79,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 			setPrefetchProcessedCount,
 			setPrefetchLastDurationMs,
 			setPrefetchAverageDurationMs,
-			registerDeferredMetadata
+			registerDeferredMetadata,
 		})
 
 	const { buildEnsurePaths, ensureDirLoaded, toggleDir } = useDirectoryLoader({
@@ -89,7 +89,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setError,
 		setDirNode,
 		runPrefetchTask,
-		treePrefetchClient
+		treePrefetchClient,
 	})
 
 	const {
@@ -98,7 +98,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		updateSelectedFileHighlights,
 		updateSelectedFileFolds,
 		updateSelectedFileBrackets,
-		updateSelectedFileErrors
+		updateSelectedFileErrors,
 	} = useFileSelection({
 		state,
 		setSelectedPath,
@@ -107,7 +107,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setSelectedFileContent,
 		setSelectedFileLoading,
 		setError,
-		fileCache
+		fileCache,
 	})
 
 	const { refresh } = useFsRefresh({
@@ -128,7 +128,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		treePrefetchClient,
 		runPrefetchTask,
 		selectPath,
-		clearDeferredMetadata
+		clearDeferredMetadata,
 	})
 
 	const { createDir, createFile, deleteNode } = createFsMutations({
@@ -138,7 +138,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setSelectedFileSize,
 		setError,
 		getState: () => state,
-		getActiveSource: () => state.activeSource
+		getActiveSource: () => state.activeSource,
 	})
 
 	const ensureDirPathLoaded = async (
@@ -186,7 +186,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 	onMount(() => {
 		restoreHandleCache({
 			tree: state.tree,
-			activeSource: state.activeSource
+			activeSource: state.activeSource,
 		})
 		void refresh(state.activeSource ?? DEFAULT_SOURCE)
 	})
@@ -225,8 +225,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 			updateSelectedFileFolds,
 			updateSelectedFileBrackets,
 			updateSelectedFileErrors,
-			fileCache
-		}
+			fileCache,
+		},
 	]
 
 	return (

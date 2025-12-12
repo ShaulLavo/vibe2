@@ -1,7 +1,7 @@
-import { nanoid } from "nanoid";
+import { nanoid } from 'nanoid'
 
-const DEFAULT_ID_LENGTH = 10;
+const DEFAULT_ID_LENGTH = 10
 
 export function randomId(): string {
-  return nanoid(DEFAULT_ID_LENGTH);
+	return nanoid(DEFAULT_ID_LENGTH)
 }

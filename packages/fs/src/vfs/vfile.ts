@@ -5,7 +5,7 @@ import {
 	chunkByteLength,
 	isReadableStream,
 	textEncoder,
-	writeToWritable
+	writeToWritable,
 } from './utils/streams'
 import type { FsContextInternal } from './contextInternal'
 import { VDir } from './vdir'
@@ -103,7 +103,7 @@ export class VFile {
 		const truncate = opts?.truncate ?? true
 		const handle = await this.#getHandle(true)
 		const writable = await handle.createWritable({
-			keepExistingData: !truncate
+			keepExistingData: !truncate,
 		})
 
 		try {
@@ -201,7 +201,7 @@ export class VFile {
 					invalidate()
 					return typeof bytes === 'number' ? bytes : data.byteLength
 				},
-				truncate: async size => {
+				truncate: async (size) => {
 					ensureOpen()
 					accessHandle.truncate(size)
 					invalidate()
@@ -218,7 +218,7 @@ export class VFile {
 					await accessHandle.close()
 					closed = true
 					invalidate()
-				}
+				},
 			}
 		}
 
@@ -241,7 +241,7 @@ export class VFile {
 					await writable.write({
 						type: 'write',
 						position: opts.at,
-						data: chunk
+						data: chunk,
 					})
 				} else {
 					await writable.write(chunk as FileSystemWriteChunkType)
@@ -249,7 +249,7 @@ export class VFile {
 				invalidate()
 				return chunkByteLength(chunk)
 			},
-			truncate: async size => {
+			truncate: async (size) => {
 				ensureOpen()
 				await writable.truncate(size)
 				invalidate()
@@ -276,7 +276,7 @@ export class VFile {
 				await writable.close()
 				closed = true
 				invalidate()
-			}
+			},
 		}
 	}
 
@@ -324,7 +324,7 @@ export class VFile {
 					if (closed) return
 					await accessHandle.close()
 					closed = true
-				}
+				},
 			}
 		}
 
@@ -339,7 +339,7 @@ export class VFile {
 			getSize: async () => this.getSize(),
 			close: async () => {
 				// no-op for async reader
-			}
+			},
 		}
 	}
 
@@ -395,7 +395,7 @@ export class VFile {
 			return this.#fileSnapshot
 		}
 
-		const promise = this.#getHandle(false).then(handle => handle.getFile())
+		const promise = this.#getHandle(false).then((handle) => handle.getFile())
 		this.#fileSnapshot = promise
 
 		try {

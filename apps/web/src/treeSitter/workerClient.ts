@@ -1,83 +1,83 @@
-import { releaseProxy, transfer, wrap, type Remote } from "comlink";
+import { releaseProxy, transfer, wrap, type Remote } from 'comlink'
 import type {
-  TreeSitterWorkerApi,
-  TreeSitterEditPayload,
-} from "../workers/treeSitterWorkerTypes";
+	TreeSitterWorkerApi,
+	TreeSitterEditPayload,
+} from '../workers/treeSitterWorkerTypes'
 
 const supportsWorkers =
-  typeof window !== "undefined" && typeof Worker !== "undefined";
+	typeof window !== 'undefined' && typeof Worker !== 'undefined'
 
 const createTreeSitterWorker = () =>
-  new Worker(new URL("../workers/treeSitter.worker.ts", import.meta.url), {
-    type: "module",
-  });
+	new Worker(new URL('../workers/treeSitter.worker.ts', import.meta.url), {
+		type: 'module',
+	})
 
 type TreeSitterWorkerHandle = {
-  worker: Worker;
-  proxy: Remote<TreeSitterWorkerApi>;
-};
+	worker: Worker
+	proxy: Remote<TreeSitterWorkerApi>
+}
 
-let workerHandle: TreeSitterWorkerHandle | null = null;
-let workerInitPromise: Promise<void> | null = null;
+let workerHandle: TreeSitterWorkerHandle | null = null
+let workerInitPromise: Promise<void> | null = null
 
 const getWorkerHandle = (): TreeSitterWorkerHandle | null => {
-  if (!supportsWorkers) return null;
-  if (!workerHandle) {
-    const worker = createTreeSitterWorker();
-    const proxy = wrap<TreeSitterWorkerApi>(worker);
-    workerHandle = { worker, proxy };
-  }
-  return workerHandle;
-};
+	if (!supportsWorkers) return null
+	if (!workerHandle) {
+		const worker = createTreeSitterWorker()
+		const proxy = wrap<TreeSitterWorkerApi>(worker)
+		workerHandle = { worker, proxy }
+	}
+	return workerHandle
+}
 
 export const ensureTreeSitterWorkerReady = async () => {
-  const handle = getWorkerHandle();
-  if (!handle) return null;
+	const handle = getWorkerHandle()
+	if (!handle) return null
 
-  if (!workerInitPromise) {
-    workerInitPromise = handle.proxy.init().catch((error) => {
-      workerInitPromise = null;
-      throw error;
-    });
-  }
+	if (!workerInitPromise) {
+		workerInitPromise = handle.proxy.init().catch((error) => {
+			workerInitPromise = null
+			throw error
+		})
+	}
 
-  await workerInitPromise;
-  return handle;
-};
+	await workerInitPromise
+	return handle
+}
 
 export const disposeTreeSitterWorker = async () => {
-  if (!workerHandle) return;
-  try {
-    await workerHandle.proxy.dispose();
-  } catch {
-    // ignore dispose errors
-  }
-  (workerHandle.proxy as unknown as Record<symbol, () => void>)[
-    releaseProxy
-  ]?.();
-  workerHandle.worker.terminate();
-  workerHandle = null;
-  workerInitPromise = null;
-};
+	if (!workerHandle) return
+	try {
+		await workerHandle.proxy.dispose()
+	} catch {
+		// ignore dispose errors
+	}
+	;(workerHandle.proxy as unknown as Record<symbol, () => void>)[
+		releaseProxy
+	]?.()
+	workerHandle.worker.terminate()
+	workerHandle = null
+	workerInitPromise = null
+}
 
 export const parseSourceWithTreeSitter = async (source: string) => {
-  const handle = await ensureTreeSitterWorkerReady();
-  if (!handle) return undefined;
-  return handle.proxy.parse(source);
-};
+	const handle = await ensureTreeSitterWorkerReady()
+	if (!handle) return undefined
+	return handle.proxy.parse(source)
+}
 
 export const parseBufferWithTreeSitter = async (
-  path: string,
-  buffer: ArrayBuffer,
+	path: string,
+	buffer: ArrayBuffer
 ) => {
-  const handle = await ensureTreeSitterWorkerReady();
-  if (!handle) return undefined;
-  const payload = transfer({ path, buffer }, [buffer]);
-  return handle.proxy.parseBuffer(payload);
-};
+	const handle = await ensureTreeSitterWorkerReady()
+	if (!handle) return undefined
+	const payload = transfer({ path, buffer }, [buffer])
+	return handle.proxy.parseBuffer(payload)
+}
 
 export const applyTreeSitterEdit = async (payload: TreeSitterEditPayload) => {
-  const handle = await ensureTreeSitterWorkerReady();
-  if (!handle) return undefined;
-  return handle.proxy.applyEdit(payload);
-};
+	const handle = await ensureTreeSitterWorkerReady()
+	if (!handle) return undefined
+	return handle.proxy.applyEdit(payload)
+}

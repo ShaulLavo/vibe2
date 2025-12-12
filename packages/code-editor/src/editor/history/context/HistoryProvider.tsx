@@ -1,13 +1,13 @@
-import type { HistoryProviderProps } from "../types";
-import { HistoryContext } from "./HistoryContext";
-import { useHistoryStore } from "../hooks/useHistoryStore";
+import type { HistoryProviderProps } from '../types'
+import { HistoryContext } from './HistoryContext'
+import { useHistoryStore } from '../hooks/useHistoryStore'
 
 export const HistoryProvider = (props: HistoryProviderProps) => {
-  const value = useHistoryStore(props.document);
+	const value = useHistoryStore(props.document)
 
-  return (
-    <HistoryContext.Provider value={value}>
-      {props.children}
-    </HistoryContext.Provider>
-  );
-};
+	return (
+		<HistoryContext.Provider value={value}>
+			{props.children}
+		</HistoryContext.Provider>
+	)
+}

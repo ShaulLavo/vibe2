@@ -1,58 +1,58 @@
-import type { FoldRange } from "@repo/code-editor";
+import type { FoldRange } from '@repo/code-editor'
 
-export type { FoldRange };
+export type { FoldRange }
 
 export type TreeSitterCapture = {
-  startIndex: number;
-  endIndex: number;
-  captureName: string;
-};
+	startIndex: number
+	endIndex: number
+	captureName: string
+}
 
 export type BracketInfo = {
-  index: number;
-  char: string;
-  depth: number;
-};
+	index: number
+	char: string
+	depth: number
+}
 
 export type TreeSitterError = {
-  startIndex: number;
-  endIndex: number;
-  message: string; // Might be useful if we can get it, otherwise just type
-  isMissing: boolean;
-};
+	startIndex: number
+	endIndex: number
+	message: string // Might be useful if we can get it, otherwise just type
+	isMissing: boolean
+}
 
 export type TreeSitterParseResult = {
-  captures: TreeSitterCapture[];
-  brackets: BracketInfo[];
-  errors: TreeSitterError[];
-  folds: FoldRange[];
-};
+	captures: TreeSitterCapture[]
+	brackets: BracketInfo[]
+	errors: TreeSitterError[]
+	folds: FoldRange[]
+}
 
 export type TreeSitterWorkerApi = {
-  init(): Promise<void>;
-  parse(source: string): Promise<TreeSitterParseResult | undefined>;
-  parseBuffer(payload: {
-    path: string;
-    buffer: ArrayBuffer;
-  }): Promise<TreeSitterParseResult | undefined>;
-  applyEdit(
-    payload: TreeSitterEditPayload,
-  ): Promise<TreeSitterParseResult | undefined>;
-  dispose(): Promise<void>;
-};
+	init(): Promise<void>
+	parse(source: string): Promise<TreeSitterParseResult | undefined>
+	parseBuffer(payload: {
+		path: string
+		buffer: ArrayBuffer
+	}): Promise<TreeSitterParseResult | undefined>
+	applyEdit(
+		payload: TreeSitterEditPayload
+	): Promise<TreeSitterParseResult | undefined>
+	dispose(): Promise<void>
+}
 
 export type TreeSitterPoint = {
-  row: number;
-  column: number;
-};
+	row: number
+	column: number
+}
 
 export type TreeSitterEditPayload = {
-  path: string;
-  startIndex: number;
-  oldEndIndex: number;
-  newEndIndex: number;
-  startPosition: TreeSitterPoint;
-  oldEndPosition: TreeSitterPoint;
-  newEndPosition: TreeSitterPoint;
-  insertedText: string;
-};
+	path: string
+	startIndex: number
+	oldEndIndex: number
+	newEndIndex: number
+	startPosition: TreeSitterPoint
+	oldEndPosition: TreeSitterPoint
+	newEndPosition: TreeSitterPoint
+	insertedText: string
+}

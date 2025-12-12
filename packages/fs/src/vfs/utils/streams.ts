@@ -1,67 +1,67 @@
-import type { VfsReadableStream } from "../types";
+import type { VfsReadableStream } from '../types'
 
-export const textEncoder = new TextEncoder();
+export const textEncoder = new TextEncoder()
 
 export function isReadableStream(value: unknown): value is VfsReadableStream {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as ReadableStream<unknown>).getReader === "function"
-  );
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		typeof (value as ReadableStream<unknown>).getReader === 'function'
+	)
 }
 
 export function bufferSourceToUint8Array(source: BufferSource): Uint8Array {
-  if (ArrayBuffer.isView(source)) {
-    const view = source as ArrayBufferView;
-    return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
-  }
+	if (ArrayBuffer.isView(source)) {
+		const view = source as ArrayBufferView
+		return new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+	}
 
-  return new Uint8Array(source as ArrayBufferLike);
+	return new Uint8Array(source as ArrayBufferLike)
 }
 
 export function chunkByteLength(chunk: string | BufferSource): number {
-  return typeof chunk === "string"
-    ? textEncoder.encode(chunk).byteLength
-    : bufferSourceToUint8Array(chunk).byteLength;
+	return typeof chunk === 'string'
+		? textEncoder.encode(chunk).byteLength
+		: bufferSourceToUint8Array(chunk).byteLength
 }
 
 export function writeToWritable(
-  writable: FileSystemWritableFileStream,
-  content: string | BufferSource | VfsReadableStream,
+	writable: FileSystemWritableFileStream,
+	content: string | BufferSource | VfsReadableStream
 ): Promise<void> {
-  if (isReadableStream(content)) {
-    return writeStreamToWritable(writable, content);
-  }
+	if (isReadableStream(content)) {
+		return writeStreamToWritable(writable, content)
+	}
 
-  return writable
-    .write(content as FileSystemWriteChunkType)
-    .then(() => undefined);
+	return writable
+		.write(content as FileSystemWriteChunkType)
+		.then(() => undefined)
 }
 
 export async function writeStreamToWritable(
-  writable: FileSystemWritableFileStream,
-  stream: VfsReadableStream,
+	writable: FileSystemWritableFileStream,
+	stream: VfsReadableStream
 ): Promise<void> {
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (!value) continue;
-      const chunk =
-        value instanceof Uint8Array
-          ? value
-          : bufferSourceToUint8Array(value as BufferSource);
-      await writable.write(chunk as FileSystemWriteChunkType);
-    }
-  } catch (err) {
-    try {
-      await reader.cancel(err);
-    } catch {
-      // ignore cancellation errors, rethrow original
-    }
-    throw err;
-  } finally {
-    reader.releaseLock();
-  }
+	const reader = stream.getReader()
+	try {
+		while (true) {
+			const { done, value } = await reader.read()
+			if (done) break
+			if (!value) continue
+			const chunk =
+				value instanceof Uint8Array
+					? value
+					: bufferSourceToUint8Array(value as BufferSource)
+			await writable.write(chunk as FileSystemWriteChunkType)
+		}
+	} catch (err) {
+		try {
+			await reader.cancel(err)
+		} catch {
+			// ignore cancellation errors, rethrow original
+		}
+		throw err
+	} finally {
+		reader.releaseLock()
+	}
 }

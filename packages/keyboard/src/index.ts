@@ -1,2 +1,2 @@
-export * from "./parser";
-export * from "./keymap";
+export * from './parser'
+export * from './keymap'

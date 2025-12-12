@@ -1,79 +1,79 @@
-import type { LineEntry } from "../types";
+import type { LineEntry } from '../types'
 
 export type CursorPosition = {
-  offset: number; // absolute position in document
-  line: number; // 0-based line index
-  column: number; // 0-based column in line
-};
+	offset: number // absolute position in document
+	line: number // 0-based line index
+	column: number // 0-based column in line
+}
 
 export type SelectionRange = {
-  anchor: number; // offset where selection started (immovable end)
-  focus: number; // offset where selection ends (= cursor position)
-};
+	anchor: number // offset where selection started (immovable end)
+	focus: number // offset where selection ends (= cursor position)
+}
 
 export type SelectionBounds = {
-  start: number;
-  end: number;
-};
+	start: number
+	end: number
+}
 
 export type CursorState = {
-  position: CursorPosition;
-  preferredColumn: number; // for ArrowUp/Down column preservation
-  isBlinking: boolean;
-  selections: SelectionRange[]; // empty array = no selection, array for multi-cursor future
-  hasCursor: boolean; // false until user activates the caret
-};
+	position: CursorPosition
+	preferredColumn: number // for ArrowUp/Down column preservation
+	isBlinking: boolean
+	selections: SelectionRange[] // empty array = no selection, array for multi-cursor future
+	hasCursor: boolean // false until user activates the caret
+}
 
-export type CursorDirection = "left" | "right" | "up" | "down";
+export type CursorDirection = 'left' | 'right' | 'up' | 'down'
 
 export type CursorNavigationContext = {
-  lineEntries: LineEntry[];
-  documentLength: number;
-};
+	lineEntries: LineEntry[]
+	documentLength: number
+}
 
 export const createDefaultCursorState = (): CursorState => ({
-  position: {
-    offset: 0,
-    line: 0,
-    column: 0,
-  },
-  preferredColumn: 0,
-  isBlinking: true,
-  selections: [],
-  hasCursor: false,
-});
+	position: {
+		offset: 0,
+		line: 0,
+		column: 0,
+	},
+	preferredColumn: 0,
+	isBlinking: true,
+	selections: [],
+	hasCursor: false,
+})
 
 export const createCursorPosition = (
-  offset: number,
-  line: number,
-  column: number,
+	offset: number,
+	line: number,
+	column: number
 ): CursorPosition => ({
-  offset,
-  line,
-  column,
-});
+	offset,
+	line,
+	column,
+})
 
 export const createSelectionRange = (
-  anchor: number,
-  focus: number,
+	anchor: number,
+	focus: number
 ): SelectionRange => ({
-  anchor,
-  focus,
-});
+	anchor,
+	focus,
+})
 
 // Helper to get normalized selection bounds (start <= end)
 export const getSelectionBounds = (
-  selection: SelectionRange,
+	selection: SelectionRange
 ): SelectionBounds => ({
-  start: Math.min(selection.anchor, selection.focus),
-  end: Math.max(selection.anchor, selection.focus),
-});
+	start: Math.min(selection.anchor, selection.focus),
+	end: Math.max(selection.anchor, selection.focus),
+})
 
 // Check if selection is empty (collapsed)
 export const isSelectionEmpty = (selection: SelectionRange): boolean =>
-  selection.anchor === selection.focus;
+	selection.anchor === selection.focus
 
 // Check if cursor has any non-empty selection
 export const hasSelection = (state: CursorState): boolean =>
-  state.selections.length > 0 &&
-  state.selections.some((s) => !isSelectionEmpty(s));
+	state.selections.length > 0 &&
+	state.selections.some((s) => !isSelectionEmpty(s))

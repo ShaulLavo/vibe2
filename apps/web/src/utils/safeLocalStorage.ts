@@ -76,6 +76,6 @@ export function createMemorySafeStorage() {
 		},
 		removeItem: (key: string): void => {
 			safeRemoveItem(key)
-		}
+		},
 	}
 }

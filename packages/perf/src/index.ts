@@ -1,31 +1,31 @@
 // Main tracking API
 export {
-  trackOperation,
-  trackSync,
-  trackMicro,
-  createOperationTracker,
-  type TimingControls,
-} from "./perfTracker";
+	trackOperation,
+	trackSync,
+	trackMicro,
+	createOperationTracker,
+	type TimingControls,
+} from './perfTracker'
 
 // Store functions
 export {
-  record,
-  getHistory,
-  getSummary,
-  getRecentForOperation,
-  clear,
-  exportData,
-  configureMaxEntries,
-  type PerfRecord,
-  type PerfBreakdownEntry,
-  type PerfSummary,
-} from "./perfStore";
+	record,
+	getHistory,
+	getSummary,
+	getRecentForOperation,
+	clear,
+	exportData,
+	configureMaxEntries,
+	type PerfRecord,
+	type PerfBreakdownEntry,
+	type PerfSummary,
+} from './perfStore'
 
 // Logging functions
 export {
-  logOperation,
-  logOperationSimple,
-  logSummary,
-  logRecentOperations,
-  setLogLevel,
-} from "./perfLogger";
+	logOperation,
+	logOperationSimple,
+	logSummary,
+	logRecentOperations,
+	setLogLevel,
+} from './perfLogger'

@@ -1,6 +1,6 @@
-import { parse } from "shell-quote";
-import { logger } from "~/logger";
-import type { TerminalPosition, AutocompleteHandler } from "./types";
+import { parse } from 'shell-quote'
+import { logger } from '~/logger'
+import type { TerminalPosition, AutocompleteHandler } from './types'
 
 /**
  * Detects all word boundaries in the given input.
@@ -9,15 +9,15 @@ import type { TerminalPosition, AutocompleteHandler } from "./types";
  * @returns Array of boundary positions
  */
 export function getWordBoundaries(input: string, leftSide = true): number[] {
-  const boundaries: number[] = [];
-  const wordRegex = /\w+/g;
-  let match: RegExpExecArray | null;
+	const boundaries: number[] = []
+	const wordRegex = /\w+/g
+	let match: RegExpExecArray | null
 
-  while ((match = wordRegex.exec(input)) !== null) {
-    boundaries.push(leftSide ? match.index : match.index + match[0].length);
-  }
+	while ((match = wordRegex.exec(input)) !== null) {
+		boundaries.push(leftSide ? match.index : match.index + match[0].length)
+	}
 
-  return boundaries;
+	return boundaries
 }
 
 /**
@@ -27,9 +27,9 @@ export function getWordBoundaries(input: string, leftSide = true): number[] {
  * @returns Position of closest left boundary, or 0 if none found
  */
 export function closestLeftBoundary(input: string, offset: number): number {
-  const boundaries = getWordBoundaries(input, true);
-  const found = boundaries.reverse().find((x) => x < offset);
-  return found ?? 0;
+	const boundaries = getWordBoundaries(input, true)
+	const found = boundaries.reverse().find((x) => x < offset)
+	return found ?? 0
 }
 
 /**
@@ -39,9 +39,9 @@ export function closestLeftBoundary(input: string, offset: number): number {
  * @returns Position of closest right boundary, or input length if none found
  */
 export function closestRightBoundary(input: string, offset: number): number {
-  const boundaries = getWordBoundaries(input, false);
-  const found = boundaries.find((x) => x > offset);
-  return found ?? input.length;
+	const boundaries = getWordBoundaries(input, false)
+	const found = boundaries.find((x) => x > offset)
+	return found ?? input.length
 }
 
 /**
@@ -53,29 +53,29 @@ export function closestRightBoundary(input: string, offset: number): number {
  * @returns Position with col and row
  */
 export function offsetToColRow(
-  input: string,
-  offset: number,
-  maxCols: number,
+	input: string,
+	offset: number,
+	maxCols: number
 ): TerminalPosition {
-  let row = 0;
-  let col = 0;
+	let row = 0
+	let col = 0
 
-  for (let i = 0; i < offset; i++) {
-    const char = input.charAt(i);
+	for (let i = 0; i < offset; i++) {
+		const char = input.charAt(i)
 
-    if (char === "\n") {
-      col = 0;
-      row += 1;
-    } else {
-      col += 1;
-      if (col > maxCols) {
-        col = 0;
-        row += 1;
-      }
-    }
-  }
+		if (char === '\n') {
+			col = 0
+			row += 1
+		} else {
+			col += 1
+			if (col > maxCols) {
+				col = 0
+				row += 1
+			}
+		}
+	}
 
-  return { row, col };
+	return { row, col }
 }
 
 /**
@@ -85,7 +85,7 @@ export function offsetToColRow(
  * @returns Number of lines the input would occupy
  */
 export function countLines(input: string, maxCols: number): number {
-  return offsetToColRow(input, input.length, maxCols).row + 1;
+	return offsetToColRow(input, input.length, maxCols).row + 1
 }
 
 /**
@@ -100,26 +100,26 @@ export function countLines(input: string, maxCols: number): number {
  * @returns true if input needs continuation
  */
 export function isIncompleteInput(input: string): boolean {
-  const trimmed = input.trim();
-  if (trimmed === "") return false;
+	const trimmed = input.trim()
+	if (trimmed === '') return false
 
-  // Check for dangling single quotes
-  const singleQuotes = (input.match(/'/g) ?? []).length;
-  if (singleQuotes % 2 !== 0) return true;
+	// Check for dangling single quotes
+	const singleQuotes = (input.match(/'/g) ?? []).length
+	if (singleQuotes % 2 !== 0) return true
 
-  // Check for dangling double quotes
-  const doubleQuotes = (input.match(/"/g) ?? []).length;
-  if (doubleQuotes % 2 !== 0) return true;
+	// Check for dangling double quotes
+	const doubleQuotes = (input.match(/"/g) ?? []).length
+	if (doubleQuotes % 2 !== 0) return true
 
-  // Check for trailing boolean or pipe operators
-  const parts = input.split(/(\|\||\||&&)/g);
-  const lastPart = parts.pop();
-  if (lastPart?.trim() === "") return true;
+	// Check for trailing boolean or pipe operators
+	const parts = input.split(/(\|\||\||&&)/g)
+	const lastPart = parts.pop()
+	if (lastPart?.trim() === '') return true
 
-  // Check for trailing backslash (line continuation)
-  if (input.endsWith("\\") && !input.endsWith("\\\\")) return true;
+	// Check for trailing backslash (line continuation)
+	if (input.endsWith('\\') && !input.endsWith('\\\\')) return true
 
-  return false;
+	return false
 }
 
 /**
@@ -128,7 +128,7 @@ export function isIncompleteInput(input: string): boolean {
  * @returns true if input has trailing whitespace
  */
 export function hasTailingWhitespace(input: string): boolean {
-  return /[^\\][ \t]$/m.test(input);
+	return /[^\\][ \t]$/m.test(input)
 }
 
 /**
@@ -137,15 +137,15 @@ export function hasTailingWhitespace(input: string): boolean {
  * @returns The last token, or empty string if none
  */
 export function getLastToken(input: string): string {
-  if (input.trim() === "") return "";
-  if (hasTailingWhitespace(input)) return "";
+	if (input.trim() === '') return ''
+	if (hasTailingWhitespace(input)) return ''
 
-  const tokens = parse(input);
-  const lastToken = tokens.pop();
+	const tokens = parse(input)
+	const lastToken = tokens.pop()
 
-  // shell-quote can return objects for special tokens
-  if (typeof lastToken === "string") return lastToken;
-  return "";
+	// shell-quote can return objects for special tokens
+	if (typeof lastToken === 'string') return lastToken
+	return ''
 }
 
 /**
@@ -155,38 +155,38 @@ export function getLastToken(input: string): string {
  * @returns Array of matching completion candidates
  */
 export function collectAutocompleteCandidates(
-  handlers: AutocompleteHandler[],
-  input: string,
+	handlers: AutocompleteHandler[],
+	input: string
 ): string[] {
-  const tokens = parse(input).filter((t): t is string => typeof t === "string");
+	const tokens = parse(input).filter((t): t is string => typeof t === 'string')
 
-  let index = tokens.length - 1;
-  let expr = tokens[index] ?? "";
+	let index = tokens.length - 1
+	let expr = tokens[index] ?? ''
 
-  if (input.trim() === "") {
-    index = 0;
-    expr = "";
-  } else if (hasTailingWhitespace(input)) {
-    index += 1;
-    expr = "";
-  }
+	if (input.trim() === '') {
+		index = 0
+		expr = ''
+	} else if (hasTailingWhitespace(input)) {
+		index += 1
+		expr = ''
+	}
 
-  // Collect candidates from all handlers
-  const allCandidates = handlers.reduce<string[]>(
-    (candidates, { fn, args }) => {
-      try {
-        const results = fn(index, tokens, ...args);
-        return candidates.concat(results);
-      } catch (err) {
-        logger.withTag("terminal").warn("Autocomplete error", { error: err });
-        return candidates;
-      }
-    },
-    [],
-  );
+	// Collect candidates from all handlers
+	const allCandidates = handlers.reduce<string[]>(
+		(candidates, { fn, args }) => {
+			try {
+				const results = fn(index, tokens, ...args)
+				return candidates.concat(results)
+			} catch (err) {
+				logger.withTag('terminal').warn('Autocomplete error', { error: err })
+				return candidates
+			}
+		},
+		[]
+	)
 
-  // Filter to candidates starting with current expression
-  return allCandidates.filter((candidate) => candidate.startsWith(expr));
+	// Filter to candidates starting with current expression
+	return allCandidates.filter((candidate) => candidate.startsWith(expr))
 }
 
 /**
@@ -197,20 +197,20 @@ export function collectAutocompleteCandidates(
  * @returns Longest shared fragment, or null if no common prefix
  */
 export function getSharedFragment(
-  fragment: string,
-  candidates: string[],
+	fragment: string,
+	candidates: string[]
 ): string | null {
-  if (candidates.length === 0) return null;
-  if (fragment.length >= candidates[0].length) return fragment;
+	if (candidates.length === 0) return null
+	if (fragment.length >= candidates[0]!.length) return fragment
 
-  const oldFragment = fragment;
-  const nextChar = candidates[0].charAt(fragment.length);
-  const newFragment = fragment + nextChar;
+	const oldFragment = fragment
+	const nextChar = candidates[0]!.charAt(fragment.length)
+	const newFragment = fragment + nextChar
 
-  for (const candidate of candidates) {
-    if (!candidate.startsWith(oldFragment)) return null;
-    if (!candidate.startsWith(newFragment)) return oldFragment;
-  }
+	for (const candidate of candidates) {
+		if (!candidate.startsWith(oldFragment)) return null
+		if (!candidate.startsWith(newFragment)) return oldFragment
+	}
 
-  return getSharedFragment(newFragment, candidates);
+	return getSharedFragment(newFragment, candidates)
 }

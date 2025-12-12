@@ -8,7 +8,7 @@ export const createSelectionState = () => {
 	const [selectedPath, setSelectedPath] = makePersisted(
 		createSignal<string | undefined>(undefined),
 		{
-			name: 'fs-selected-path'
+			name: 'fs-selected-path',
 		}
 	)
 	const memorySafeStorage = createMemorySafeStorage()
@@ -17,7 +17,7 @@ export const createSelectionState = () => {
 		createSignal(DEFAULT_SOURCE),
 		{
 			name: 'fs-active-source',
-			storage: memorySafeStorage
+			storage: memorySafeStorage,
 		}
 	)
 
@@ -25,6 +25,6 @@ export const createSelectionState = () => {
 		selectedPath,
 		setSelectedPath,
 		activeSource,
-		setActiveSource
+		setActiveSource,
 	}
 }

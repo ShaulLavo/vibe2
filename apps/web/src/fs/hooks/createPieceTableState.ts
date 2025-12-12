@@ -1,33 +1,33 @@
 /* eslint-disable solid/reactivity */
-import { createStore, reconcile } from "solid-js/store";
-import type { PieceTableSnapshot } from "@repo/utils";
+import { createStore, reconcile } from 'solid-js/store'
+import type { PieceTableSnapshot } from '@repo/utils'
 
 export const createPieceTableState = () => {
-  const [pieceTables, setPieceTablesStore] = createStore<
-    Record<string, PieceTableSnapshot | undefined>
-  >({});
+	const [pieceTables, setPieceTablesStore] = createStore<
+		Record<string, PieceTableSnapshot | undefined>
+	>({})
 
-  const evictPieceTableEntry = (path: string) => {
-    setPieceTablesStore(path, undefined);
-  };
+	const evictPieceTableEntry = (path: string) => {
+		setPieceTablesStore(path, undefined)
+	}
 
-  const setPieceTable = (path: string, snapshot?: PieceTableSnapshot) => {
-    if (!path) return;
-    if (!snapshot) {
-      evictPieceTableEntry(path);
-      return;
-    }
+	const setPieceTable = (path: string, snapshot?: PieceTableSnapshot) => {
+		if (!path) return
+		if (!snapshot) {
+			evictPieceTableEntry(path)
+			return
+		}
 
-    setPieceTablesStore(path, snapshot);
-  };
+		setPieceTablesStore(path, snapshot)
+	}
 
-  const clearPieceTables = () => {
-    setPieceTablesStore(reconcile({}));
-  };
+	const clearPieceTables = () => {
+		setPieceTablesStore(reconcile({}))
+	}
 
-  return {
-    pieceTables,
-    setPieceTable,
-    clearPieceTables,
-  };
-};
+	return {
+		pieceTables,
+		setPieceTable,
+		clearPieceTables,
+	}
+}

@@ -1,4 +1,4 @@
-import type { FsSource } from "../types";
+import type { FsSource } from '../types'
 
-export const OPFS_ROOT_NAME = "root" as const;
-export const DEFAULT_SOURCE: FsSource = "local";
+export const OPFS_ROOT_NAME = 'root' as const
+export const DEFAULT_SOURCE: FsSource = 'local'

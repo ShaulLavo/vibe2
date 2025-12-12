@@ -1,6 +1,6 @@
-import type { HistoryState } from "../types";
+import type { HistoryState } from '../types'
 
 export const createEmptyHistoryState = (): HistoryState => ({
-  undoStack: [],
-  redoStack: [],
-});
+	undoStack: [],
+	redoStack: [],
+})

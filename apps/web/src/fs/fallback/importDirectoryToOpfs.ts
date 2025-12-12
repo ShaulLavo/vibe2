@@ -2,7 +2,7 @@ import { OPFS_ROOT_NAME } from '../config/constants'
 import {
 	deriveRelativeSegments,
 	getSharedTopSegment,
-	normalizeEntries
+	normalizeEntries,
 } from './importDirectoryEntries'
 
 type DirectoryWithEntries = FileSystemDirectoryHandle & {
@@ -42,7 +42,7 @@ const clearDirectory = async (
 	if (!iterator) return
 	for await (const [name, handle] of iterator) {
 		await root.removeEntry(name, {
-			recursive: handle.kind === 'directory'
+			recursive: handle.kind === 'directory',
 		})
 	}
 }
@@ -98,14 +98,14 @@ const copyDirectoryContents = async (
 		if (handle.kind === 'directory') {
 			const sourceSubDir = await source.getDirectoryHandle(name)
 			const destSubDir = await destination.getDirectoryHandle(name, {
-				create: true
+				create: true,
 			})
 			await copyDirectoryContents(sourceSubDir, destSubDir)
 		} else {
 			const fileHandle = await source.getFileHandle(name)
 			const file = await fileHandle.getFile()
 			const destFileHandle = await destination.getFileHandle(name, {
-				create: true
+				create: true,
 			})
 			const writable = await destFileHandle.createWritable()
 			await writable.write(await file.arrayBuffer())
@@ -134,7 +134,7 @@ const writeFileToOpfs = async (
 	const fileName = segments[segments.length - 1]
 	const targetDir = await ensureDirectory(root, directorySegments)
 	const handle = await targetDir.getFileHandle(fileName ?? file.name, {
-		create: true
+		create: true,
 	})
 	const writable = await handle.createWritable()
 	const buffer = await file.arrayBuffer()
@@ -177,7 +177,7 @@ export async function importDirectoryToOpfs(
 	// If skipClear is true, we just merge files into the existing directory
 	if (skipClear) {
 		const appRoot = await storageRoot.getDirectoryHandle(OPFS_ROOT_NAME, {
-			create: true
+			create: true,
 		})
 		const sharedTop = getSharedTopSegment(entries)
 		for (const entry of entries) {
@@ -202,7 +202,7 @@ export async function importDirectoryToOpfs(
 
 	// Create temporary directory for writing new files
 	const tempDir = await storageRoot.getDirectoryHandle(TEMP_DIR_NAME, {
-		create: true
+		create: true,
 	})
 
 	const sharedTop = getSharedTopSegment(entries)
@@ -218,7 +218,7 @@ export async function importDirectoryToOpfs(
 		if (hasExistingData) {
 			const appRoot = await storageRoot.getDirectoryHandle(OPFS_ROOT_NAME)
 			const backupDir = await storageRoot.getDirectoryHandle(BACKUP_DIR_NAME, {
-				create: true
+				create: true,
 			})
 			await copyDirectoryContents(appRoot, backupDir)
 		}
@@ -226,7 +226,7 @@ export async function importDirectoryToOpfs(
 		try {
 			// Step 2: Clear appRoot and copy temp contents to it
 			const appRoot = await storageRoot.getDirectoryHandle(OPFS_ROOT_NAME, {
-				create: true
+				create: true,
 			})
 			await clearDirectory(appRoot)
 			await copyDirectoryContents(tempDir, appRoot)
@@ -241,7 +241,7 @@ export async function importDirectoryToOpfs(
 			if (hasExistingData) {
 				try {
 					const appRoot = await storageRoot.getDirectoryHandle(OPFS_ROOT_NAME, {
-						create: true
+						create: true,
 					})
 					await clearDirectory(appRoot)
 					const backupDir =
