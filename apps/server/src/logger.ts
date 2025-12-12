@@ -1,3 +1,3 @@
-import { loggers } from "@repo/logger";
+import { loggers } from '@repo/logger'
 
-export const serverLogger = loggers.server;
+export const serverLogger = loggers.server

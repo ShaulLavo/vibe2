@@ -1,39 +1,39 @@
-import type { FsSource } from "../types";
+import type { FsSource } from '../types'
 
-export type LocalDirectoryFallbackReason = "unsupported";
+export type LocalDirectoryFallbackReason = 'unsupported'
 
 export type LocalDirectoryFallbackResult = {
-  handle: FileSystemDirectoryHandle;
-  nextSource?: FsSource;
-};
+	handle: FileSystemDirectoryHandle
+	nextSource?: FsSource
+}
 
 type LocalDirectoryFallbackHandler = (
-  reason: LocalDirectoryFallbackReason,
-) => Promise<LocalDirectoryFallbackResult>;
+	reason: LocalDirectoryFallbackReason
+) => Promise<LocalDirectoryFallbackResult>
 
-let handler: LocalDirectoryFallbackHandler | null = null;
+let handler: LocalDirectoryFallbackHandler | null = null
 
 export function registerLocalDirectoryFallback(
-  fn: LocalDirectoryFallbackHandler,
+	fn: LocalDirectoryFallbackHandler
 ): void {
-  handler = fn;
+	handler = fn
 }
 
 export function unregisterLocalDirectoryFallback(
-  fn: LocalDirectoryFallbackHandler,
+	fn: LocalDirectoryFallbackHandler
 ): void {
-  if (handler === fn) {
-    handler = null;
-  }
+	if (handler === fn) {
+		handler = null
+	}
 }
 
 export function requestLocalDirectoryFallback(
-  reason: LocalDirectoryFallbackReason,
+	reason: LocalDirectoryFallbackReason
 ): Promise<LocalDirectoryFallbackResult> {
-  if (!handler) {
-    return Promise.reject(
-      new Error("Local directory fallback handler is not registered."),
-    );
-  }
-  return handler(reason);
+	if (!handler) {
+		return Promise.reject(
+			new Error('Local directory fallback handler is not registered.')
+		)
+	}
+	return handler(reason)
 }

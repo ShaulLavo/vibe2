@@ -5,4 +5,4 @@
  * so unimported has a TypeScript entry point to walk. No runtime code should
  * be imported here.
  */
-export {};
+export {}
