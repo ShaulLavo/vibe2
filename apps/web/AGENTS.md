@@ -7,10 +7,10 @@
 - Global styles are defined in `src/styles.css` and `tailwind.config.ts`.
 
 ## Build, Test, and Development
-- `npm run dev` / `npm start`: start Vite dev server on port 3000.
-- `npm run build`: production build to `dist/`.
-- `npm run serve`: preview the built app from `dist/`.
-- `npm run lint`: run ESLint using `@repo/eslint-config/solid` (no warnings allowed).
+- `bun run dev` / `bun start`: start Vite dev server on port 3000.
+- `bun run build`: production build to `dist/`.
+- `bun run serve`: preview the built app from `dist/`.
+- `bun run lint`: run ESLint using `@repo/eslint-config/solid` (no warnings allowed).
 - No test runner is configured in this app; add one per feature if needed.
 
 ## Coding Style & Naming
