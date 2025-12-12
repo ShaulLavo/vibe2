@@ -4,7 +4,7 @@ import {
 	FsDirTreeNode,
 	getRootDirectory,
 	DirectoryPickerUnavailableError,
-	type FsContext as VfsContext
+	type FsContext as VfsContext,
 } from '@repo/fs'
 import { loggers } from '@repo/logger'
 import { trackOperation } from '@repo/perf'
@@ -31,7 +31,7 @@ const showAwaitingPermissionToast = () => {
 	if (awaitingPermissionToastId !== null) return
 	awaitingPermissionToastId = toast('Waiting for permission', {
 		description: 'Click or press a key to continue the directory picker.',
-		duration: Infinity
+		duration: Infinity,
 	})
 }
 
@@ -56,7 +56,7 @@ export async function ensureFs(source: FsSource): Promise<VfsContext> {
 				const rootHandle = await timeAsync('get-root', async () => {
 					try {
 						return await getRootDirectory(source, OPFS_ROOT_NAME, {
-							onAwaitingInteraction: showAwaitingPermissionToast
+							onAwaitingInteraction: showAwaitingPermissionToast,
 						})
 					} catch (error) {
 						if (
@@ -79,7 +79,7 @@ export async function ensureFs(source: FsSource): Promise<VfsContext> {
 				fsCache[source] = timeSync('create-fs', () => createFs(rootHandle))
 			},
 			{ metadata: { source }, logger: loggers.fs }
-		).catch(error => {
+		).catch((error) => {
 			delete initPromises[source]
 			delete fsCache[source]
 			throw error
@@ -182,5 +182,5 @@ export {
 	readFilePreviewBytes,
 	readFileText,
 	safeReadFileText,
-	streamFileText
+	streamFileText,
 } from './streaming'

@@ -71,6 +71,6 @@ export const createPrompt = (
 
 	return {
 		label: `${timestamp} ${identity}${location}${source} ${symbol} `,
-		continuation: dimText('... ')
+		continuation: dimText('... '),
 	}
 }
