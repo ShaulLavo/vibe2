@@ -1,4 +1,3 @@
-// import '@xterm/xterm/css/xterm.css'
 import { createResizeObserver } from '@solid-primitives/resize-observer'
 import { onCleanup, onMount, type Component } from 'solid-js'
 import { createTerminalController } from '../terminal/terminalController'
@@ -8,27 +7,40 @@ export const Terminal: Component = () => {
 	let containerRef: HTMLDivElement = null!
 	const focus = useFocusManager()
 
-	onMount(async () => {
-		const terminal = await createTerminalController(containerRef)
+	onMount(() => {
+		let disposed = false
+		let controller: Awaited<
+			ReturnType<typeof createTerminalController>
+		> | null = null
 		const unregisterFocus = focus.registerArea('terminal', () => containerRef)
 
-		createResizeObserver(
-			() => containerRef,
-			() => terminal.fit()
-		)
+		const setup = async () => {
+			const instance = await createTerminalController(containerRef)
+			if (disposed) {
+				instance.dispose()
+				return
+			}
+			controller = instance
+
+			createResizeObserver(
+				() => containerRef,
+				() => instance.fit()
+			)
+		}
+
+		void setup()
 
 		onCleanup(() => {
-			terminal.dispose()
+			disposed = true
+			controller?.dispose()
 			unregisterFocus()
 		})
 	})
 
 	return (
-		<div class="flex h-full min-h-0 flex-col overflow-hidden">
-			<div
-				class="terminal-container relative flex-1 min-h-0 overflow-hidden rounded border border-zinc-800/70 bg-[#0a0a0b] p-2 shadow-xl shadow-black/30"
-				ref={el => (containerRef = el)}
-			/>
-		</div>
+		<div
+			class="terminal-container relative h-full min-h-0 px-2"
+			ref={el => (containerRef = el)}
+		/>
 	)
 }
