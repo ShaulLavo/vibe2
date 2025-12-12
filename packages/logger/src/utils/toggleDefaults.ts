@@ -8,19 +8,18 @@ const LOGGER_TOGGLE_TREE = {
 	'code-editor': {
 		$self: false,
 		clipboard: false,
-		history: false
+		history: false,
 	},
 	desktop: false,
-	fs: false,
+	fs: true,
 	server: false,
 	web: {
 		$self: false,
 		focus: false,
-		LocalDirectoryFallback: false,
 		prefetch: false,
 		terminal: false,
-		treeSitter: false
-	}
+		treeSitter: false,
+	},
 } as const satisfies LoggerToggleTree
 
 const LOGGER_TOGGLE_DEFAULTS = flattenTree(LOGGER_TOGGLE_TREE)
