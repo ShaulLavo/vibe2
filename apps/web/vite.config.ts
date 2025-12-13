@@ -29,7 +29,7 @@ export default defineConfig(() => {
 			},
 		},
 		optimizeDeps: {
-			exclude: ['@sqliteai/sqlite-wasm'],
+			exclude: ['sqlite-wasm'],
 		},
 	}
 })

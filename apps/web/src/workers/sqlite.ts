@@ -1,21 +1,58 @@
+import { logger } from '@repo/logger'
 import * as Comlink from 'comlink'
 import sqlite3InitModule, {
 	type Database,
 	type Sqlite3Static,
 } from 'sqlite-wasm'
-import { createClient, type Sqlite3Client } from 'sqlite-wasm/client'
+import {
+	createClient,
+	type Sqlite3Client,
+	type Config,
+} from 'sqlite-wasm/client'
+import wasmUrl from 'sqlite-wasm/sqlite3.wasm?url'
 
-const log = console.log
+const log = logger.withTag('sqlite').debug
 
 let sqlite3: Sqlite3Static | null = null
 let client: Sqlite3Client | null = null
 let db: Database | null = null
-
+let initPromise: Promise<{ version: string; opfsEnabled: boolean }> | null =
+	null
+let clientCofig: Config = { url: 'file:/vibe.sqlite3' }
 const getClient = (): Sqlite3Client => {
 	if (!client) {
 		throw new Error('SQLite not initialized. Call init() first.')
 	}
 	return client
+}
+
+const performInit = async (): Promise<{
+	version: string
+	opfsEnabled: boolean
+}> => {
+	// Suppress verbose internal SQLite WASM logging (includes init messages sent to stderr)
+	if (!sqlite3) {
+		sqlite3 = await sqlite3InitModule({
+			print: () => {},
+			printErr: () => {},
+			locateFile: (file: string) => {
+				if (file.endsWith('.wasm')) return wasmUrl
+				return file
+			},
+		})
+	}
+
+	const opfsEnabled = 'opfs' in sqlite3
+	clientCofig = {
+		url: opfsEnabled ? 'file:/vibe.sqlite3' : ':memory:',
+	}
+	;[client, db] = createClient(clientCofig, sqlite3)
+
+	log(
+		`[SQLite] v${sqlite3.version.libVersion} initialized. OPFS: ${opfsEnabled}, URL: ${clientCofig.url}`
+	)
+
+	return { version: sqlite3.version.libVersion, opfsEnabled }
 }
 
 const init = async (): Promise<{ version: string; opfsEnabled: boolean }> => {
@@ -25,25 +62,10 @@ const init = async (): Promise<{ version: string; opfsEnabled: boolean }> => {
 			opfsEnabled: 'opfs' in sqlite3,
 		}
 	}
-	// Suppress verbose internal SQLite WASM logging (includes init messages sent to stderr)
-	sqlite3 = await sqlite3InitModule({
-		print: () => {},
-		printErr: () => {},
-	})
-
-	const opfsEnabled = 'opfs' in sqlite3
-	;[client, db] = createClient(
-		{
-			url: opfsEnabled ? 'file:/vibe.sqlite3' : ':memory:',
-		},
-		sqlite3
-	)
-
-	log(
-		`[SQLite] v${sqlite3.version.libVersion} initialized. OPFS: ${opfsEnabled}, URL: ${client.config.url}`
-	)
-
-	return { version: sqlite3.version.libVersion, opfsEnabled }
+	if (!initPromise) {
+		initPromise = performInit()
+	}
+	return initPromise
 }
 
 const exec = async (sql: string): Promise<void> => {
@@ -53,13 +75,13 @@ const exec = async (sql: string): Promise<void> => {
 const run = async <T = Record<string, unknown>>(
 	sql: string,
 	params?: Record<string, unknown> | unknown[]
-): Promise<T[]> => {
+): Promise<{ columns: string[]; rows: T[] }> => {
 	const result = await getClient().execute({
 		sql,
 		args: params as any,
 	})
 
-	return result.rows.map((row) => {
+	const rows = result.rows.map((row) => {
 		const obj: Record<string, unknown> = {}
 		for (const col of result.columns) {
 			const index = result.columns.indexOf(col)
@@ -67,6 +89,11 @@ const run = async <T = Record<string, unknown>>(
 		}
 		return obj as T
 	})
+
+	return {
+		columns: result.columns,
+		rows,
+	}
 }
 
 const runDemo = async (): Promise<{
@@ -242,12 +269,78 @@ const runFtsDemo = async (
 	return { documents, searchResults }
 }
 
+const runVectorDemo = async (): Promise<void> => {
+	const c = getClient()
+	try {
+		await c.execute('SELECT vec_version()')
+	} catch (e) {
+		log('[SQLite] Vector extension not available, skipping vector demo')
+		return
+	}
+
+	await c.execute('DROP TABLE IF EXISTS embeddings')
+	await c.execute(
+		'CREATE VIRTUAL TABLE IF NOT EXISTS embeddings USING vec0(vector float[4])'
+	)
+
+	// Check if data exists
+	const countResult = await c.execute('SELECT COUNT(*) as cnt FROM embeddings')
+	const count = countResult.rows[0]?.[0] as number
+
+	if (count === 0) {
+		await c.execute(`
+			INSERT INTO embeddings(rowid, vector) VALUES 
+			(1, '[1.0, 0.0, 0.0, 0.0]'),
+			(2, '[0.0, 1.0, 0.0, 0.0]'),
+			(3, '[0.9, 0.1, 0.0, 0.0]')
+		`)
+	}
+	log('[SQLite Vector Demo] Embeddings initialized')
+}
+
+const reset = async (): Promise<void> => {
+	// 1. Close the database connection
+	if (db) {
+		try {
+			// @ts-ignore - close might not be in the type definition but is available
+			db.close()
+		} catch (e) {
+			log('[SQLite] Error closing DB:', e)
+		}
+		db = null
+		client = null
+	}
+
+	// 2. Delete the OPFS file
+	try {
+		const root = await navigator.storage.getDirectory()
+		await root.removeEntry('vibe.sqlite3')
+		log('[SQLite] OPFS file deleted')
+	} catch (e) {
+		log('[SQLite] Error deleting OPFS file (might not exist):', e)
+	}
+
+	// 3. Re-initialize
+	initPromise = null
+	await performInit()
+	log('[SQLite] Re-initialized')
+
+	// 4. Re-seed data
+	await runDemo()
+	await runFtsDemo()
+	await runVectorDemo()
+
+	log('[SQLite] Database reset complete')
+}
+
 const workerApi = {
 	init,
 	exec,
 	run,
 	runDemo,
 	runFtsDemo,
+	runVectorDemo,
+	reset,
 }
 
 export type SqliteWorkerApi = typeof workerApi

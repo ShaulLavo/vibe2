@@ -48,20 +48,6 @@ const RUNTIME_EXPORT = {
 	default: './lib/index.jsx',
 }
 
-const VS_EXPORT = {
-	import: './vs/index.js',
-	require: './vs/index.cjs',
-	types: './vs/index.d.ts',
-	default: './vs/index.js',
-}
-
-const VS_WILDCARD_EXPORT = {
-	import: './vs/*.js',
-	require: './vs/*.cjs',
-	types: './vs/*.d.ts',
-	default: './vs/*.js',
-}
-
 const svgoConfig: Config = {
 	multipass: true,
 	plugins: [
@@ -307,8 +293,25 @@ const writeDistPackage = async () => {
 		exports: {
 			'.': RUNTIME_EXPORT,
 			'./lib': RUNTIME_EXPORT,
-			'./vs': VS_EXPORT,
-			'./vs/*': VS_WILDCARD_EXPORT,
+			...PACKS.reduce(
+				(acc, pack) => {
+					const key = `./${pack.shortName}`
+					acc[key] = {
+						types: `./${pack.shortName}/index.d.ts`,
+						import: `./${pack.shortName}/index.js`,
+						require: `./${pack.shortName}/index.cjs`,
+						default: `./${pack.shortName}/index.js`,
+					}
+					acc[`${key}/*`] = {
+						types: `./${pack.shortName}/*.d.ts`,
+						import: `./${pack.shortName}/*.js`,
+						require: `./${pack.shortName}/*.cjs`,
+						default: `./${pack.shortName}/*.js`,
+					}
+					return acc
+				},
+				{} as Record<string, any>
+			),
 		},
 	}
 
@@ -316,6 +319,44 @@ const writeDistPackage = async () => {
 		path.join(DIST_PATH, 'package.json'),
 		JSON.stringify(distPackage, null, 2)
 	)
+
+	// Update root package.json to match
+	const rootExports = {
+		'.': {
+			types: './dist/lib/index.d.ts',
+			import: './dist/lib/index.jsx',
+			require: './dist/lib/index.cjs',
+			default: './dist/lib/index.jsx',
+		},
+		'./lib': {
+			types: './dist/lib/index.d.ts',
+			import: './dist/lib/index.jsx',
+			require: './dist/lib/index.cjs',
+			default: './dist/lib/index.jsx',
+		},
+		...PACKS.reduce(
+			(acc, pack) => {
+				const key = `./${pack.shortName}`
+				acc[key] = {
+					types: `./dist/${pack.shortName}/index.d.ts`,
+					import: `./dist/${pack.shortName}/index.js`,
+					require: `./dist/${pack.shortName}/index.cjs`,
+					default: `./dist/${pack.shortName}/index.js`,
+				}
+				acc[`${key}/*`] = {
+					types: `./dist/${pack.shortName}/*.d.ts`,
+					import: `./dist/${pack.shortName}/*.js`,
+					require: `./dist/${pack.shortName}/*.cjs`,
+					default: `./dist/${pack.shortName}/*.js`,
+				}
+				return acc
+			},
+			{} as Record<string, any>
+		),
+	}
+
+	pkg.exports = rootExports
+	await writeFile(path.resolve('package.json'), JSON.stringify(pkg, null, 2))
 }
 
 const main = async () => {
