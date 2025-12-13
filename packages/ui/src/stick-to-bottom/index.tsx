@@ -162,8 +162,14 @@ export function useStickToBottom(options: StickToBottomOptions = {}) {
 		get escapedFromLock() {
 			return escapedFromLock()
 		},
+		set escapedFromLock(v: boolean) {
+			setEscapedFromLock(v)
+		},
 		get isAtBottom() {
 			return isAtBottom()
+		},
+		set isAtBottom(v: boolean) {
+			setIsAtBottom(v)
 		},
 		get scrollTop() {
 			return scrollRef.current?.scrollTop ?? 0
