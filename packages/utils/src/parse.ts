@@ -307,7 +307,11 @@ const EXTENSION_LANGUAGE_MAP: Record<string, LanguageId> = {
 }
 
 const SHEBANG_LANGUAGE_MAP: Record<string, LanguageId> = {
-	node: 'javascript',
+	make: 'makefile',
+	bun: 'typescript',
+	dash: 'shell',
+	ash: 'shell',
+	node: 'typescript',
 	'deno run': 'typescript',
 	tsx: 'tsx',
 	tsnode: 'typescript',
