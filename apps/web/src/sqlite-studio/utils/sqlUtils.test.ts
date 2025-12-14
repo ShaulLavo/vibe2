@@ -57,7 +57,7 @@ describe('splitStatements', () => {
 		const inputAfter = `SELECT 1; -- comment`
 		const res1 = splitStatements(inputAfter)
 		expect(res1[0]).toBe('SELECT 1;')
-		expect(res1[1].trim()).toStartWith('--')
+		expect(res1?.[1]?.trim()).toStartWith('--')
 
 		// Case 3: Semicolon is ignored inside comment, actual semicolon follows
 		const input2 = `SELECT 1 -- comm ; ent
