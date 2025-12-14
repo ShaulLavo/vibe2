@@ -98,6 +98,12 @@ export function primeFsCache(
 	initPromises[source] = Promise.resolve()
 }
 
+export function getRootHandle(
+	source: FsSource
+): FileSystemDirectoryHandle | undefined {
+	return fsCache[source]?.root
+}
+
 type BuildTreeOptions = {
 	rootPath?: string
 	rootName?: string

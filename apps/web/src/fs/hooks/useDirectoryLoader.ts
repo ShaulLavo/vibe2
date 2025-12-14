@@ -104,9 +104,59 @@ export const useDirectoryLoader = ({
 		}
 	}
 
+	/**
+	 * Force reload a directory from disk, regardless of its current loaded state.
+	 * Used by FileSystemObserver to refresh directories when changes are detected.
+	 */
+	const reloadDirectory = async (path: string): Promise<void> => {
+		if (!state.tree) return
+
+		// For root path, reload from root
+		const targetPath = path || ''
+		const existing = findNode(state.tree, targetPath)
+		if (!existing || existing.kind !== 'dir') return
+
+		// Cancel any inflight load for this path
+		subtreeLoads.delete(targetPath)
+
+		const expandedSnapshot = { ...state.expanded }
+		const ensurePaths = buildEnsurePaths()
+
+		try {
+			const source = state.activeSource ?? DEFAULT_SOURCE
+			const subtree = await buildTree(source, {
+				rootPath: targetPath,
+				expandedPaths: expandedSnapshot,
+				ensurePaths,
+				operationName: 'fs:reloadDirectory',
+			})
+
+			const latest = state.tree ? findNode(state.tree, targetPath) : undefined
+			if (!latest || latest.kind !== 'dir') return
+
+			const normalized = normalizeDirNodeMetadata(
+				subtree,
+				latest.parentPath,
+				latest.depth
+			)
+			setDirNode(targetPath, normalized)
+			runPrefetchTask(
+				treePrefetchClient.ingestSubtree(normalized),
+				'Failed to sync prefetch worker after reload'
+			)
+		} catch (error) {
+			setError(
+				error instanceof Error
+					? error.message
+					: 'Failed to reload directory contents'
+			)
+		}
+	}
+
 	return {
 		buildEnsurePaths,
 		ensureDirLoaded,
 		toggleDir,
+		reloadDirectory,
 	}
 }
