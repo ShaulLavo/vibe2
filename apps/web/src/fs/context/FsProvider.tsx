@@ -14,6 +14,8 @@ import { useFsRefresh } from '../hooks/useFsRefresh'
 import { createFileCacheController } from '../cache/fileCacheController'
 import { LocalDirectoryFallbackDialog } from '../components/LocalDirectoryFallbackDialog'
 import { findNode } from '../runtime/tree'
+import { useFileSystemObserver } from '../hooks/useFileSystemObserver'
+import { getRootHandle } from '../runtime/fsRuntime'
 
 export function FsProvider(props: { children: JSX.Element }) {
 	const {
@@ -82,15 +84,16 @@ export function FsProvider(props: { children: JSX.Element }) {
 			registerDeferredMetadata,
 		})
 
-	const { buildEnsurePaths, ensureDirLoaded, toggleDir } = useDirectoryLoader({
-		state,
-		setExpanded,
-		setSelectedPath,
-		setError,
-		setDirNode,
-		runPrefetchTask,
-		treePrefetchClient,
-	})
+	const { buildEnsurePaths, ensureDirLoaded, toggleDir, reloadDirectory } =
+		useDirectoryLoader({
+			state,
+			setExpanded,
+			setSelectedPath,
+			setError,
+			setDirNode,
+			runPrefetchTask,
+			treePrefetchClient,
+		})
 
 	const {
 		selectPath,
@@ -183,12 +186,37 @@ export function FsProvider(props: { children: JSX.Element }) {
 
 	const setSource = (source: FsSource) => refresh(source)
 
+	// FileSystemObserver integration for live file sync
+	const { startObserving, stopObserving } = useFileSystemObserver({
+		state,
+		reloadFile: async (path: string) => {
+			// Reload the file by re-selecting it with forceReload
+			await selectPath(path, { forceReload: true })
+		},
+		reloadDirectory,
+		hasLocalEdits: (path: string) => {
+			// TODO: Implement proper dirty state tracking
+			// For now, check if there's a piece table with edits
+			// A file has local edits if its add buffer has content
+			const pieceTable = state.pieceTables[path]
+			if (!pieceTable) return false
+
+			// If the add buffer has content, it means there are local edits
+			return pieceTable.buffers.add.length > 0
+		},
+		getRootHandle: () => getRootHandle(state.activeSource ?? DEFAULT_SOURCE),
+		pollIntervalMs: 1000,
+	})
+
 	onMount(() => {
 		restoreHandleCache({
 			tree: state.tree,
 			activeSource: state.activeSource,
 		})
-		void refresh(state.activeSource ?? DEFAULT_SOURCE)
+		void refresh(state.activeSource ?? DEFAULT_SOURCE).then(() => {
+			// Start observing after initial refresh completes
+			void startObserving()
+		})
 	})
 
 	createEffect(() => {
@@ -205,6 +233,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 	})
 
 	onCleanup(() => {
+		stopObserving()
 		void disposeTreePrefetchClient()
 		clearDeferredMetadata()
 	})
