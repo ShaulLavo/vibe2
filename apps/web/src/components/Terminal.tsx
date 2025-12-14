@@ -9,6 +9,7 @@ import {
 	createTerminalController,
 	TerminalController,
 } from '../terminal/terminalController'
+import '../terminal/terminal.css'
 
 export const Terminal: Component = () => {
 	let containerRef: HTMLDivElement = null!

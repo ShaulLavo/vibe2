@@ -42,56 +42,6 @@
 	scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-/* ghostty-web: ensure the terminal canvas doesn't behave like inline content */
-.terminal-container canvas {
-	display: block;
-}
-
-/* ghostty-web: hide the helper textarea caret (keep input working) */
-.terminal-container textarea {
-	caret-color: transparent;
-	color: transparent;
-	background: transparent;
-	border: 0;
-	outline: 0;
-}
-
-/* Terminal-style cursor blink
-   - Instant on/off (no fade), like most Linux/macOS terminals.
-*/
-@keyframes cursor-blink-hard {
-	from,
-	to {
-		opacity: 1;
-	}
-	50% {
-		opacity: 0;
-	}
-}
-
-.cursor-blink-hard {
-	animation: cursor-blink-hard 1s steps(1) infinite;
-}
-
-/* VS Code-style cursor blink
-   - Smooth fade-out & fade-in (not a hard jump).
-*/
-@keyframes cursor-blink-soft {
-	0% {
-		opacity: 1;
-	}
-	50% {
-		opacity: 0;
-	}
-	100% {
-		opacity: 1;
-	}
-}
-
-.cursor-blink-soft {
-	animation: cursor-blink-soft 1s linear infinite;
-}
-
 /* Accordion open/close height animation sourced from Kobalte's CSS vars */
 @keyframes accordion-down {
 	from {
