@@ -18,7 +18,7 @@ import type {
 	BenchScenario,
 	BenchScenarioResult,
 } from './types'
-
+import { formatBytes } from '@repo/utils'
 type BenchStatus = 'idle' | 'running' | 'completed' | 'skipped' | 'error'
 type ScenarioStatus = 'queued' | 'running' | 'complete'
 
@@ -41,12 +41,6 @@ type BenchLogEntry = {
 const formatDuration = (ms: number | undefined) => {
 	if (ms == null || Number.isNaN(ms)) return '0.00s'
 	return `${(ms / 1000).toFixed(2)}s`
-}
-
-const formatBytes = (bytes: number) => {
-	if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-	if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
-	return `${bytes} B`
 }
 
 const formatCount = (value?: number) =>

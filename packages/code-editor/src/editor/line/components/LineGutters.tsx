@@ -1,12 +1,12 @@
 import { For, createMemo } from 'solid-js'
 import { EDITOR_PADDING_LEFT, LINE_NUMBER_WIDTH } from '../../consts'
 import { useCursor } from '../../cursor'
-import type { FoldRange, LineEntry, LineGuttersProps } from '../../types'
+import type { FoldRange, LineGuttersProps } from '../../types'
 import { LineGutter } from './LineGutter'
 
 export const LineGutters = (props: LineGuttersProps) => {
 	const cursor = useCursor()
-	const handleRowMouseDown = (event: MouseEvent, entry: LineEntry) => {
+	const handleRowMouseDown = (event: MouseEvent, lineIndex: number) => {
 		if (
 			event.button !== 0 ||
 			event.shiftKey ||
@@ -18,10 +18,10 @@ export const LineGutters = (props: LineGuttersProps) => {
 
 		const selection = window.getSelection()
 		if (selection && !selection.isCollapsed) {
-			return
-		}
+				return
+			}
 
-		props.onRowClick(entry)
+		props.onRowClick(lineIndex)
 	}
 
 	const foldMap = createMemo(() => {
@@ -59,13 +59,6 @@ export const LineGutters = (props: LineGuttersProps) => {
 							return null
 						}
 
-						const entry = createMemo<LineEntry>(() => ({
-							index,
-							start: cursor.lines.getLineStart(index),
-							length: cursor.lines.getLineLength(index),
-							text: cursor.lines.getLineText(index),
-						}))
-
 						const height = createMemo(() => virtualRow.size || props.lineHeight())
 						const isActive = createMemo(
 							() => props.activeLineIndex() === index
@@ -84,13 +77,13 @@ export const LineGutters = (props: LineGuttersProps) => {
 									top: 0,
 									height: `${height()}px`,
 								}}
-							>
-								<div
-									class="relative flex h-full items-center justify-end"
-									onMouseDown={(event) => handleRowMouseDown(event, entry())}
 								>
-									<LineGutter
-										lineNumber={index + 1}
+									<div
+										class="relative flex h-full items-center justify-end"
+										onMouseDown={(event) => handleRowMouseDown(event, index)}
+									>
+										<LineGutter
+											lineNumber={index + 1}
 										lineHeight={height()}
 										isActive={isActive()}
 										isFoldable={hasFold()}

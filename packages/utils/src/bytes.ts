@@ -8,9 +8,11 @@ const formatBytes = (bytes: number): string => {
 	const index = Math.min(Math.max(unclampedIndex, 0), maxIndex)
 
 	const value = bytes / 1024 ** index
-	const formattedValue = Number.isInteger(value)
-		? value.toString()
-		: value.toFixed(2)
+	// Round to 1 decimal place, drop decimal if whole number
+	const rounded = Math.round(value * 10) / 10
+	const formattedValue = Number.isInteger(rounded)
+		? rounded.toString()
+		: rounded.toFixed(1)
 
 	return `${formattedValue} ${units[index]}`
 }

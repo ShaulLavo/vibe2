@@ -10,7 +10,7 @@ import {
 	type CommandDescriptor,
 	type KeybindingOptions,
 } from '@repo/keyboard'
-import type { DocumentIncrementalEdit, LineEntry } from '../types'
+import type { DocumentIncrementalEdit } from '../types'
 import { useCursor, getSelectionBounds, hasSelection } from '../cursor'
 import { useHistory, type HistoryMergeMode } from '../history'
 import { clipboard } from '../utils/clipboard'
@@ -52,7 +52,7 @@ export type TextEditorInputHandlers = {
 	handleInput: (event: InputEvent) => void
 	handleKeyDown: (event: KeyboardEvent) => void
 	handleKeyUp: (event: KeyboardEvent) => void
-	handleRowClick: (entry: LineEntry) => void
+	handleRowClick: (lineIndex: number) => void
 	handlePreciseClick: (
 		lineIndex: number,
 		column: number,
@@ -547,8 +547,9 @@ export function createTextEditorInput(
 		}
 	}
 
-	const handleRowClick = (entry: LineEntry) => {
-		cursor.actions.setCursorFromClick(entry.index, entry.text.length)
+	const handleRowClick = (lineIndex: number) => {
+		const textLength = cursor.lines.getLineTextLength(lineIndex)
+		cursor.actions.setCursorFromClick(lineIndex, textLength)
 		focusInput()
 	}
 

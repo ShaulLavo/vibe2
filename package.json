@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "generate:logger-toggles": "bun scripts/generate-logger-toggle-defaults.ts",
+    "generate:ts-file": "bun scripts/generate-ts-file.ts",
     "predev": "bun run generate:logger-toggles && (test -d packages/icons/dist/vs || bun run --filter @repo/icons build)",
     "prebuild": "bun run generate:logger-toggles && (test -d packages/icons/dist/vs || bun run --filter @repo/icons build)",
     "build": "turbo run build",

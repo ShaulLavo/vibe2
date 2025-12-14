@@ -108,7 +108,6 @@ export type LineProps = {
 	charWidth: number
 	tabSize: number
 	isEditable: Accessor<boolean>
-	onRowClick: (entry: LineEntry) => void
 	onPreciseClick: (
 		lineIndex: number,
 		column: number,
@@ -132,7 +131,6 @@ export type LinesProps = {
 	charWidth: Accessor<number>
 	tabSize: Accessor<number>
 	isEditable: Accessor<boolean>
-	onRowClick: (entry: LineEntry) => void
 	onPreciseClick: (
 		lineIndex: number,
 		column: number,
@@ -152,7 +150,7 @@ export type LinesProps = {
 export type LineGuttersProps = {
 	rows: Accessor<VirtualItem[]>
 	lineHeight: Accessor<number>
-	onRowClick: (entry: LineEntry) => void
+	onRowClick: (lineIndex: number) => void
 	activeLineIndex: Accessor<number | null>
 	folds?: Accessor<FoldRange[] | undefined>
 	foldedStarts?: Accessor<Set<number>>

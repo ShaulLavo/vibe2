@@ -32,7 +32,6 @@ export const Lines = (props: LinesProps) => {
 							charWidth={props.charWidth()}
 							tabSize={props.tabSize()}
 							isEditable={props.isEditable}
-							onRowClick={props.onRowClick}
 							onPreciseClick={props.onPreciseClick}
 							onMouseDown={props.onMouseDown}
 							isActive={props.activeLineIndex() === index}
