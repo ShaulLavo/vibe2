@@ -21,21 +21,21 @@ export const Lines = (props: LinesProps) => {
 						text: cursor.lines.getLineText(index),
 					}))
 
-					const highlights = createMemo(() => props.getLineHighlights?.(entry()))
+						const highlights = createMemo(() => props.getLineHighlights?.(entry()))
 
-					return (
-						<Line
-							virtualRow={virtualRow}
+						return (
+							<Line
+								virtualRow={virtualRow}
 							entry={entry()}
 							lineHeight={props.lineHeight()}
 							contentWidth={props.contentWidth()}
-							charWidth={props.charWidth()}
-							tabSize={props.tabSize()}
-							isEditable={props.isEditable}
-							onPreciseClick={props.onPreciseClick}
-							onMouseDown={props.onMouseDown}
-							isActive={props.activeLineIndex() === index}
-							bracketDepths={props.bracketDepths}
+								charWidth={props.charWidth()}
+								tabSize={props.tabSize()}
+								isEditable={props.isEditable}
+								onPreciseClick={props.onPreciseClick}
+								onMouseDown={props.onMouseDown}
+								isActive={props.activeLineIndex() === index}
+								bracketDepths={props.bracketDepths}
 							highlights={highlights()}
 						/>
 					)

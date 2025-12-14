@@ -102,16 +102,16 @@ export function createTextEditorLayout(
 
 	const lineHeight = createMemo(() => measuredLineHeight())
 
-		const rowVirtualizer = createFixedRowVirtualizer({
-			count: () => cursor.lines.lineCount(),
-			enabled: () =>
-				options.isFileSelected() &&
-				hasLineEntries() &&
-				Boolean(options.scrollElement()),
-			scrollElement: () => options.scrollElement(),
-			rowHeight: lineHeight,
-			overscan: VERTICAL_VIRTUALIZER_OVERSCAN,
-		})
+	const rowVirtualizer = createFixedRowVirtualizer({
+		count: () => cursor.lines.lineCount(),
+		enabled: () =>
+			options.isFileSelected() &&
+			hasLineEntries() &&
+			Boolean(options.scrollElement()),
+		scrollElement: () => options.scrollElement(),
+		rowHeight: lineHeight,
+		overscan: VERTICAL_VIRTUALIZER_OVERSCAN,
+	})
 
 	const virtualItems = rowVirtualizer.virtualItems
 	const totalSize = rowVirtualizer.totalSize
@@ -125,18 +125,18 @@ export function createTextEditorLayout(
 		cursor.lines.lineStarts()
 		setMaxColumnsSeen(0)
 		lastWidthScanStart = 0
-		lastWidthScanEnd = -1
-	})
+			lastWidthScanEnd = -1
+		})
 
 		createEffect(() => {
 			const items = virtualItems()
 			const tabSize = options.tabSize()
 
-		if (items.length === 0) {
-			lastWidthScanStart = 0
-			lastWidthScanEnd = -1
-			return
-		}
+			if (items.length === 0) {
+				lastWidthScanStart = 0
+				lastWidthScanEnd = -1
+				return
+			}
 
 			const startIndex = items[0]?.index ?? 0
 			const endIndex = items[items.length - 1]?.index ?? startIndex
@@ -147,10 +147,10 @@ export function createTextEditorLayout(
 				for (let lineIndex = from; lineIndex <= to; lineIndex++) {
 					const text = cursor.lines.getLineText(lineIndex)
 					const visualWidth = calculateVisualColumnCount(text, tabSize)
-				if (visualWidth > max) {
-					max = visualWidth
+					if (visualWidth > max) {
+						max = visualWidth
+					}
 				}
-			}
 		}
 
 		const overlaps =
@@ -167,7 +167,7 @@ export function createTextEditorLayout(
 			if (endIndex > lastWidthScanEnd) {
 				scanRange(lastWidthScanEnd + 1, endIndex)
 			}
-		}
+			}
 
 			lastWidthScanStart = startIndex
 			lastWidthScanEnd = endIndex

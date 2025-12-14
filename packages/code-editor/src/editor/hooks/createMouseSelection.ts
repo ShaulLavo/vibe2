@@ -56,7 +56,10 @@ export function createMouseSelection(
 		stopAutoScroll()
 		autoScrollDirection = direction
 		const scrollEl = options.scrollElement()
-		if (!scrollEl) return
+		if (!scrollEl) {
+			stopAutoScroll()
+			return
+		}
 
 		autoScrollInterval = setInterval(() => {
 			if (direction === 'up') {
@@ -115,18 +118,18 @@ export function createMouseSelection(
 		}
 	}
 
-	const runDragUpdate = () => {
-		if (!isDragging || anchorOffset === null) return
-		if (!lastPointer) return
+		const runDragUpdate = () => {
+			if (!isDragging || anchorOffset === null) return
+			if (!lastPointer) return
 
-		const pos = getPositionFromPointer(lastPointer)
-		if (!pos) return
+			const pos = getPositionFromPointer(lastPointer)
+			if (!pos) return
 
-		const focusOffset = cursor.lines.positionToOffset(pos.lineIndex, pos.column)
-		cursor.actions.setSelection(anchorOffset, focusOffset)
+			const focusOffset = cursor.lines.positionToOffset(pos.lineIndex, pos.column)
+			cursor.actions.setSelection(anchorOffset, focusOffset)
 
-		updateAutoScroll(lastPointer.clientY)
-	}
+			updateAutoScroll(lastPointer.clientY)
+		}
 
 	const scheduleDragUpdate = () => {
 		if (dragRafId) return
@@ -202,17 +205,17 @@ export function createMouseSelection(
 			// Shift+click: extend selection
 			event.preventDefault()
 			cursor.actions.setCursorFromClick(lineIndex, column, true)
-			} else {
-				// Normal click: start potential drag
-				event.preventDefault()
-				anchorOffset = offset
-				isDragging = true
-				lastPointer = { clientX: event.clientX, clientY: event.clientY }
-				scrollRect = options.scrollElement()?.getBoundingClientRect() ?? null
-				cursor.actions.setCursorFromClick(lineIndex, column, false)
+		} else {
+			// Normal click: start potential drag
+			event.preventDefault()
+			anchorOffset = offset
+			isDragging = true
+			lastPointer = { clientX: event.clientX, clientY: event.clientY }
+			scrollRect = options.scrollElement()?.getBoundingClientRect() ?? null
+			cursor.actions.setCursorFromClick(lineIndex, column, false)
 
-				document.addEventListener('mousemove', handleMouseMove)
-				document.addEventListener('mouseup', handleMouseUp)
+			document.addEventListener('mousemove', handleMouseMove)
+			document.addEventListener('mouseup', handleMouseUp)
 		}
 	}
 

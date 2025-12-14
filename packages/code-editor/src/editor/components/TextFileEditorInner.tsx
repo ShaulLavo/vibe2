@@ -173,7 +173,7 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 				endIndex: error.endIndex,
 				scope: error.isMissing ? 'missing' : 'error',
 			}))
-			.sort((a, b) => a.startIndex - b.startIndex)
+				.sort((a, b) => a.startIndex - b.startIndex)
 	})
 
 	const getLineHighlights = (entry: LineEntry): LineHighlightSegment[] => {
