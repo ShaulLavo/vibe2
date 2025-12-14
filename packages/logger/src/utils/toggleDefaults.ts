@@ -8,7 +8,9 @@ const LOGGER_TOGGLE_TREE = {
 	'code-editor': {
 		$self: false,
 		clipboard: false,
-		history: false
+		cursor: false,
+		history: false,
+		virtualizer: false
 	},
 	desktop: false,
 	fs: true,
