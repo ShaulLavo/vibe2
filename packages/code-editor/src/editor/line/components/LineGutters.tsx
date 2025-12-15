@@ -105,13 +105,7 @@ export const LineGutters = (props: LineGuttersProps) => {
 										isFolded={isFolded()}
 										onFoldClick={
 											hasFold()
-												? () => {
-														console.log('[LineGutters] onFoldClick called', {
-															lineIndex,
-															hasOnToggleFold: !!props.onToggleFold,
-														})
-														props.onToggleFold?.(lineIndex())
-													}
+												? () => props.onToggleFold?.(lineIndex())
 												: undefined
 										}
 									/>

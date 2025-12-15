@@ -122,14 +122,6 @@ export function createTextEditorLayout(
 		foldedStarts: () => options.foldedStarts?.() ?? new Set<number>(),
 	})
 
-	// DEBUG: Track visibleCount changes
-	createEffect(() => {
-		const count = foldMapping.visibleCount()
-		console.log('[createTextEditorLayout] visibleCount effect triggered', {
-			count,
-		})
-	})
-
 	const rowVirtualizer = createFixedRowVirtualizer({
 		// Use visible count from fold mapping instead of total line count
 		count: foldMapping.visibleCount,

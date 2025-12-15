@@ -73,16 +73,7 @@ export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
 		const folds = options.folds()
 		const foldedStarts = options.foldedStarts()
 
-		console.log('[createFoldMapping] hiddenRanges recomputing', {
-			foldsCount: folds?.length ?? 0,
-			foldedStartsSize: foldedStarts.size,
-			foldedStarts: Array.from(foldedStarts),
-		})
-
 		if (!folds?.length || foldedStarts.size === 0) {
-			console.log(
-				'[createFoldMapping] No folds or no folded starts, returning empty array'
-			)
 			return []
 		}
 
@@ -156,13 +147,7 @@ export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
 	const visibleCount = createMemo(() => {
 		const total = options.totalLines()
 		const hidden = totalHiddenLines()
-		const result = Math.max(0, total - hidden)
-		console.log('[createFoldMapping] visibleCount recomputing', {
-			total,
-			hidden,
-			result,
-		})
-		return result
+		return Math.max(0, total - hidden)
 	})
 
 	/**

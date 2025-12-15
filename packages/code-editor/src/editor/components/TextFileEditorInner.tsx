@@ -93,18 +93,13 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 	})
 
 	const toggleFold = (startLine: number) => {
-		console.log('[TextFileEditorInner] toggleFold called', { startLine })
 		const foldRanges = props.folds?.()
-		console.log('[TextFileEditorInner] foldRanges', foldRanges)
-
-		const matchingRange = foldRanges?.find(
-			(range) =>
-				range.startLine === startLine && range.endLine > range.startLine
-		)
-		console.log('[TextFileEditorInner] matchingRange', matchingRange)
-
-		if (!matchingRange) {
-			console.log('[TextFileEditorInner] No matching range found, returning')
+		if (
+			!foldRanges?.some(
+				(range) =>
+					range.startLine === startLine && range.endLine > range.startLine
+			)
+		) {
 			return
 		}
 
@@ -112,12 +107,9 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 			const next = new Set(prev)
 			if (next.has(startLine)) {
 				next.delete(startLine)
-				console.log('[TextFileEditorInner] Removing fold at line', startLine)
 			} else {
 				next.add(startLine)
-				console.log('[TextFileEditorInner] Adding fold at line', startLine)
 			}
-			console.log('[TextFileEditorInner] New foldedStarts', Array.from(next))
 			return next
 		})
 	}
