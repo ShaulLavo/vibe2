@@ -62,7 +62,6 @@
         "@solid-primitives/storage": "^4.3.3",
         "@solid-primitives/transition-group": "^1.1.2",
         "@solidjs/router": "^0.15.4",
-        "@sqlite.org/sqlite-wasm": "github:ShaulLavo/sqlite-wasm",
         "@tailwindcss/vite": "^4.1.17",
         "@tanstack/solid-virtual": "^3.13.12",
         "@xterm/xterm": "^5.5.0",
@@ -529,8 +528,6 @@
     "@solid-primitives/utils": ["@solid-primitives/utils@6.3.2", "", { "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-hZ/M/qr25QOCcwDPOHtGjxTD8w2mNyVAYvcfgwzBHq2RwNqHNdDNsMZYap20+ruRwW4A3Cdkczyoz0TSxLCAPQ=="],
 
     "@solidjs/router": ["@solidjs/router@0.15.4", "", { "peerDependencies": { "solid-js": "^1.8.6" } }, "sha512-WOpgg9a9T638cR+5FGbFi/IV4l2FpmBs1GpIMSPa0Ce9vyJN7Wts+X2PqMf9IYn0zUj2MlSJtm1gp7/HI/n5TQ=="],
-
-    "@sqlite.org/sqlite-wasm": ["@sqlite.org/sqlite-wasm@github:ShaulLavo/sqlite-wasm#8b8bfea", { "dependencies": { "js-base64": "^3.7.8" }, "bin": { "sqlite-wasm": "bin/index.js" } }, "ShaulLavo-sqlite-wasm-8b8bfea"],
 
     "@swc/helpers": ["@swc/helpers@0.5.17", "", { "dependencies": { "tslib": "^2.8.0" } }, "sha512-5IKx/Y13RsYd+sauPb2x+U/xZikHjolzfuDgTAl/Tdf3Q8rslRvC19NKDLgAJQ6wsqADk10ntlv08nPFw/gO/A=="],
 
