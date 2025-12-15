@@ -17,7 +17,9 @@ import { useCursor } from '../cursor'
 import {
 	mergeLineSegments,
 	toLineHighlightSegmentsForLine,
+	getHighlightClassForScope,
 } from '../utils/highlights'
+import { quickTokenizeLine, quickTokensToSegments } from '../utils/quickLexer'
 import {
 	createCursorScrollSync,
 	createTextEditorInput,
@@ -182,13 +184,26 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 		const lineStart = entry.start
 		const lineLength = entry.length
 		const lineTextLength = entry.text.length
+		const highlights = sortedHighlights()
 
-		const highlightSegments = toLineHighlightSegmentsForLine(
-			lineStart,
-			lineLength,
-			lineTextLength,
-			sortedHighlights()
-		)
+		let highlightSegments: LineHighlightSegment[]
+
+		if (highlights.length > 0) {
+			// Use tree-sitter highlights
+			highlightSegments = toLineHighlightSegmentsForLine(
+				lineStart,
+				lineLength,
+				lineTextLength,
+				highlights
+			)
+		} else {
+			// Fallback to quick lexer
+			const { tokens } = quickTokenizeLine(entry.text)
+			highlightSegments = quickTokensToSegments(
+				tokens,
+				getHighlightClassForScope
+			)
+		}
 
 		const errorSegments = toLineHighlightSegmentsForLine(
 			lineStart,

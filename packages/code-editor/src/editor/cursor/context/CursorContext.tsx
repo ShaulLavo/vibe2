@@ -59,7 +59,9 @@ const buildLineStartsFromSnapshot = (
 
 		const piece = current.piece
 		const buffer =
-			piece.buffer === 'original' ? snapshot.buffers.original : snapshot.buffers.add
+			piece.buffer === 'original'
+				? snapshot.buffers.original
+				: snapshot.buffers.add
 		const pieceStart = piece.start
 		const pieceEnd = piece.start + piece.length
 
@@ -220,7 +222,11 @@ export function CursorProvider(props: CursorProviderProps) {
 	const MAX_CACHED_LINES = 2000
 	const lineTextCache = new Map<number, string>()
 
-	const applyEdit = (startIndex: number, deletedText: string, insertedText: string) => {
+	const applyEdit = (
+		startIndex: number,
+		deletedText: string,
+		insertedText: string
+	) => {
 		setDocumentLength((prev) =>
 			Math.max(0, prev + insertedText.length - deletedText.length)
 		)

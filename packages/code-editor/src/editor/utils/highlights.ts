@@ -104,7 +104,7 @@ const PREFIX_SCOPE_CLASS: Record<string, string> = {
 	namespace: 'text-cyan-200',
 }
 
-const getHighlightClassForScope = (scope: string): string | undefined => {
+export const getHighlightClassForScope = (scope: string): string | undefined => {
 	if (!scope) return undefined
 	if (EXACT_SCOPE_CLASS[scope]) {
 		return EXACT_SCOPE_CLASS[scope]
