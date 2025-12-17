@@ -3,7 +3,7 @@ import { calculateColumnFromClick } from '../../utils'
 import { BracketizedLineText } from './BracketizedLineText'
 
 export const Line = (props: LineProps) => {
-	let textContentElement: HTMLDivElement | null = null
+	let lineElement: HTMLDivElement | null = null
 
 	const handleMouseDown = (event: MouseEvent) => {
 		if (event.button !== 0) {
@@ -11,8 +11,8 @@ export const Line = (props: LineProps) => {
 		}
 
 		let column = props.entry.text.length
-		if (textContentElement) {
-			const rect = textContentElement.getBoundingClientRect()
+		if (lineElement) {
+			const rect = lineElement.getBoundingClientRect()
 			const clickX = event.clientX - rect.left
 
 			column = calculateColumnFromClick(
@@ -24,7 +24,7 @@ export const Line = (props: LineProps) => {
 		}
 
 		if (props.onMouseDown) {
-			props.onMouseDown(event, props.entry.index, column, textContentElement)
+			props.onMouseDown(event, props.entry.index, column, lineElement)
 			return
 		}
 
@@ -37,36 +37,29 @@ export const Line = (props: LineProps) => {
 
 	return (
 		<div
+			ref={(el) => {
+				lineElement = el
+			}}
 			data-index={props.virtualRow.index}
-			class="absolute left-0 right-0 flex items-start text-zinc-100"
+			class="absolute left-0 whitespace-pre text-zinc-100"
 			classList={{
 				'cursor-text': props.isEditable(),
 			}}
 			style={{
 				transform: `translateY(${props.virtualRow.start}px)`,
 				top: 0,
+				width: `${props.contentWidth}px`,
 				height: `${props.virtualRow.size || props.lineHeight}px`,
+				'tab-size': Math.max(1, props.tabSize),
 			}}
 			onMouseDown={handleMouseDown}
 		>
-			<div
-				ref={(el) => {
-					textContentElement = el
-				}}
-				class="relative h-full whitespace-pre"
-				style={{
-					width: `${props.contentWidth}px`,
-					height: `${props.virtualRow.size || props.lineHeight}px`,
-					'tab-size': Math.max(1, props.tabSize),
-				}}
-			>
-				<BracketizedLineText
-					text={props.entry.text}
-					lineStart={props.entry.start}
-					bracketDepths={props.bracketDepths}
-					highlightSegments={props.highlights}
-				/>
-			</div>
+			<BracketizedLineText
+				text={props.entry.text}
+				lineStart={props.entry.start}
+				bracketDepths={props.bracketDepths}
+				highlightSegments={props.highlights}
+			/>
 		</div>
 	)
 }
