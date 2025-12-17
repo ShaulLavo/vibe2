@@ -1,11 +1,6 @@
-import { children, type Accessor, type JSX } from 'solid-js'
+import { createMemo, type Accessor, type JSX } from 'solid-js'
 import type { BracketDepthMap, LineHighlightSegment } from '../../types'
 import { getBracketDepthTextClass } from '../../theme/bracketColors'
-
-type SegmentBuffer = {
-	nodes: (string | JSX.Element)[]
-	plain: string
-}
 
 type NormalizedHighlightSegment = {
 	start: number
@@ -14,46 +9,17 @@ type NormalizedHighlightSegment = {
 	scope: string
 }
 
-const createBuffer = (): SegmentBuffer => ({
-	nodes: [],
-	plain: '',
-})
-
-const flushPlain = (buffer: SegmentBuffer) => {
-	if (!buffer.plain) return
-	buffer.nodes.push(buffer.plain)
-	buffer.plain = ''
-}
-
-const appendCharToBuffer = (
-	buffer: SegmentBuffer,
-	char: string,
-	depth: number | undefined,
-	absoluteIndex: number
-) => {
-	if (!depth) {
-		buffer.plain += char
-		return
-	}
-	flushPlain(buffer)
-	buffer.nodes.push(
-		<span
-			class={getBracketDepthTextClass(depth)}
-			data-depth={depth}
-			data-bracket-index={absoluteIndex}
-		>
-			{char}
-		</span>
-	)
-}
-
-const bufferToContent = (
-	buffer: SegmentBuffer
-): string | (string | JSX.Element)[] | JSX.Element => {
-	flushPlain(buffer)
-	if (buffer.nodes.length === 0) return ''
-	if (buffer.nodes.length === 1) return buffer.nodes[0]
-	return buffer.nodes
+/**
+ * A text run with optional styling. Represents a contiguous chunk of text
+ * that can be rendered as a single DOM node or span.
+ */
+type TextRun = {
+	text: string
+	// For bracket coloring
+	depth?: number
+	// For syntax highlighting
+	highlightClass?: string
+	highlightScope?: string
 }
 
 const normalizeHighlightSegments = (
@@ -97,6 +63,110 @@ const normalizeHighlightSegments = (
 	return normalized
 }
 
+/**
+ * Find the highlight segment that contains the given position
+ */
+const findHighlightAt = (
+	highlights: NormalizedHighlightSegment[],
+	position: number
+): NormalizedHighlightSegment | undefined => {
+	for (const h of highlights) {
+		if (position >= h.start && position < h.end) return h
+		if (h.start > position) break // sorted, so no more matches
+	}
+	return undefined
+}
+
+/**
+ * Build text runs by iterating through the text and grouping consecutive
+ * characters with the same styling (bracket depth + highlight) together.
+ * This is much more efficient than creating a span per character.
+ */
+const buildTextRuns = (
+	text: string,
+	lineStart: number,
+	depthMap: BracketDepthMap | undefined,
+	highlights: NormalizedHighlightSegment[]
+): TextRun[] => {
+	if (text.length === 0) return []
+
+	const runs: TextRun[] = []
+	let currentRun: TextRun | null = null
+
+	for (let i = 0; i < text.length; i++) {
+		const char = text[i]!
+		const absoluteIndex = lineStart + i
+		const depth = depthMap?.[absoluteIndex]
+		const highlight = findHighlightAt(highlights, i)
+
+		// Check if we can extend the current run
+		const canExtend =
+			currentRun &&
+			currentRun.depth === depth &&
+			currentRun.highlightClass === highlight?.className &&
+			currentRun.highlightScope === highlight?.scope
+
+		if (canExtend) {
+			currentRun!.text += char
+		} else {
+			// Start a new run
+			currentRun = {
+				text: char,
+				depth,
+				highlightClass: highlight?.className,
+				highlightScope: highlight?.scope,
+			}
+			runs.push(currentRun)
+		}
+	}
+
+	return runs
+}
+
+/**
+ * Render a text run to JSX. Plain text is returned as-is,
+ * styled runs get wrapped in appropriate spans.
+ */
+const renderRun = (run: TextRun, index: number): string | JSX.Element => {
+	const hasDepth = run.depth !== undefined && run.depth > 0
+	const hasHighlight = !!run.highlightClass
+
+	// Plain text - no wrapping needed
+	if (!hasDepth && !hasHighlight) {
+		return run.text
+	}
+
+	// Only bracket depth
+	if (hasDepth && !hasHighlight) {
+		return (
+			<span class={getBracketDepthTextClass(run.depth!)} data-depth={run.depth}>
+				{run.text}
+			</span>
+		)
+	}
+
+	// Only highlight
+	if (!hasDepth && hasHighlight) {
+		return (
+			<span
+				class={run.highlightClass}
+				data-highlight-scope={run.highlightScope}
+			>
+				{run.text}
+			</span>
+		)
+	}
+
+	// Both bracket depth and highlight - nest them
+	return (
+		<span class={run.highlightClass} data-highlight-scope={run.highlightScope}>
+			<span class={getBracketDepthTextClass(run.depth!)} data-depth={run.depth}>
+				{run.text}
+			</span>
+		</span>
+	)
+}
+
 type BracketizedLineTextProps = {
 	text: string
 	lineStart: number
@@ -105,7 +175,9 @@ type BracketizedLineTextProps = {
 }
 
 export const BracketizedLineText = (props: BracketizedLineTextProps) => {
-	const segments = children(() => {
+	// Use createMemo instead of children() - we're not resolving passed children,
+	// just computing derived content
+	const content = createMemo(() => {
 		const text = props.text
 		if (text.length === 0) {
 			return ''
@@ -117,66 +189,24 @@ export const BracketizedLineText = (props: BracketizedLineTextProps) => {
 			text.length
 		)
 
-		const baseBuffer = createBuffer()
-		type ActiveHighlight = {
-			segment: NormalizedHighlightSegment
-			buffer: SegmentBuffer
-		}
-		let highlightIndex = 0
-		let activeHighlight: ActiveHighlight | undefined
+		// Build optimized text runs - groups consecutive chars with same styling
+		const runs = buildTextRuns(text, props.lineStart, depthMap, highlights)
 
-		const openHighlightIfNeeded = (position: number) => {
-			if (activeHighlight) return
-			const next = highlights[highlightIndex]
-			if (!next || position < next.start) {
-				return
-			}
-			flushPlain(baseBuffer)
-			activeHighlight = {
-				segment: next,
-				buffer: createBuffer(),
-			}
-			highlightIndex++
+		// Fast path: single unstyled run = just return the text
+		const firstRun = runs[0]
+		if (
+			runs.length === 1 &&
+			firstRun &&
+			!firstRun.depth &&
+			!firstRun.highlightClass
+		) {
+			return firstRun.text
 		}
 
-		const closeHighlightIfNeeded = (position: number) => {
-			if (!activeHighlight || position < activeHighlight.segment.end) {
-				return
-			}
-			const { segment, buffer } = activeHighlight
-			flushPlain(buffer)
-			if (!buffer.nodes.length) {
-				activeHighlight = undefined
-				return
-			}
-			if (!segment.className) {
-				for (const node of buffer.nodes) {
-					baseBuffer.nodes.push(node)
-				}
-				activeHighlight = undefined
-				return
-			}
-			baseBuffer.nodes.push(
-				<span class={segment.className} data-highlight-scope={segment.scope}>
-					{buffer.nodes.length === 1 ? buffer.nodes[0] : buffer.nodes}
-				</span>
-			)
-			activeHighlight = undefined
-		}
-
-		for (let i = 0; i < text.length; i++) {
-			closeHighlightIfNeeded(i)
-			openHighlightIfNeeded(i)
-			const target = activeHighlight?.buffer ?? baseBuffer
-			const absoluteIndex = props.lineStart + i
-			const depth = depthMap?.[absoluteIndex]
-			appendCharToBuffer(target, text.charAt(i), depth, absoluteIndex)
-		}
-
-		closeHighlightIfNeeded(text.length)
-
-		return bufferToContent(baseBuffer)
+		// Render all runs
+		const nodes = runs.map(renderRun)
+		return nodes.length === 1 ? nodes[0] : nodes
 	})
 
-	return <>{segments()}</>
+	return <>{content()}</>
 }

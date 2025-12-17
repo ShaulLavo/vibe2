@@ -28,6 +28,7 @@ import {
 } from '../hooks'
 import type {
 	BracketDepthMap,
+	EditorSyntaxHighlight,
 	LineEntry,
 	LineHighlightSegment,
 	TextFileEditorProps,
@@ -244,11 +245,33 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 		return Object.keys(depthMap).length > 0 ? depthMap : undefined
 	})
 
+	// Cache for computed line highlights - cleared when source highlights change
+	let highlightCache = new Map<number, LineHighlightSegment[]>()
+	let lastHighlightsRef: EditorSyntaxHighlight[] | undefined
+	let lastErrorsRef:
+		| { startIndex: number; endIndex: number; scope: string }[]
+		| undefined
+	const MAX_HIGHLIGHT_CACHE_SIZE = 500
+
 	const getLineHighlights = (entry: LineEntry): LineHighlightSegment[] => {
 		const lineStart = entry.start
 		const lineLength = entry.length
 		const lineTextLength = entry.text.length
 		const highlights = sortedHighlights()
+		const errors = sortedErrorHighlights()
+
+		// Clear cache if source data changed
+		if (highlights !== lastHighlightsRef || errors !== lastErrorsRef) {
+			highlightCache = new Map()
+			lastHighlightsRef = highlights
+			lastErrorsRef = errors
+		}
+
+		// Check cache first
+		const cached = highlightCache.get(entry.index)
+		if (cached !== undefined) {
+			return cached
+		}
 
 		let highlightSegments: LineHighlightSegment[]
 
@@ -277,10 +300,22 @@ export const TextFileEditorInner = (props: TextFileEditorInnerProps) => {
 			lineStart,
 			lineLength,
 			lineTextLength,
-			sortedErrorHighlights()
+			errors
 		)
 
-		return mergeLineSegments(highlightSegments, errorSegments)
+		const result = mergeLineSegments(highlightSegments, errorSegments)
+
+		// Cache the result with LRU eviction
+		highlightCache.set(entry.index, result)
+		if (highlightCache.size > MAX_HIGHLIGHT_CACHE_SIZE) {
+			// Evict oldest entry
+			const firstKey = highlightCache.keys().next().value
+			if (typeof firstKey === 'number') {
+				highlightCache.delete(firstKey)
+			}
+		}
+
+		return result
 	}
 
 	return (
