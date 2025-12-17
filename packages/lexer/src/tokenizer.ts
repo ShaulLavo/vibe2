@@ -195,6 +195,7 @@ export const tokenizeLine = (
 		if (c === '`') {
 			const start = i
 			i++
+			let foundClosingBacktick = false
 			while (i < len) {
 				if (line[i] === '\\' && i + 1 < len) {
 					i += 2
@@ -202,6 +203,7 @@ export const tokenizeLine = (
 				}
 				if (line[i] === '`') {
 					i++
+					foundClosingBacktick = true
 					break
 				}
 				if (line[i] === '$' && i + 1 < len && line[i + 1] === '{') {
@@ -217,7 +219,7 @@ export const tokenizeLine = (
 				i++
 			}
 			tokens.push({ start, end: i, scope: 'string' })
-			if (i >= len && line[len - 1] !== '`') {
+			if (!foundClosingBacktick) {
 				return {
 					tokens,
 					brackets,
