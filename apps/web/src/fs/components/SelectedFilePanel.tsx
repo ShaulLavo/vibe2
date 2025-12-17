@@ -153,6 +153,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						folds={() => state.selectedFileFolds}
 						brackets={() => state.selectedFileBrackets}
 						errors={editorErrors}
+						lexerLineStates={() => state.selectedFileLexerStates}
 					/>
 				}
 			>

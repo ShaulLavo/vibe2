@@ -1,5 +1,5 @@
 /* eslint-disable solid/reactivity */
-import type { FsTreeNode } from '@repo/fs'
+import type { FsFileTreeNode, FsTreeNode } from '@repo/fs'
 import { createMemo } from 'solid-js'
 import { getPieceTableText } from '@repo/utils'
 import { findNode } from '../runtime/tree'
@@ -15,6 +15,7 @@ import { createHighlightState } from './createHighlightState'
 import { createFoldState } from './createFoldState'
 import { createBracketState } from './createBracketState'
 import { createErrorState } from './createErrorState'
+import { createLexerStatesState } from './createLexerStatesState'
 
 export const createFsState = () => {
 	const { tree, setTree } = createTreeState()
@@ -62,11 +63,13 @@ export const createFsState = () => {
 	const { fileFolds, setFolds, clearFolds } = createFoldState()
 	const { fileBrackets, setBrackets, clearBrackets } = createBracketState()
 	const { fileErrors, setErrors, clearErrors } = createErrorState()
+	const { fileLexerStates, setLexerLineStates, clearLexerStates } =
+		createLexerStatesState()
 
 	const selectedNode = createMemo<FsTreeNode | undefined>(() =>
 		tree ? findNode(tree, selectedPath()) : undefined
 	)
-	const lastKnownFileNode = createMemo<FsTreeNode | undefined>((prev) => {
+	const lastKnownFileNode = createMemo<FsFileTreeNode | undefined>((prev) => {
 		const node = selectedNode()
 		if (node?.kind === 'file') {
 			return node
@@ -84,6 +87,7 @@ export const createFsState = () => {
 		fileFolds,
 		fileBrackets,
 		fileErrors,
+		fileLexerStates,
 		get selectedPath() {
 			return selectedPath()
 		},
@@ -167,6 +171,10 @@ export const createFsState = () => {
 			const path = lastKnownFilePath()
 			return path ? fileErrors[path] : undefined
 		},
+		get selectedFileLexerStates() {
+			const path = lastKnownFilePath()
+			return path ? fileLexerStates[path] : undefined
+		},
 		get selectedNode() {
 			return selectedNode()
 		},
@@ -211,5 +219,7 @@ export const createFsState = () => {
 		clearBrackets,
 		setErrors,
 		clearErrors,
+		setLexerLineStates,
+		clearLexerStates,
 	}
 }

@@ -20,6 +20,8 @@ import type { FsContextValue, SelectPathOptions } from '../context/FsContext'
 import { findNode } from '../runtime/tree'
 import type { FileCacheController } from '../cache/fileCacheController'
 import { parseBufferWithTreeSitter } from '../../treeSitter/workerClient'
+import { Lexer } from '@repo/code-editor'
+import type { LineState } from '@repo/code-editor'
 
 const textDecoder = new TextDecoder()
 
@@ -93,6 +95,7 @@ export const useFileSelection = ({
 					let selectedFileContentValue = ''
 					let pieceTableSnapshot: PieceTableSnapshot | undefined
 					let fileStatsResult: ParseResult | undefined
+					let lexerLineStates: LineState[] | undefined
 
 					let binaryPreviewBytes: Uint8Array | undefined
 
@@ -171,6 +174,9 @@ export const useFileSelection = ({
 								pieceTableSnapshot = timeSync('create-piece-table', () =>
 									createPieceTableSnapshot(text)
 								)
+								lexerLineStates = timeSync('compute-lexer-states', () =>
+									Lexer.create().computeAllStates(text)
+								)
 							}
 						}
 					}
@@ -194,6 +200,7 @@ export const useFileSelection = ({
 										pieceTable: pieceTableSnapshot,
 										stats: fileStatsResult,
 										previewBytes: binaryPreviewBytes,
+										lexerLineStates,
 									})
 								)
 							}
