@@ -77,36 +77,30 @@ export const LineGutters = (props: LineGuttersProps) => {
 								<div
 									data-index={virtualRow.index}
 									data-line={lineIndex()}
-									class="absolute left-0 right-0"
+									class="absolute left-0 right-0 flex items-center justify-end"
 									style={{
 										transform: `translateY(${virtualRow.start}px)`,
 										top: 0,
 										height: `${height()}px`,
 									}}
+									onMouseDown={(event) =>
+										handleRowMouseDown(event, lineIndex())
+									}
 								>
-									<div
-										class="relative flex h-full items-center justify-end"
-										onMouseDown={(event) =>
-											handleRowMouseDown(event, lineIndex())
-										}
-									>
 										<LineGutter
 											lineNumber={lineIndex() + 1}
 											lineHeight={height()}
 											isActive={isActive()}
 											isFoldable={hasFold()}
 											isFolded={isFolded()}
-											onFoldClick={
-												hasFold()
-													? () => props.onToggleFold?.(lineIndex())
-													: undefined
+											onFoldClick={() =>
+												hasFold() && props.onToggleFold?.(lineIndex())
 											}
 										/>
 									</div>
-								</div>
-							</Show>
-						)
-					}}
+								</Show>
+							)
+						}}
 				</For>
 			</div>
 		</div>
