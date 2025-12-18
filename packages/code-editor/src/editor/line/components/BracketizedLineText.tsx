@@ -127,9 +127,9 @@ const buildTextRuns = (
  * Render a text run to JSX. Plain text is returned as-is,
  * styled runs get wrapped in appropriate spans.
  */
-const renderRun = (run: TextRun, index: number): string | JSX.Element => {
-	const hasDepth = run.depth !== undefined && run.depth > 0
-	const hasHighlight = !!run.highlightClass
+	const renderRun = (run: TextRun): string | JSX.Element => {
+		const hasDepth = run.depth !== undefined && run.depth > 0
+		const hasHighlight = !!run.highlightClass
 
 	// Plain text - no wrapping needed
 	if (!hasDepth && !hasHighlight) {
