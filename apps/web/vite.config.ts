@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
 
 	const webPort = Number(process.env.VITE_WEB_PORT) || 3000
 	return {
-		envDir: repoRoot,
+		envDir: appDir,
 		plugins: [tailwindcss(), devtools(), solidPlugin()],
 		resolve: {
 			alias: {

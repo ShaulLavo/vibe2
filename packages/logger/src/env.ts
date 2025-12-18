@@ -33,10 +33,15 @@ const envSchema = z.object({
 	VITE_NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
 })
 
-const envData = envSchema.parse({
-	...getImportMetaEnv(),
-	...getProcessEnv(),
-})
+let envData: z.infer<typeof envSchema>
+try {
+	envData = envSchema.parse({
+		...getImportMetaEnv(),
+		...getProcessEnv(),
+	})
+} catch (error) {
+	throw new Error(z.prettifyError(error as z.ZodError))
+}
 
 const nodeEnv = envData.NODE_ENV ?? envData.VITE_NODE_ENV ?? 'development'
 

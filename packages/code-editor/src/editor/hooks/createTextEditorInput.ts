@@ -1,4 +1,10 @@
-import { createEffect, createMemo, onCleanup, type Accessor } from 'solid-js'
+import {
+	batch,
+	createEffect,
+	createMemo,
+	onCleanup,
+	type Accessor,
+} from 'solid-js'
 import type { PieceTableSnapshot } from '@repo/utils'
 import {
 	createPieceTableSnapshot,
@@ -142,26 +148,28 @@ export function createTextEditorInput(
 				insertedText
 			)
 
-		options.updatePieceTable((current) => {
-			const baseSnapshot =
-				current ??
-				createPieceTableSnapshot(
-					cursor.getTextRange(0, cursor.documentLength())
-				)
-			let snapshot = baseSnapshot
+		batch(() => {
+			cursor.lines.applyEdit(clampedStart, deletedText, insertedText)
 
-			if (deleteLength > 0) {
-				snapshot = deleteFromPieceTable(snapshot, clampedStart, deleteLength)
-			}
+			options.updatePieceTable((current) => {
+				const baseSnapshot =
+					current ??
+					createPieceTableSnapshot(
+						cursor.getTextRange(0, cursor.documentLength())
+					)
+				let snapshot = baseSnapshot
 
-			if (insertedText.length > 0) {
-				snapshot = insertIntoPieceTable(snapshot, clampedStart, insertedText)
-			}
+				if (deleteLength > 0) {
+					snapshot = deleteFromPieceTable(snapshot, clampedStart, deleteLength)
+				}
 
-			return snapshot
+				if (insertedText.length > 0) {
+					snapshot = insertIntoPieceTable(snapshot, clampedStart, insertedText)
+				}
+
+				return snapshot
+			})
 		})
-
-		cursor.lines.applyEdit(clampedStart, deletedText, insertedText)
 
 		const cursorOffsetAfter =
 			typeof changeOptions?.cursorOffsetAfter === 'number'

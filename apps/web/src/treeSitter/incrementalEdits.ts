@@ -1,14 +1,42 @@
 import type { DocumentIncrementalEdit } from '@repo/code-editor'
-import { applyTreeSitterEdit } from './workerClient'
+import type {
+	TreeSitterParseResult,
+	TreeSitterEditPayload,
+} from '../workers/treeSitterWorkerTypes'
+import { applyTreeSitterEditBatch } from './workerClient'
 import { logger } from '../logger'
 
+/**
+ * Small debounce delay to batch rapid keystrokes.
+ * This prevents overwhelming the tree-sitter worker with parse requests
+ * while the user is actively typing.
+ */
+const DEBOUNCE_MS = 50
+
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null
+let pendingEdits: {
+	path: string
+	edits: Omit<TreeSitterEditPayload, 'path'>[]
+} | null = null
+let pendingResolve:
+	| ((result: TreeSitterParseResult | undefined) => void)
+	| null = null
+let currentRequestId = 0
+
+/**
+ * Sends an incremental tree-sitter edit with debouncing and batching.
+ *
+ * - Accumulates rapid edits into a batch during the debounce window
+ * - Sends the entire batch to tree-sitter for sequential processing
+ * - Returns a promise that resolves with parse results (or undefined if cancelled/failed)
+ */
 export const sendIncrementalTreeEdit = (
 	path: string | undefined,
 	edit: DocumentIncrementalEdit
-) => {
+): Promise<TreeSitterParseResult | undefined> | undefined => {
 	if (!path) return undefined
-	const highlightPromise = applyTreeSitterEdit({
-		path,
+
+	const editPayload: Omit<TreeSitterEditPayload, 'path'> = {
 		startIndex: edit.startIndex,
 		oldEndIndex: edit.oldEndIndex,
 		newEndIndex: edit.newEndIndex,
@@ -16,11 +44,79 @@ export const sendIncrementalTreeEdit = (
 		oldEndPosition: edit.oldEndPosition,
 		newEndPosition: edit.newEndPosition,
 		insertedText: edit.insertedText,
+	}
+
+	// If there's an existing pending batch for a different path, flush it
+	if (pendingEdits && pendingEdits.path !== path) {
+		if (debounceTimeout) {
+			clearTimeout(debounceTimeout)
+			debounceTimeout = null
+		}
+		pendingResolve?.(undefined)
+		pendingEdits = null
+		pendingResolve = null
+	}
+
+	// Add to existing batch or create new batch
+	if (pendingEdits && pendingEdits.path === path) {
+		pendingEdits.edits.push(editPayload)
+	} else {
+		pendingEdits = { path, edits: [editPayload] }
+	}
+
+	// Reset the debounce timer
+	if (debounceTimeout) {
+		clearTimeout(debounceTimeout)
+	}
+
+	return new Promise((resolve) => {
+		// Replace the pending resolve - only the final caller gets the result
+		if (pendingResolve) {
+			pendingResolve(undefined)
+		}
+		pendingResolve = resolve
+
+		debounceTimeout = setTimeout(() => {
+			debounceTimeout = null
+			const batch = pendingEdits!
+			pendingEdits = null
+			pendingResolve = null
+
+			// Increment request ID to track this specific request
+			const requestId = ++currentRequestId
+
+			applyTreeSitterEditBatch(batch.path, batch.edits)
+				.then((result) => {
+					// Only resolve if this is still the latest request
+					if (requestId === currentRequestId) {
+						resolve(result)
+					} else {
+						// Request was superseded, resolve with undefined
+						resolve(undefined)
+					}
+				})
+				.catch((error) => {
+					logger
+						.withTag('treeSitter')
+						.error('[Tree-sitter worker] incremental edit batch failed', error)
+					resolve(undefined)
+				})
+		}, DEBOUNCE_MS)
 	})
-	return highlightPromise.catch((error) => {
-		logger
-			.withTag('treeSitter')
-			.error('[Tree-sitter worker] incremental edit failed', error)
-		return undefined
-	})
+}
+
+/**
+ * Clears any pending debounced tree-sitter edit.
+ * Useful when switching files or cleaning up.
+ */
+export const clearPendingTreeEdit = () => {
+	if (debounceTimeout) {
+		clearTimeout(debounceTimeout)
+		debounceTimeout = null
+	}
+	pendingEdits = null
+	pendingResolve?.(undefined)
+	pendingResolve = null
+	// Increment request ID to invalidate any in-flight requests
+	currentRequestId++
 }

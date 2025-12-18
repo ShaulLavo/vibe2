@@ -48,7 +48,12 @@ const envSchema = z.object({
 	WEB_ORIGIN: z.url().optional(),
 })
 
-const envData = envSchema.parse(process.env)
+let envData: z.infer<typeof envSchema>
+try {
+	envData = envSchema.parse(process.env)
+} catch (error) {
+	throw new Error(z.prettifyError(error as z.ZodError))
+}
 
 const serverPort = envData.VITE_SERVER_PORT
 const webPort = envData.VITE_WEB_PORT

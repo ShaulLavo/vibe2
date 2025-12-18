@@ -28,7 +28,6 @@ export const initLexer = () => {
 	)
 
 	initialized = true
-	console.log('[Lexer] Initialized with SCM rules')
 	return lexer
 }
 

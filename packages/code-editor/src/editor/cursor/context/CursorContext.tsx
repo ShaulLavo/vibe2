@@ -1,3 +1,9 @@
+import { loggers } from '@repo/logger'
+import {
+	getPieceTableLength,
+	getPieceTableText,
+	type PieceTableSnapshot,
+} from '@repo/utils'
 import {
 	createContext,
 	createEffect,
@@ -5,15 +11,8 @@ import {
 	createSignal,
 	useContext,
 } from 'solid-js'
-import {
-	getPieceTableLength,
-	getPieceTableText,
-	type PieceTableSnapshot,
-} from '@repo/utils'
-import { loggers } from '@repo/logger'
-import type { CursorContextValue, CursorProviderProps } from './types'
-import { useCursorStateManager } from '../hooks/useCursorStateManager'
 import { useCursorActions } from '../hooks/useCursorActions'
+import { useCursorStateManager } from '../hooks/useCursorStateManager'
 import {
 	getLineLength,
 	getLineStart,
@@ -21,6 +20,7 @@ import {
 	offsetToPosition,
 	positionToOffset,
 } from '../utils/position'
+import type { CursorContextValue, CursorProviderProps } from './types'
 
 const CursorContext = createContext<CursorContextValue>()
 

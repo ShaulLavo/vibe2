@@ -24,7 +24,12 @@ const envSchema = z.object({
 		.transform(normalizeConcurrency),
 })
 
-const envData = envSchema.parse(getProcessEnv())
+let envData: z.infer<typeof envSchema>
+try {
+	envData = envSchema.parse(getProcessEnv())
+} catch (error) {
+	throw new Error(z.prettifyError(error as z.ZodError))
+}
 
 export const iconsEnv = {
 	isolatePack: envData.ICONS_ISOLATE,
