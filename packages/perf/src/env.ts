@@ -21,10 +21,15 @@ const envSchema = z.object({
 	VITE_PERF_TRACKING: z.stringbool().optional(),
 })
 
-const envData = envSchema.parse({
-	...getImportMetaEnv(),
-	...getProcessEnv(),
-})
+let envData: z.infer<typeof envSchema>
+try {
+	envData = envSchema.parse({
+		...getImportMetaEnv(),
+		...getProcessEnv(),
+	})
+} catch (error) {
+	throw new Error(z.prettifyError(error as z.ZodError))
+}
 
 export const perfEnv = {
 	perfTrackingEnabled:

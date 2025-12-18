@@ -81,3 +81,12 @@ export const applyTreeSitterEdit = async (payload: TreeSitterEditPayload) => {
 	if (!handle) return undefined
 	return handle.proxy.applyEdit(payload)
 }
+
+export const applyTreeSitterEditBatch = async (
+	path: string,
+	edits: Omit<TreeSitterEditPayload, 'path'>[]
+) => {
+	const handle = await ensureTreeSitterWorkerReady()
+	if (!handle) return undefined
+	return handle.proxy.applyEditBatch({ path, edits })
+}

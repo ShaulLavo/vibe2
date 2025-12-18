@@ -317,6 +317,54 @@ const reparseWithEdit = async (
 	return processTree(nextTree)
 }
 
+const reparseWithEditBatch = async (
+	path: string,
+	edits: Omit<TreeSitterEditPayload, 'path'>[]
+): Promise<TreeSitterParseResult | undefined> => {
+	if (edits.length === 0) return undefined
+	const parser = await ensureParser()
+	if (!parser) return undefined
+	const cached = astCache.get(path)
+	if (!cached) {
+		log.warn('[reparseWithEditBatch] No cached entry for path:', path)
+		return undefined
+	}
+
+	let currentText = cached.text
+	let currentTree = cached.tree
+
+	// Apply each edit sequentially to both text and tree
+	for (const edit of edits) {
+		currentText = applyTextEdit(
+			currentText,
+			edit.startIndex,
+			edit.oldEndIndex,
+			edit.insertedText
+		)
+
+		currentTree.edit({
+			startIndex: edit.startIndex,
+			oldEndIndex: edit.oldEndIndex,
+			newEndIndex: edit.newEndIndex,
+			startPosition: edit.startPosition,
+			oldEndPosition: edit.oldEndPosition,
+			newEndPosition: edit.newEndPosition,
+		})
+
+		const nextTree = parser.parse(currentText, currentTree)
+		if (!nextTree) return undefined
+
+		// Clean up old tree if it's not the original cached one
+		if (currentTree !== cached.tree) {
+			currentTree.delete()
+		}
+		currentTree = nextTree
+	}
+
+	setCachedEntry(path, { tree: currentTree, text: currentText })
+	return processTree(currentTree)
+}
+
 const api: TreeSitterWorkerApi = {
 	async init() {
 		await ensureParser()
@@ -335,6 +383,9 @@ const api: TreeSitterWorkerApi = {
 	},
 	async applyEdit(payload) {
 		return reparseWithEdit(payload.path, payload)
+	},
+	async applyEditBatch(payload) {
+		return reparseWithEditBatch(payload.path, payload.edits)
 	},
 	async dispose() {
 		parserInstance?.delete()

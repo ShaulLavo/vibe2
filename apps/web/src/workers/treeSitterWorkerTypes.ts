@@ -38,6 +38,10 @@ export type TreeSitterWorkerApi = {
 	applyEdit(
 		payload: TreeSitterEditPayload
 	): Promise<TreeSitterParseResult | undefined>
+	applyEditBatch(payload: {
+		path: string
+		edits: Omit<TreeSitterEditPayload, 'path'>[]
+	}): Promise<TreeSitterParseResult | undefined>
 	dispose(): Promise<void>
 }
 
