@@ -6,7 +6,7 @@
 - [ ] Tab drag/drop: reorder, move between panes, detach to new pane
 - [ ] Cross-pane DnD to create splits by dropping tabs/files on edges/corners
 - [ ] Minimap; code lens; peek/go-to definition/references; breadcrumbs
-- [ ] Horizantol virtuazltion
+- [ ] Horizontal virtualization
 - [ ] GPU rendering
 - [ ] FAST scroll without gpu instant render
 
@@ -76,5 +76,5 @@
 
 # Testing
 
-- [ ] Browswer testing
+- [ ] Browser testing
 - [ ] Add missing unit tests if any
