@@ -99,6 +99,12 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			const path = state.lastKnownFilePath
 			const parsePromise = sendIncrementalTreeEdit(path, edit)
 			if (!parsePromise) return
+
+			// Tree-sitter artifacts are async and can briefly go stale vs the live piece table.
+			// Clear bracket data immediately so the editor falls back to the lexer until
+			// the next worker result arrives.
+			updateSelectedFileBrackets([])
+
 			void parsePromise.then((result) => {
 				if (result && path === state.lastKnownFilePath) {
 					updateSelectedFileHighlights(result.captures)
@@ -153,7 +159,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						folds={() => state.selectedFileFolds}
 						brackets={() => state.selectedFileBrackets}
 						errors={editorErrors}
-						lexerLineStates={() => state.selectedFileLexerStates}
 					/>
 				}
 			>

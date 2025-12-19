@@ -1,6 +1,5 @@
 import type { FsDirTreeNode, FsFileTreeNode, FsTreeNode } from '@repo/fs'
 import type { ParseResult, PieceTableSnapshot } from '@repo/utils'
-import type { LineState } from '@repo/code-editor'
 import type {
 	TreeSitterCapture,
 	BracketInfo,
@@ -41,8 +40,6 @@ export type FsState = {
 	selectedFileBrackets?: BracketInfo[]
 	fileErrors: Record<string, TreeSitterError[] | undefined>
 	selectedFileErrors?: TreeSitterError[]
-	fileLexerStates: Record<string, LineState[] | undefined>
-	selectedFileLexerStates?: LineState[]
 	selectedNode?: FsTreeNode | undefined
 	lastKnownFileNode?: FsFileTreeNode | undefined
 	lastKnownFilePath?: string

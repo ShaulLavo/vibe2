@@ -99,7 +99,14 @@ const buildTextRuns = (
 
 		const char = text[i]!
 		const absoluteIndex = lineStart + i
-		const depth = depthMap?.[absoluteIndex]
+		const isBracketChar =
+			char === '(' ||
+			char === ')' ||
+			char === '[' ||
+			char === ']' ||
+			char === '{' ||
+			char === '}'
+		const depth = isBracketChar ? depthMap?.[absoluteIndex] : undefined
 
 		// Check if we can extend the current run
 		const canExtend =

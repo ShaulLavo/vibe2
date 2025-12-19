@@ -20,6 +20,73 @@ import {
 } from './consts'
 import { isScreamingCase, peekNextNonSpace, peekPrevNonSpace } from './utils'
 
+const isRegexLiteralContext = (prevNonSpace: string): boolean => {
+	if (prevNonSpace === '') return true
+
+	const isWordLike = WORD_CHAR.test(prevNonSpace)
+	if (isWordLike) return false
+
+	const isDigitLike = DIGIT.test(prevNonSpace)
+	if (isDigitLike) return false
+
+	const isClosingDelimiter =
+		prevNonSpace === ')' ||
+		prevNonSpace === ']' ||
+		prevNonSpace === '}' ||
+		prevNonSpace === '"' ||
+		prevNonSpace === "'" ||
+		prevNonSpace === '`'
+	if (isClosingDelimiter) return false
+
+	return true
+}
+
+const readRegexLiteralEnd = (
+	line: string,
+	startIndex: number
+): { endIndex: number; isClosed: boolean } => {
+	let i = startIndex
+	const len = line.length
+	let inCharClass = false
+
+	while (i < len) {
+		const c = line[i] ?? ''
+
+		if (c === '\\' && i + 1 < len) {
+			i += 2
+			continue
+		}
+
+		if (c === '[') {
+			inCharClass = true
+			i += 1
+			continue
+		}
+
+		if (c === ']' && inCharClass) {
+			inCharClass = false
+			i += 1
+			continue
+		}
+
+		if (c === '/' && inCharClass === false) {
+			i += 1
+			while (i < len) {
+				const flag = line[i] ?? ''
+				const isFlag = /[a-z]/i.test(flag)
+				if (isFlag === false) break
+				i += 1
+			}
+
+			return { endIndex: i, isClosed: true }
+		}
+
+		i += 1
+	}
+
+	return { endIndex: len, isClosed: false }
+}
+
 /**
  * Get scope for an identifier using SCM-derived rules
  */
@@ -171,6 +238,20 @@ export const tokenizeLine = (
 				}
 			}
 			continue
+		}
+
+		// Regex literal (best-effort heuristic)
+		if (c === '/' && next !== '/' && next !== '*') {
+			const prevChar = peekPrevNonSpace(line, i)
+			const shouldTreatAsRegex = isRegexLiteralContext(prevChar)
+
+			if (shouldTreatAsRegex) {
+				const start = i
+				const { endIndex } = readRegexLiteralEnd(line, i + 1)
+				i = endIndex
+				tokens.push({ start, end: i, scope: 'string.regex' })
+				continue
+			}
 		}
 
 		// String literals

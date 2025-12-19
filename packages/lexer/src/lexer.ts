@@ -142,12 +142,14 @@ export class Lexer {
 	): LineState[] {
 		const oldLineCount = this.lineStates.length
 		const newStates = [...this.lineStates]
+		const insertedLineCount = Math.max(0, lineCount - oldLineCount)
+		const firstOriginalLineIndexAfterInsertion =
+			insertedLineCount > 0 ? editedLineIndex + 1 + insertedLineCount : -1
 
 		if (lineCount > oldLineCount) {
 			// Lines were inserted - add placeholder states
-			const insertCount = lineCount - oldLineCount
 			const insertAt = editedLineIndex + 1
-			for (let i = 0; i < insertCount; i++) {
+			for (let i = 0; i < insertedLineCount; i++) {
 				newStates.splice(insertAt, 0, Lexer.initialState())
 			}
 		} else if (lineCount < oldLineCount) {
@@ -177,7 +179,14 @@ export class Lexer {
 			currentLine++
 
 			// Check if we can stop early
-			if (currentLine < lineCount && currentLine < newStates.length) {
+			const hasNextLine = currentLine < lineCount && currentLine < newStates.length
+			const hasInsertedLines = insertedLineCount > 0
+			const isBeforeFirstOriginalLineAfterInsertion =
+				hasInsertedLines && currentLine < firstOriginalLineIndexAfterInsertion
+			const canEarlyStop =
+				hasNextLine && isBeforeFirstOriginalLineAfterInsertion === false
+
+			if (canEarlyStop) {
 				const cachedNext = newStates[currentLine]!
 				if (Lexer.statesEqual(cachedNext, nextState)) {
 					// States match - update offsets for remaining lines

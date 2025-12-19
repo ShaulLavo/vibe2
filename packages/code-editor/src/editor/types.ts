@@ -1,7 +1,7 @@
 import type { Accessor } from 'solid-js'
 import type { ParseResult } from '@repo/utils/parse'
 import type { PieceTableSnapshot } from '@repo/utils'
-import type { LineState, BracketInfo } from '@repo/lexer'
+import type { BracketInfo } from '@repo/lexer'
 
 export type VirtualItem = {
 	index: number
@@ -87,7 +87,6 @@ export type EditorProps = {
 	folds?: Accessor<FoldRange[] | undefined>
 	brackets?: Accessor<BracketInfo[] | undefined>
 	errors?: Accessor<EditorError[] | undefined>
-	lexerLineStates?: Accessor<LineState[] | undefined>
 }
 
 export type LineEntry = {

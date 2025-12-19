@@ -51,6 +51,8 @@ export type CursorContextValue = {
 		getLineText: (lineIndex: number) => string
 		offsetToPosition: (offset: number) => CursorPosition
 		positionToOffset: (line: number, column: number) => number
+		pieceTable: Accessor<PieceTableSnapshot | undefined>
+		setPieceTableSnapshot: (snapshot?: PieceTableSnapshot) => void
 		applyEdit: (
 			startIndex: number,
 			deletedText: string,

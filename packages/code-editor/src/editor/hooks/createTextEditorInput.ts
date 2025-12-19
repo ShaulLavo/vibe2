@@ -151,6 +151,7 @@ export function createTextEditorInput(
 		batch(() => {
 			cursor.lines.applyEdit(clampedStart, deletedText, insertedText)
 
+			let nextSnapshot: PieceTableSnapshot | undefined
 			options.updatePieceTable((current) => {
 				const baseSnapshot =
 					current ??
@@ -167,8 +168,17 @@ export function createTextEditorInput(
 					snapshot = insertIntoPieceTable(snapshot, clampedStart, insertedText)
 				}
 
+				nextSnapshot = snapshot
 				return snapshot
 			})
+
+			if (nextSnapshot) {
+				cursor.lines.setPieceTableSnapshot(nextSnapshot)
+			}
+
+			if (incrementalEdit) {
+				options.onIncrementalEdit?.(incrementalEdit)
+			}
 		})
 
 		const cursorOffsetAfter =
@@ -197,10 +207,6 @@ export function createTextEditorInput(
 				mergeMode: changeOptions?.mergeMode,
 			}
 		)
-
-		if (incrementalEdit) {
-			options.onIncrementalEdit?.(incrementalEdit)
-		}
 
 		options.scrollCursorIntoView()
 		return true

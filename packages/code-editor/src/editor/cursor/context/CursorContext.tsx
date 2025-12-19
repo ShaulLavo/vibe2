@@ -200,6 +200,9 @@ export function CursorProvider(props: CursorProviderProps) {
 	const log = loggers.codeEditor.withTag('cursor')
 	const [documentLength, setDocumentLength] = createSignal(0)
 	const [lineStarts, setLineStarts] = createSignal<number[]>([])
+	const [activePieceTable, setActivePieceTable] = createSignal<
+		PieceTableSnapshot | undefined
+	>(undefined)
 
 	const lineCount = createMemo(() => lineStarts().length)
 
@@ -207,7 +210,7 @@ export function CursorProvider(props: CursorProviderProps) {
 		const safeStart = Math.max(0, start)
 		const safeEnd = Math.max(safeStart, end)
 
-		const snapshot = props.pieceTable()
+		const snapshot = activePieceTable() ?? props.pieceTable()
 		if (snapshot) {
 			const clampedEnd = Math.min(safeEnd, snapshot.length)
 			const clampedStart = Math.min(safeStart, clampedEnd)
@@ -270,6 +273,7 @@ export function CursorProvider(props: CursorProviderProps) {
 		validateLineStarts(starts, length, 'initializeFromSnapshot')
 
 		batch(() => {
+			setActivePieceTable(snapshot)
 			setDocumentLength(length)
 			setLineStarts(starts)
 		})
@@ -288,6 +292,7 @@ export function CursorProvider(props: CursorProviderProps) {
 		validateLineStarts(starts, length, 'initializeFromContent')
 
 		batch(() => {
+			setActivePieceTable(undefined)
 			setDocumentLength(length)
 			setLineStarts(starts)
 		})
@@ -308,6 +313,7 @@ export function CursorProvider(props: CursorProviderProps) {
 		if (!selected || !path) {
 			initializedPath = undefined
 			batch(() => {
+				setActivePieceTable(undefined)
 				setDocumentLength(0)
 				setLineStarts([])
 			})
@@ -326,6 +332,7 @@ export function CursorProvider(props: CursorProviderProps) {
 		}
 
 		if (snapshot) {
+			setActivePieceTable(snapshot)
 			const currentLength = documentLength()
 			if (lineStarts().length === 0 || currentLength !== snapshot.length) {
 				initializeFromSnapshot(snapshot)
@@ -371,6 +378,11 @@ export function CursorProvider(props: CursorProviderProps) {
 				offsetToPosition(offset, lineStarts(), documentLength()),
 			positionToOffset: (line, column) =>
 				positionToOffset(line, column, lineStarts(), documentLength()),
+			pieceTable: activePieceTable,
+			setPieceTableSnapshot: (snapshot) => {
+				setActivePieceTable(snapshot)
+				lineTextCache.clear()
+			},
 			applyEdit,
 		},
 		getTextRange,

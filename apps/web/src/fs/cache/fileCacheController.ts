@@ -1,6 +1,5 @@
 import { batch } from 'solid-js'
 import type { ParseResult, PieceTableSnapshot } from '@repo/utils'
-import type { LineState } from '@repo/code-editor'
 import type {
 	TreeSitterCapture,
 	BracketInfo,
@@ -33,7 +32,6 @@ export type FileCacheEntry = {
 	folds?: FoldRange[]
 	brackets?: BracketInfo[]
 	errors?: TreeSitterError[]
-	lexerLineStates?: LineState[]
 }
 
 export type FileCacheController = {
@@ -52,7 +50,6 @@ type FileCacheControllerOptions = {
 		| 'fileFolds'
 		| 'fileBrackets'
 		| 'fileErrors'
-		| 'fileLexerStates'
 	>
 	setPieceTable: (path: string, snapshot?: PieceTableSnapshot) => void
 	setFileStats: (path: string, stats?: ParseResult) => void
@@ -60,7 +57,6 @@ type FileCacheControllerOptions = {
 	setFolds: (path: string, folds?: FoldRange[]) => void
 	setBrackets: (path: string, brackets?: BracketInfo[]) => void
 	setErrors: (path: string, errors?: TreeSitterError[]) => void
-	setLexerLineStates: (path: string, states?: LineState[]) => void
 }
 
 export const createFileCacheController = ({
@@ -71,7 +67,6 @@ export const createFileCacheController = ({
 	setFolds,
 	setBrackets,
 	setErrors,
-	setLexerLineStates,
 }: FileCacheControllerOptions): FileCacheController => {
 	// TODO: add eviction and persistence so all artifacts are released together.
 	const previews: Record<string, Uint8Array | undefined> = {}
@@ -86,7 +81,6 @@ export const createFileCacheController = ({
 			folds: state.fileFolds[path],
 			brackets: state.fileBrackets[path],
 			errors: state.fileErrors[path],
-			lexerLineStates: state.fileLexerStates[path],
 		}
 	}
 
@@ -114,9 +108,6 @@ export const createFileCacheController = ({
 			if (entry.errors !== undefined) {
 				setErrors(path, entry.errors)
 			}
-			if (entry.lexerLineStates !== undefined) {
-				setLexerLineStates(path, entry.lexerLineStates)
-			}
 		})
 	}
 
@@ -129,7 +120,6 @@ export const createFileCacheController = ({
 			setFolds(path, undefined)
 			setBrackets(path, undefined)
 			setErrors(path, undefined)
-			setLexerLineStates(path, undefined)
 			delete previews[path]
 		})
 	}
@@ -153,9 +143,6 @@ export const createFileCacheController = ({
 			}
 			for (const path of Object.keys(state.fileErrors)) {
 				setErrors(path, undefined)
-			}
-			for (const path of Object.keys(state.fileLexerStates)) {
-				setLexerLineStates(path, undefined)
 			}
 			for (const path of Object.keys(previews)) {
 				delete previews[path]

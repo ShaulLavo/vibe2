@@ -3,32 +3,30 @@ import {
 	createEffect,
 	createSignal,
 	onCleanup,
-	type Accessor,
+	untrack,
 } from 'solid-js'
 import { DEFAULT_TAB_SIZE } from '../consts'
 import { useCursor } from '../cursor'
-import { Lexer } from '@repo/lexer'
+import { Lexer, type LineState } from '@repo/lexer'
+import { getPieceTableText, type PieceTableSnapshot } from '@repo/utils'
 import {
 	createCursorScrollSync,
 	createMouseSelection,
 	createTextEditorInput,
 	createTextEditorLayout,
 	createLineHighlights,
-	useComputedLexerStates,
 	useFoldedStarts,
 	useStartBenchmark,
 	useVisibleBracketDepths,
 } from '../hooks'
 import { EditorViewport } from './EditorViewport'
-import type { BracketDepthMap, EditorProps } from '../types'
+import type { DocumentIncrementalEdit, EditorProps } from '../types'
 
-type TextEditorViewProps = EditorProps & {
-	treeSitterBracketDepths: Accessor<BracketDepthMap | undefined>
-}
-
-export const TextEditorView = (props: TextEditorViewProps) => {
+export const TextEditorView = (props: EditorProps) => {
 	const cursor = useCursor()
 	const lexer = Lexer.create()
+	let lexerStatesPath: string | undefined
+	let lastLexedPieceTable: PieceTableSnapshot | undefined
 
 	const tabSize = () => props.tabSize?.() ?? DEFAULT_TAB_SIZE
 	const [scrollElement, setScrollElement] = createSignal<HTMLDivElement | null>(
@@ -43,6 +41,76 @@ export const TextEditorView = (props: TextEditorViewProps) => {
 	}
 
 	const isEditable = () => props.document.isEditable()
+
+	const lexerStates = (): LineState[] | undefined => {
+		const selected = props.isFileSelected()
+		const path = props.document.filePath()
+		const pieceTable = cursor.lines.pieceTable()
+		cursor.lines.lineStarts()
+
+		const hasPath = Boolean(path)
+		const isReady = selected && hasPath && isEditable()
+
+		if (isReady === false) {
+			const hasCachedPath = Boolean(lexerStatesPath)
+			const hasCachedStates = lexer.getAllLineStates().length > 0
+			const hasCachedPieceTable = Boolean(lastLexedPieceTable)
+			const shouldReset =
+				hasCachedPath || hasCachedStates || hasCachedPieceTable
+
+			if (shouldReset) {
+				lexerStatesPath = undefined
+				lastLexedPieceTable = undefined
+				lexer.setLineStates([])
+			}
+			return undefined
+		}
+
+		const hasPathChanged = lexerStatesPath !== path
+		const hasLineStates = lexer.getAllLineStates().length > 0
+		const isPieceTableInSync = pieceTable === lastLexedPieceTable
+		const shouldRecomputeAll =
+			hasPathChanged || hasLineStates === false || isPieceTableInSync === false
+
+		if (shouldRecomputeAll) {
+			lexerStatesPath = path
+			const content = pieceTable
+				? getPieceTableText(pieceTable)
+				: untrack(() => props.document.content())
+			const nextStates = lexer.computeAllStates(content)
+			lastLexedPieceTable = pieceTable
+			return nextStates
+		}
+
+		return lexer.getAllLineStates()
+	}
+
+	const applyLexerEdit = (edit: DocumentIncrementalEdit) => {
+		const lineCount = cursor.lines.lineStarts().length
+		if (lineCount <= 0) return
+
+		if (lexer.getAllLineStates().length === 0) {
+			const pieceTable = cursor.lines.pieceTable()
+			const content = pieceTable
+				? getPieceTableText(pieceTable)
+				: props.document.content()
+			lexer.computeAllStates(content)
+			lastLexedPieceTable = pieceTable
+			return
+		}
+
+		lexer.updateStatesFromEdit(
+			edit.startPosition.row,
+			(lineIndex) => cursor.lines.getLineText(lineIndex),
+			lineCount
+		)
+		lastLexedPieceTable = cursor.lines.pieceTable()
+	}
+
+	const handleIncrementalEdit = (edit: DocumentIncrementalEdit) => {
+		applyLexerEdit(edit)
+		props.document.applyIncrementalEdit?.(edit)
+	}
 
 	const { foldedStarts, toggleFold } = useFoldedStarts({
 		filePath: () => props.document.filePath(),
@@ -80,7 +148,7 @@ export const TextEditorView = (props: TextEditorViewProps) => {
 		getInputElement: () => inputElement,
 		scrollCursorIntoView,
 		activeScopes: () => props.activeScopes?.() ?? ['editor', 'global'],
-		onIncrementalEdit: (edit) => props.document.applyIncrementalEdit?.(edit),
+		onIncrementalEdit: handleIncrementalEdit,
 	})
 
 	const mouseSelection = createMouseSelection({
@@ -109,18 +177,12 @@ export const TextEditorView = (props: TextEditorViewProps) => {
 		}
 	})
 
-	const lexerStates = useComputedLexerStates({
-		lexer,
-		lexerLineStates: () => props.lexerLineStates?.(),
-		content: () => props.document.content(),
-	})
-
 	const bracketDepths = useVisibleBracketDepths({
 		lexer,
-		treeSitterBracketDepths: () => props.treeSitterBracketDepths(),
 		lexerStates,
 		virtualItems: layout.virtualItems,
 		displayToLine: layout.displayToLine,
+		getLineStart: (lineIndex) => cursor.lines.getLineStart(lineIndex),
 		getLineText: (lineIndex) => cursor.lines.getLineText(lineIndex),
 	})
 

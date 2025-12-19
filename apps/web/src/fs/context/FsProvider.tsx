@@ -47,7 +47,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setPrefetchAverageDurationMs,
 		registerDeferredMetadata,
 		clearDeferredMetadata,
-		setLexerLineStates,
 	} = createFsState()
 
 	const fileCache = createFileCacheController({
@@ -58,7 +57,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setFolds,
 		setBrackets,
 		setErrors,
-		setLexerLineStates,
 	})
 
 	const setDirNode = (path: string, node: FsDirTreeNode) => {

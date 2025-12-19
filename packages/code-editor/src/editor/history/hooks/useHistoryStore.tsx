@@ -5,6 +5,7 @@ import {
 	createPieceTableSnapshot,
 	deleteFromPieceTable,
 	insertIntoPieceTable,
+	type PieceTableSnapshot,
 } from '@repo/utils'
 import { useCursor } from '../../cursor'
 import type { TextEditorDocument } from '../../types'
@@ -98,6 +99,7 @@ export const useHistoryStore = (
 				insertedTextForTree
 			)
 
+			let nextSnapshot: PieceTableSnapshot | undefined
 			document.updatePieceTable((current) => {
 				const baseSnapshot =
 					current ??
@@ -138,8 +140,13 @@ export const useHistoryStore = (
 					}
 				}
 
+				nextSnapshot = snapshot
 				return snapshot
 			})
+
+			if (nextSnapshot) {
+				cursor.lines.setPieceTableSnapshot(nextSnapshot)
+			}
 		})
 
 		if (direction === 'undo') {
