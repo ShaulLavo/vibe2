@@ -40,7 +40,7 @@ export type MinimapWorkerController = {
 	/** Clear the canvas */
 	clear: () => Promise<void>
 	/** Dispose the worker */
-	dispose: () => void
+	dispose: () => Promise<void>
 }
 
 /**
@@ -153,21 +153,26 @@ export const useMinimapWorker = (
 	/**
 	 * Dispose the worker
 	 */
-	const dispose = () => {
-		if (api) {
-			api.dispose()
+	const dispose = async () => {
+		try {
+			if (api) {
+				await api.dispose()
+			}
+		} catch (error) {
+			console.warn('Error disposing minimap worker api:', error)
+		} finally {
+			if (worker) {
+				worker.terminate()
+				worker = null
+			}
+			api = null
+			setIsReady(false)
 		}
-		if (worker) {
-			worker.terminate()
-			worker = null
-		}
-		api = null
-		setIsReady(false)
 	}
 
 	// Clean up on unmount
 	onCleanup(() => {
-		dispose()
+		void dispose()
 	})
 
 	return {
