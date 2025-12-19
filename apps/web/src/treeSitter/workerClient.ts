@@ -90,3 +90,11 @@ export const applyTreeSitterEditBatch = async (
 	if (!handle) return undefined
 	return handle.proxy.applyEditBatch({ path, edits })
 }
+
+/**
+ * Get the raw Tree-sitter worker for direct communication (e.g., minimap)
+ */
+export const getTreeSitterWorker = async (): Promise<Worker | null> => {
+	const handle = await ensureTreeSitterWorkerReady()
+	return handle?.worker ?? null
+}

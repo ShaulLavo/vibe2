@@ -3,11 +3,19 @@ import type {
 	TextEditorDocument,
 } from '@repo/code-editor'
 import { Editor } from '@repo/code-editor'
-import { Accessor, Match, Switch, createMemo } from 'solid-js'
+import {
+	Accessor,
+	Match,
+	Switch,
+	createMemo,
+	createSignal,
+	onMount,
+} from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { BinaryFileViewer } from '../../components/BinaryFileViewer'
 import { useFs } from '../../fs/context/FsContext'
 import { sendIncrementalTreeEdit } from '../../treeSitter/incrementalEdits'
+import { getTreeSitterWorker } from '../../treeSitter/workerClient'
 import { useTabs } from '../hooks/useTabs'
 import { Tabs } from './Tabs'
 
@@ -52,6 +60,19 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	// )
 
 	const isBinary = () => state.selectedFileStats?.contentKind === 'binary'
+
+	// Tree-sitter worker for minimap
+	const [treeSitterWorker, setTreeSitterWorker] = createSignal<
+		Worker | undefined
+	>()
+	const [documentVersion, setDocumentVersion] = createSignal(0)
+
+	onMount(async () => {
+		const worker = await getTreeSitterWorker()
+		if (worker) {
+			setTreeSitterWorker(() => worker)
+		}
+	})
 
 	// const handleFontSizeInput: JSX.EventHandlerUnion<
 	// 	HTMLInputElement,
@@ -101,8 +122,9 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			if (!parsePromise) return
 
 			// Tree-sitter artifacts are async and can briefly go stale vs the live piece table.
-			// Clear bracket data immediately so the editor falls back to the lexer until
-			// the next worker result arrives.
+			// Clear highlights and brackets immediately so the editor falls back to the lexer
+			// until the next worker result arrives.
+			updateSelectedFileHighlights(undefined)
 			updateSelectedFileBrackets([])
 
 			void parsePromise.then((result) => {
@@ -111,6 +133,8 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 					updateSelectedFileFolds(result.folds)
 					updateSelectedFileBrackets(result.brackets)
 					updateSelectedFileErrors(result.errors)
+					// Increment version to trigger minimap re-render
+					setDocumentVersion((v) => v + 1)
 				}
 			})
 		},
@@ -159,6 +183,8 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						folds={() => state.selectedFileFolds}
 						brackets={() => state.selectedFileBrackets}
 						errors={editorErrors}
+						treeSitterWorker={treeSitterWorker()}
+						documentVersion={documentVersion}
 					/>
 				}
 			>
