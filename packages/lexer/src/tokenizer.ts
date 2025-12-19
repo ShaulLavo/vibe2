@@ -369,7 +369,22 @@ export const tokenizeLine = (
 				i += 2
 				while (i < len && HEX_DIGIT.test(line[i]!)) i++
 			} else {
-				while (i < len && (DIGIT.test(line[i]!) || line[i] === '.')) i++
+				let seenDot = false
+				while (i < len) {
+					const char = line[i]!
+					if (DIGIT.test(char)) {
+						i++
+					} else if (char === '.') {
+						if (!seenDot) {
+							seenDot = true
+							i++
+						} else {
+							break
+						}
+					} else {
+						break
+					}
+				}
 				if (i < len && (line[i] === 'e' || line[i] === 'E')) {
 					i++
 					if (i < len && (line[i] === '+' || line[i] === '-')) i++
@@ -406,6 +421,7 @@ export const tokenizeLine = (
 
 		// JSX tag detection
 		if (c === '<' && next && /[A-Z]/.test(next)) {
+			tokens.push({ start: i, end: i + 1, scope: 'punctuation.bracket' })
 			i++
 			const start = i
 			while (i < len && WORD_CHAR.test(line[i]!)) i++

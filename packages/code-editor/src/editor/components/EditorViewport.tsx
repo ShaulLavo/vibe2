@@ -41,7 +41,7 @@ export const EditorViewport = (props: EditorViewportProps) => {
 	return (
 		<div
 			ref={props.setScrollElement}
-			class="relative  flex-1 overflow-auto   bg-zinc-950/30"
+			class="relative flex-1 overflow-auto bg-zinc-950/30"
 			style={{
 				'font-size': `${props.fontSize()}px`,
 				'font-family': props.fontFamily(),
@@ -121,4 +121,3 @@ export const EditorViewport = (props: EditorViewportProps) => {
 		</div>
 	)
 }
-

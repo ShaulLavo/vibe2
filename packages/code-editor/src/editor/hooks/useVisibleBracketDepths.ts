@@ -2,6 +2,8 @@ import { createMemo, onCleanup, type Accessor } from 'solid-js'
 import { Lexer, type LineState } from '@repo/lexer'
 import type { BracketDepthMap, VirtualItem } from '../types'
 
+const MAX_CACHE_SIZE = 1000
+
 type CachedLineBrackets = {
 	lineText: string
 	startOffset: number
@@ -44,6 +46,10 @@ export const computeVisibleBracketDepths = (
 		const startState = { ...startStateFromLexer, offset: lineStart }
 
 		const cached = options.lineCache.get(lineIndex)
+		if (cached) {
+			options.lineCache.delete(lineIndex)
+			options.lineCache.set(lineIndex, cached)
+		}
 		const hasCached = Boolean(cached)
 
 		const hasSameText = cached?.lineText === lineText
@@ -70,6 +76,12 @@ export const computeVisibleBracketDepths = (
 				brackets,
 			}
 			options.lineCache.set(lineIndex, nextCached)
+			if (options.lineCache.size > MAX_CACHE_SIZE) {
+				const first = options.lineCache.keys().next().value
+				if (first !== undefined) {
+					options.lineCache.delete(first)
+				}
+			}
 		}
 
 		if (nextCached === undefined) continue

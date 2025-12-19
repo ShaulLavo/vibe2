@@ -1,4 +1,5 @@
-import { createEffect, createSignal, on, type Accessor } from 'solid-js'
+import { createEffect, on, type Accessor } from 'solid-js'
+import { ReactiveSet } from '@solid-primitives/set'
 import type { FoldRange } from '../types'
 
 export type UseFoldedStartsOptions = {
@@ -8,7 +9,7 @@ export type UseFoldedStartsOptions = {
 }
 
 export const useFoldedStarts = (options: UseFoldedStartsOptions) => {
-	const [foldedStarts, setFoldedStarts] = createSignal<Set<number>>(new Set())
+	const foldedStarts = new ReactiveSet<number>()
 
 	const toggleFold = (startLine: number) => {
 		const foldRanges = options.folds?.()
@@ -21,15 +22,11 @@ export const useFoldedStarts = (options: UseFoldedStartsOptions) => {
 			return
 		}
 
-		setFoldedStarts((prev) => {
-			const next = new Set(prev)
-			if (next.has(startLine)) {
-				next.delete(startLine)
-			} else {
-				next.add(startLine)
-			}
-			return next
-		})
+		if (foldedStarts.has(startLine)) {
+			foldedStarts.delete(startLine)
+		} else {
+			foldedStarts.add(startLine)
+		}
 	}
 
 	createEffect(
@@ -39,7 +36,7 @@ export const useFoldedStarts = (options: UseFoldedStartsOptions) => {
 				element.scrollTop = 0
 				element.scrollLeft = 0
 			}
-			setFoldedStarts(new Set<number>())
+			foldedStarts.clear()
 		})
 	)
 
@@ -48,35 +45,22 @@ export const useFoldedStarts = (options: UseFoldedStartsOptions) => {
 			() => options.folds?.(),
 			(folds) => {
 				if (!folds?.length) {
-					setFoldedStarts(new Set<number>())
+					foldedStarts.clear()
 					return
 				}
 
-				setFoldedStarts((prev) => {
-					if (prev.size === 0) return prev
+				const validStarts = new Set(
+					folds.filter((f) => f.endLine > f.startLine).map((f) => f.startLine)
+				)
 
-					const validStarts = new Set(
-						folds
-							.filter((f) => f.endLine > f.startLine)
-							.map((f) => f.startLine)
-					)
-
-					let changed = false
-					const next = new Set<number>()
-					for (const start of prev) {
-						if (validStarts.has(start)) {
-							next.add(start)
-						} else {
-							changed = true
-						}
+				for (const start of foldedStarts) {
+					if (!validStarts.has(start)) {
+						foldedStarts.delete(start)
 					}
-
-					return changed ? next : prev
-				})
+				}
 			}
 		)
 	)
 
-	return { foldedStarts, toggleFold }
+	return { foldedStarts: () => foldedStarts, toggleFold }
 }
-

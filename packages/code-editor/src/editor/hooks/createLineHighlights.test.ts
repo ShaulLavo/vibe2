@@ -40,7 +40,7 @@ describe('createLineHighlights', () => {
 				lexerStates,
 			})
 
-			const line1Start = (original.indexOf('\n') ?? -1) + 1
+			const line1Start = original.indexOf('\n') + 1
 			const entryLine1 = { index: 1, start: line1Start, length: 4, text: 'foo' }
 
 			expect(

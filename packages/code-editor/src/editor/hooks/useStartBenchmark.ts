@@ -45,9 +45,11 @@ export const useStartBenchmark = (options: UseStartBenchmarkOptions) => {
 
 				if (position > maxScroll) {
 					position = maxScroll - (position - maxScroll)
+					position = Math.max(0, position)
 					direction = -1
 				} else if (position < 0) {
 					position = -position
+					position = Math.min(maxScroll, position)
 					direction = 1
 					currentCycle++
 				}

@@ -1,4 +1,4 @@
-import type { Accessor } from 'solid-js'
+import { createMemo, type Accessor } from 'solid-js'
 import type { FoldRange } from '../types'
 
 export type FoldMapping = {
@@ -60,32 +60,12 @@ type HiddenRange = {
  * - lineIndex: actual line in the document (0 to totalLines-1)
  */
 export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
-	let cachedFolds: FoldRange[] | undefined
-	let cachedFoldedStarts: Set<number> | undefined
-	let cachedFoldedStartsSize = -1
-	let cachedHiddenRanges: HiddenRange[] = []
-	let cachedTotalHiddenLines = 0
-
-	const recompute = () => {
+	const hiddenRanges = createMemo(() => {
 		const folds = options.folds()
 		const foldedStarts = options.foldedStarts()
 
-		if (
-			folds === cachedFolds &&
-			foldedStarts === cachedFoldedStarts &&
-			foldedStarts.size === cachedFoldedStartsSize
-		) {
-			return
-		}
-
-		cachedFolds = folds
-		cachedFoldedStarts = foldedStarts
-		cachedFoldedStartsSize = foldedStarts.size
-
-			if (!folds?.length || foldedStarts.size === 0) {
-				cachedHiddenRanges = []
-				cachedTotalHiddenLines = 0
-				return
+		if (!folds?.length || foldedStarts.size === 0) {
+			return []
 		}
 
 		const activeFolds = folds.filter(
@@ -94,9 +74,7 @@ export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
 		)
 
 		if (activeFolds.length === 0) {
-			cachedHiddenRanges = []
-			cachedTotalHiddenLines = 0
-			return
+			return []
 		}
 
 		const sorted = activeFolds.slice().sort((a, b) => a.startLine - b.startLine)
@@ -136,19 +114,16 @@ export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
 			cumulativeHidden += count
 		}
 
-		cachedHiddenRanges = result
-		cachedTotalHiddenLines = cumulativeHidden
-	}
+		return result
+	})
 
-	const hiddenRanges = (): HiddenRange[] => {
-		recompute()
-		return cachedHiddenRanges
-	}
-
-	const totalHiddenLines = (): number => {
-		recompute()
-		return cachedTotalHiddenLines
-	}
+	const totalHiddenLines = createMemo(() => {
+		const ranges = hiddenRanges()
+		if (ranges.length === 0) return 0
+		const last = ranges[ranges.length - 1]
+		// Safe assertion because check above ensures length > 0
+		return last!.cumulativeHiddenBefore + last!.count
+	})
 
 	const visibleCount: Accessor<number> = () => {
 		const total = options.totalLines()

@@ -274,7 +274,7 @@ const isShiftableEdit = (
 	oldEndIndex: number
 ): boolean => {
 	const isInsertion = oldEndIndex === startIndex
-	const isWhitespaceOnly = /^[\s\n\r\t]*$/.test(insertedText)
+	const isWhitespaceOnly = /^\s*$/.test(insertedText)
 	const hasContent = insertedText.length > 0
 	return isInsertion && isWhitespaceOnly && hasContent
 }
@@ -520,7 +520,7 @@ const reparseWithEditBatch = async (
 	}
 
 	// Check if all edits are shiftable (whitespace-only insertions)
-	const hasCachedData = cached.captures && cached.brackets && cached.folds
+	const hasCachedData = cached?.captures && cached.brackets && cached.folds
 	const allEditsShiftable =
 		hasCachedData &&
 		edits.every((edit) =>
@@ -616,38 +616,27 @@ const reparseWithEditBatch = async (
 
 const api: TreeSitterWorkerApi = {
 	async init() {
-		return undefined
-
 		await ensureParser()
 	},
 	async parse(source) {
-		return undefined
-		// const parser = await ensureParser()
-		// const tree = parser?.parse(source)
-		// if (!tree) return undefined
-		// const result = await processTree(tree)
-		// tree.delete()
-		// return result
+		const parser = await ensureParser()
+		const tree = parser?.parse(source)
+		if (!tree) return undefined
+		const result = await processTree(tree)
+		tree.delete()
+		return result
 	},
 	async parseBuffer(payload) {
-		return undefined
-
 		const text = textDecoder.decode(new Uint8Array(payload.buffer))
 		return parseAndCacheText(payload.path, text)
 	},
 	async applyEdit(payload) {
-		return undefined
-
 		return reparseWithEdit(payload.path, payload)
 	},
 	async applyEditBatch(payload) {
-		return undefined
-
 		return reparseWithEditBatch(payload.path, payload.edits)
 	},
 	async dispose() {
-		return undefined
-
 		parserInstance?.delete()
 		parserInstance = null
 		parserInitPromise = null
