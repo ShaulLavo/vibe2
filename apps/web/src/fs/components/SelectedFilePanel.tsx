@@ -8,8 +8,8 @@ import {
 	Match,
 	Switch,
 	createMemo,
+	createResource,
 	createSignal,
-	onMount,
 } from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { BinaryFileViewer } from '../../components/BinaryFileViewer'
@@ -62,17 +62,11 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	const isBinary = () => state.selectedFileStats?.contentKind === 'binary'
 
 	// Tree-sitter worker for minimap
-	const [treeSitterWorker, setTreeSitterWorker] = createSignal<
-		Worker | undefined
-	>()
 	const [documentVersion, setDocumentVersion] = createSignal(0)
-
-	onMount(async () => {
-		const worker = await getTreeSitterWorker()
-		if (worker) {
-			setTreeSitterWorker(() => worker)
-		}
-	})
+	const [treeSitterWorker] = createResource(
+		() => true,
+		async () => getTreeSitterWorker()
+	)
 
 	// const handleFontSizeInput: JSX.EventHandlerUnion<
 	// 	HTMLInputElement,
@@ -183,7 +177,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						folds={() => state.selectedFileFolds}
 						brackets={() => state.selectedFileBrackets}
 						errors={editorErrors}
-						treeSitterWorker={treeSitterWorker()}
+						treeSitterWorker={treeSitterWorker() ?? undefined}
 						documentVersion={documentVersion}
 					/>
 				}
