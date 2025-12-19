@@ -14,8 +14,7 @@ export type MouseSelectionHandlers = {
 	handleMouseDown: (
 		event: MouseEvent,
 		lineIndex: number,
-		column: number,
-		textElement: HTMLElement | null
+		column: number
 	) => void
 }
 
@@ -163,12 +162,11 @@ export function createMouseSelection(
 		document.removeEventListener('mouseup', handleMouseUp)
 	}
 
-	const handleMouseDown = (
-		event: MouseEvent,
-		lineIndex: number,
-		column: number,
-		textElement: HTMLElement | null
-	) => {
+		const handleMouseDown = (
+			event: MouseEvent,
+			lineIndex: number,
+			column: number
+		) => {
 		if (event.button !== 0) return
 
 		if (cursor.lines.lineCount() === 0) return

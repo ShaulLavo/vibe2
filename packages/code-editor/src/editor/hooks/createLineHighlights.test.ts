@@ -83,12 +83,12 @@ describe('createLineHighlights', () => {
 				scope: 'variable',
 			}))
 
-			const [highlights, setHighlights] = createSignal(largeHighlights)
+				const [highlights] = createSignal(largeHighlights)
 
-			const { getLineHighlights } = createLineHighlights({
-				lexer,
-				highlights,
-			})
+				const { getLineHighlights } = createLineHighlights({
+					lexer,
+					highlights,
+				})
 
 			// Test a line in the middle
 			// Line corresponds to index 2500 -> start char 25000
