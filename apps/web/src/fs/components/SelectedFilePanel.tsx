@@ -11,8 +11,6 @@ import {
 	createMemo,
 	createResource,
 	createSignal,
-	onCleanup,
-	onMount,
 } from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { BinaryFileViewer } from '../../components/BinaryFileViewer'
@@ -55,43 +53,11 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		},
 	] = useFs()
 	const focus = useFocusManager()
-	// const [fontSize, setFontSize] = createSignal(DEFAULT_FONT_SIZE)
-	// const [fontFamily, setFontFamily] = createSignal(DEFAULT_FONT_FAMILY)
-	// const [cursorMode, setCursorMode] = makePersisted(
-	// 	// eslint-disable-next-line solid/reactivity
-	// 	createSignal<CursorMode>('regular'),
-	// 	{ name: 'editor-cursor-mode' }
-	// )
 
 	const isBinary = () => state.selectedFileStats?.contentKind === 'binary'
 
-	// Tree-sitter worker for minimap
 	const [documentVersion, setDocumentVersion] = createSignal(0)
-	const [treeSitterWorker] = createResource(
-		() => true,
-		async () => getTreeSitterWorker()
-	)
-
-	// const handleFontSizeInput: JSX.EventHandlerUnion<
-	// 	HTMLInputElement,
-	// 	InputEvent
-	// > = event => {
-	// 	const next = event.currentTarget.valueAsNumber
-	// 	setFontSize(Number.isNaN(next) ? DEFAULT_FONT_SIZE : next)
-	// }
-
-	// const resetFontControls = () => {
-	// 	setFontSize(DEFAULT_FONT_SIZE)
-	// 	setFontFamily(DEFAULT_FONT_FAMILY)
-	// }
-
-	// const toggleCursorMode = () => {
-	// 	setCursorMode(mode => (mode === 'regular' ? 'terminal' : 'regular'))
-	// }
-
-	// const cursorModeLabel = createMemo(() =>
-	// 	cursorMode() === 'terminal' ? 'Terminal' : 'Regular'
-	// )
+	const [treeSitterWorker] = createResource(async () => getTreeSitterWorker())
 
 	const tabs = useTabs(() => state.lastKnownFilePath, {
 		maxTabs: MAX_EDITOR_TABS,
@@ -122,6 +88,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			// Tree-sitter artifacts are async and can briefly go stale vs the live piece table.
 			// Clear highlights and brackets immediately so the editor falls back to the lexer
 			// until the next worker result arrives.
+			// TODO make tree sitter table like zed editor
 			batch(() => {
 				updateSelectedFileHighlights(undefined)
 				updateSelectedFileBrackets([])
@@ -141,8 +108,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			})
 		},
 	}
-
-	// Tree-sitter worker for minimap
 
 	const editorHighlights = createMemo<EditorSyntaxHighlight[] | undefined>(
 		() => {
