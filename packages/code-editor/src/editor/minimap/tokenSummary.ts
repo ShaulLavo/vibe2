@@ -67,26 +67,27 @@ export const MINIMAP_SCOPE_TO_COLOR_ID: Record<string, number> = {
 
 /**
  * Default color palette (packed RGBA, little-endian: 0xAABBGGRR when read as Uint32)
- * Colors are designed to be visible on dark backgrounds.
+ * For color #RRGGBB, pack as 0xFFBBGGRR
+ * Colors matched to editor theme from highlights.ts
  */
 export const MINIMAP_DEFAULT_PALETTE = new Uint32Array([
-	0xd9e4e4e7, // 0: default - zinc-300 with alpha
-	0xfff472b6, // 1: keyword - pink-400
-	0xfff472b6, // 2: keyword.control - pink-400
-	0xfff472b6, // 3: keyword.operator - pink-400
-	0xff38bdf8, // 4: type - sky-400
-	0xff34d399, // 5: function - emerald-400
-	0xfff8fafc, // 6: variable - slate-50
-	0xfffdba74, // 7: variable.builtin - orange-300
-	0xfffacc15, // 8: constant - yellow-400
-	0xffa5f3fc, // 9: string - cyan-200
-	0xfffcd34d, // 10: number - amber-300
-	0xff6b7280, // 11: comment - gray-500
-	0xff9ca3af, // 12: punctuation - gray-400
-	0xfff472b6, // 13: operator - pink-400
-	0xff94a3b8, // 14: property - slate-400
-	0xffef4444, // 15: error - red-500
-	0xfffacc15, // 16: missing/warning - yellow-400
+	0xd9e7e4e4, // 0: default - zinc-300 (#e4e4e7) with alpha 0xd9
+	0xfffa8ba7, // 1: keyword - violet-400 (#a78bfa)
+	0xffb7e76e, // 2: keyword.control - emerald-300 (#6ee7b7)
+	0xffb7e76e, // 3: keyword.operator - emerald-300 (#6ee7b7)
+	0xfffcd37d, // 4: type - sky-300 (#7dd3fc)
+	0xffd3cdfe, // 5: function - rose-200 (#fecdd3)
+	0xffe7e4e4, // 6: variable - zinc-200 (#e4e4e7)
+	0xff74bafd, // 7: variable.builtin - orange-300 (#fdba74)
+	0xfffcabf0, // 8: constant - fuchsia-300 (#f0abfc)
+	0xff8ae6fd, // 9: string - amber-200 (#fde68a)
+	0xfffed2c7, // 10: number - indigo-200 (#c7d2fe)
+	0xff7a7171, // 11: comment - zinc-500 (#71717a)
+	0xffd8d4d4, // 12: punctuation - zinc-300 (#d4d4d8)
+	0xffb7e76e, // 13: operator - emerald-300
+	0xffffd5e9, // 14: property - purple-200 (#e9d5ff)
+	0xff4444ef, // 15: error - red-500 (#ef4444)
+	0xff15ccfa, // 16: missing/warning - yellow-400 (#facc15)
 ])
 
 /**
@@ -95,12 +96,13 @@ export const MINIMAP_DEFAULT_PALETTE = new Uint32Array([
  */
 export type MinimapTokenSummary = {
 	/**
-	 * Token color data (index into palette).
+	 * Token data (packed).
+	 * low byte (0-7): char code (ASCII)
+	 * high byte (8-15): colorId
 	 * Stride is `maxChars`.
-	 * `tokens[line * maxChars + char]` = colorId
-	 * 0 = empty space / whitespace
+	 * `tokens[line * maxChars + char]` = (colorId << 8) | charCode
 	 */
-	tokens: Uint8Array
+	tokens: Uint16Array
 	/** Maximum characters sampled per line (stride) */
 	maxChars: number
 	/** Number of lines */
@@ -144,8 +146,8 @@ export type MinimapSummaryUpdate = {
 	dirtyEndLine: number
 	/** Updated densities for dirty range */
 	densities: Uint8Array
-	/** Updated colorIds for dirty range */
-	colorIds: Uint8Array
+	/** Updated tokens for dirty range */
+	tokens: Uint16Array
 }
 
 /**
@@ -195,9 +197,9 @@ export const createEmptyTokenSummary = (
 	maxChars: number,
 	version: number
 ): MinimapTokenSummary => {
-	const totalBytes = lineCount * maxChars
+	const totalTokens = lineCount * maxChars
 	return {
-		tokens: new Uint8Array(totalBytes),
+		tokens: new Uint16Array(totalTokens),
 		maxChars,
 		lineCount,
 		version,
@@ -227,10 +229,10 @@ export const createSharedTokenSummary = (
 ): MinimapTokenSummary => {
 	if (isSharedArrayBufferAvailable()) {
 		// Use SharedArrayBuffer for true zero-copy between workers
-		const totalBytes = lineCount * maxChars
+		const totalBytes = lineCount * maxChars * 2 // Uint16
 		const buffer = new SharedArrayBuffer(totalBytes)
 		return {
-			tokens: new Uint8Array(buffer),
+			tokens: new Uint16Array(buffer),
 			maxChars,
 			lineCount,
 			version,
@@ -266,7 +268,7 @@ export const cloneTokenSummary = (
 	summary: MinimapTokenSummary
 ): MinimapTokenSummary => {
 	return {
-		tokens: new Uint8Array(summary.tokens),
+		tokens: new Uint16Array(summary.tokens),
 		maxChars: summary.maxChars,
 		lineCount: summary.lineCount,
 		version: summary.version,
@@ -283,10 +285,10 @@ export const createCompactTokenSummary = (
 	version: number
 ): MinimapTokenSummary => {
 	// Single buffer just for tokens
-	const totalBytes = lineCount * maxChars
+	const totalBytes = lineCount * maxChars * 2 // Uint16
 	const buffer = new ArrayBuffer(totalBytes)
 	return {
-		tokens: new Uint8Array(buffer),
+		tokens: new Uint16Array(buffer),
 		maxChars,
 		lineCount,
 		version,
@@ -301,7 +303,7 @@ export const serializeTokenSummary = (
 	summary: MinimapTokenSummary
 ): ArrayBuffer => {
 	const headerSize = 12 // 4 bytes lineCount + 4 bytes maxChars + 4 bytes version
-	const totalBytes = summary.lineCount * summary.maxChars
+	const totalBytes = summary.lineCount * summary.maxChars * 2 // Uint16
 	const buffer = new ArrayBuffer(headerSize + totalBytes)
 	const view = new DataView(buffer)
 
@@ -309,7 +311,11 @@ export const serializeTokenSummary = (
 	view.setUint32(4, summary.maxChars, true)
 	view.setUint32(8, summary.version, true)
 
-	const tokens = new Uint8Array(buffer, headerSize, totalBytes)
+	const tokens = new Uint16Array(
+		buffer,
+		headerSize,
+		summary.lineCount * summary.maxChars
+	)
 	tokens.set(summary.tokens)
 
 	return buffer
@@ -327,10 +333,10 @@ export const deserializeTokenSummary = (
 	const version = view.getUint32(8, true)
 
 	const headerSize = 12
-	const totalBytes = lineCount * maxChars
+	const totalTokens = lineCount * maxChars
 
 	return {
-		tokens: new Uint8Array(buffer, headerSize, totalBytes),
+		tokens: new Uint16Array(buffer, headerSize, totalTokens),
 		maxChars,
 		lineCount,
 		version,

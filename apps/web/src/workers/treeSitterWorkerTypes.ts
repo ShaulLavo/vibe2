@@ -43,7 +43,8 @@ export type TreeSitterWorkerApi = {
 		path: string
 		edits: Omit<TreeSitterEditPayload, 'path'>[]
 	}): Promise<TreeSitterParseResult | undefined>
-	subscribeMinimapReady(callback: (payload: { path: string }) => void): () => void
+	subscribeMinimapReady(callback: (payload: { path: string }) => void): number
+	unsubscribeMinimapReady(id: number): void
 	/** Get compact minimap token summary for a cached file */
 	getMinimapSummary(payload: {
 		path: string

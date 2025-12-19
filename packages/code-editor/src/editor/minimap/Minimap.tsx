@@ -182,14 +182,25 @@ export const Minimap = (props: MinimapProps) => {
 					props.version?.(),
 				] as const,
 			async ([active, treeSitterWorker, filePath, version]) => {
+				console.log('[Minimap] Effect triggered', {
+					active,
+					hasTS: !!treeSitterWorker,
+					filePath,
+					version,
+				})
 				if (!active) return
 
-				if (treeSitterWorker && connectedTreeSitterWorker !== treeSitterWorker) {
+				if (
+					treeSitterWorker &&
+					connectedTreeSitterWorker !== treeSitterWorker
+				) {
+					console.log('[Minimap] Connecting TS worker')
 					worker.connectTreeSitter(treeSitterWorker)
 					connectedTreeSitterWorker = treeSitterWorker
 				}
 
 				if (!treeSitterWorker || !filePath) {
+					console.log('[Minimap] Missing requirements')
 					hasRenderedBase = false
 					lastRenderedPath = null
 					setOverlayVisible(false)
@@ -205,7 +216,9 @@ export const Minimap = (props: MinimapProps) => {
 					await worker.clear()
 				}
 
+				console.log('[Minimap] Requesting renderFromPath', filePath, version)
 				const rendered = await worker.renderFromPath(filePath, version ?? 0)
+				console.log('[Minimap] renderFromPath result:', rendered)
 				if (!rendered) return
 
 				hasRenderedBase = true
@@ -244,7 +257,10 @@ export const Minimap = (props: MinimapProps) => {
 		if (lineCount <= 0) return
 
 		const drawingHeight = getDrawingHeightCss(containerHeight, lineCount)
-		const { sliderTop, sliderHeight } = getSliderGeometry(element, drawingHeight)
+		const { sliderTop, sliderHeight } = getSliderGeometry(
+			element,
+			drawingHeight
+		)
 		const sliderXCss = 1
 		const sliderWidthCss = Math.max(1, width - 2)
 
@@ -275,10 +291,10 @@ export const Minimap = (props: MinimapProps) => {
 		ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'
 		ctx.fillRect(x, cursorY, w, cursorHeight)
 
-		// Draw selection ranges
+		// Draw selection ranges - more prominent
 		const selections = cursor.state.selections
 		if (selections && selections.length > 0) {
-			ctx.fillStyle = 'rgba(100, 149, 237, 0.3)' // Cornflower blue with transparency
+			ctx.fillStyle = 'rgba(59, 130, 246, 0.5)' // Blue-500 with higher opacity
 
 			for (const selection of selections) {
 				// SelectionRange uses anchor/focus offsets, not line/column positions
@@ -306,26 +322,29 @@ export const Minimap = (props: MinimapProps) => {
 			}
 		}
 
-		// Draw diagnostic markers (errors/warnings) on left edge
+		// Draw diagnostic markers - FULL WIDTH red/yellow lines with emphasis
 		const errors = props.errors?.()
 		if (errors && errors.length > 0) {
-			const markerWidth = 3 * dpr // Marker width in device pixels
-
 			for (const error of errors) {
 				const errorLine = cursor.lines.offsetToPosition(error.startIndex).line
 				const errorY = lineToMinimapY(errorLine)
 
-				// Use red for errors, yellow for warnings (isMissing)
-				ctx.fillStyle = error.isMissing
-					? 'rgba(250, 204, 21, 0.9)' // yellow-400
+				// Use red for errors, yellow for warnings - HIGH VISIBILITY
+				const isWarning = error.isMissing
+				ctx.fillStyle = isWarning
+					? 'rgba(250, 204, 21, 0.85)' // yellow-400
 					: 'rgba(239, 68, 68, 0.9)' // red-500
 
-				ctx.fillRect(
-					(width - 4) * dpr, // Right edge
-					errorY,
-					markerWidth,
-					cursorHeight
-				)
+				// Full width line with extra height for visibility
+				const errorHeight = Math.max(cursorHeight, 3 * dpr)
+				ctx.fillRect(x, errorY, w, errorHeight)
+
+				// Add bright outline for extra emphasis
+				ctx.strokeStyle = isWarning
+					? 'rgba(234, 179, 8, 1)' // yellow-500 solid
+					: 'rgba(220, 38, 38, 1)' // red-600 solid
+				ctx.lineWidth = Math.max(1, dpr)
+				ctx.strokeRect(x, errorY, w, errorHeight)
 			}
 		}
 	}
@@ -365,7 +384,10 @@ export const Minimap = (props: MinimapProps) => {
 
 		const lineCount = cursor.lines.lineCount()
 		const drawingHeight = getDrawingHeightCss(size.height, lineCount)
-		const { sliderTop, sliderHeight } = getSliderGeometry(element, drawingHeight)
+		const { sliderTop, sliderHeight } = getSliderGeometry(
+			element,
+			drawingHeight
+		)
 		const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
 		const localY = clamp(event.clientY - rect.top, 0, drawingHeight)
 		const isOnSlider = localY >= sliderTop && localY <= sliderTop + sliderHeight

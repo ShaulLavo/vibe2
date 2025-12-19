@@ -196,10 +196,14 @@ const applyTextEdit = (
 
 // Subscribers for minimap readiness notifications.
 // Used by the minimap renderer worker to render as soon as the cache updates.
-const minimapReadySubscribers = new Set<(payload: { path: string }) => void>()
+const minimapReadySubscribers = new Map<
+	number,
+	(payload: { path: string }) => void
+>()
+let nextSubscriptionId = 1
 
 const notifyMinimapReady = (path: string) => {
-	for (const callback of minimapReadySubscribers) {
+	for (const callback of minimapReadySubscribers.values()) {
 		try {
 			callback({ path })
 		} catch (error) {
@@ -216,6 +220,8 @@ const setCachedEntry = (path: string, entry: CachedTreeEntry) => {
 	astCache.set(path, entry)
 	notifyMinimapReady(path)
 }
+
+// [Removed duplicate api declaration]
 
 // Bracket types we care about
 const BRACKET_PAIRS: Record<string, string> = {
@@ -742,7 +748,19 @@ const generateMinimapSummary = (
 	maxChars: number = 160
 ): MinimapTokenSummary | undefined => {
 	const cached = astCache.get(path)
-	if (!cached) return undefined
+	if (!cached) {
+		console.log(
+			'[TreeSitter] generateMinimapSummary: No cached entry for',
+			path
+		)
+		return undefined
+	}
+	console.log(
+		'[TreeSitter] generateMinimapSummary: Cached entry found for',
+		path,
+		'Language:',
+		cached.languageId
+	)
 
 	const text = cached.text
 	const captures = cached.captures ?? []
@@ -752,9 +770,11 @@ const generateMinimapSummary = (
 	const lineCount = lines.length
 
 	// Allocate buffer for tokens (lineCount * maxChars)
-	const totalBytes = lineCount * maxChars
-	const buffer = new ArrayBuffer(totalBytes)
-	const tokens = new Uint8Array(buffer)
+	// Uint16Array for (Color << 8) | Char
+	// totalBytes = lineCount * maxChars * 2 bytes/element
+	const totalTokens = lineCount * maxChars
+	const buffer = new ArrayBuffer(totalTokens * 2)
+	const tokens = new Uint16Array(buffer)
 
 	// Build line start offsets for fast lookup
 	const lineStarts: number[] = new Array(lineCount)
@@ -783,18 +803,20 @@ const generateMinimapSummary = (
 		const tokenOffset = lineIndex * maxChars
 		const sampleLength = Math.min(lineText.length, maxChars)
 
-		// Fill line with tokens
-		// Optimization: instead of char-by-char, we can iterate relevant captures
-		// Initialize with 0
+		// 1. Fill base characters
+		for (let i = 0; i < sampleLength; i++) {
+			const code = lineText.charCodeAt(i)
+			// Color 0, char code in low byte
+			tokens[tokenOffset + i] = code
+		}
 
-		// Iterate relevant captures for this line and paint the tokens
+		// 2. Iterate relevant captures for this line and paint the colors
 		let idx = captureIndex
 		while (idx < captures.length && captures[idx]!.startIndex < lineEnd) {
 			const capture = captures[idx]!
 			const colorId = getScopeColorId(capture.captureName)
 
 			// Calculate intersection with clamped line range [lineStart, lineStart + sampleLength]
-			// We only care about the first maxChars of the line
 			const sampleEndGlobal = lineStart + sampleLength
 
 			const startGlobal = Math.max(capture.startIndex, lineStart)
@@ -805,16 +827,11 @@ const generateMinimapSummary = (
 				const startLocal = startGlobal - lineStart
 				const endLocal = endGlobal - lineStart
 
-				// Fill range
+				// Fill colors for the character range
 				for (let i = startLocal; i < endLocal; i++) {
-					// Don't overwrite if character is whitespace (keep 0/transparent if we consider 0 as bg)
-					// Actually, source code might have whitespace.
-					// If we want to see block structure, we should verify it's not a space.
-					const charCode = lineText.charCodeAt(i)
-					if (charCode !== 32 && charCode !== 9) {
-						// space or tab
-						tokens[tokenOffset + i] = colorId
-					}
+					const code = lineText.charCodeAt(i)
+					// Combine colorId (high byte) + charCode (low byte)
+					tokens[tokenOffset + i] = (colorId << 8) | (code & 0xff)
 				}
 			}
 
@@ -858,10 +875,12 @@ const api: TreeSitterWorkerApi = {
 		return reparseWithEditBatch(payload.path, payload.edits)
 	},
 	subscribeMinimapReady(callback) {
-		minimapReadySubscribers.add(callback)
-		return proxy(() => {
-			minimapReadySubscribers.delete(callback)
-		})
+		const id = nextSubscriptionId++
+		minimapReadySubscribers.set(id, callback)
+		return id
+	},
+	unsubscribeMinimapReady(id) {
+		minimapReadySubscribers.delete(id)
 	},
 	async getMinimapSummary(payload) {
 		return generateMinimapSummary(
