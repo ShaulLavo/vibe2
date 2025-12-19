@@ -149,15 +149,17 @@ export const tokenizeLine = (
 		if (c === '/' && next === '*') {
 			const start = i
 			i += 2
+			let foundCloser = false
 			while (i < len) {
 				if (line[i] === '*' && i + 1 < len && line[i + 1] === '/') {
 					i += 2
+					foundCloser = true
 					break
 				}
 				i++
 			}
 			tokens.push({ start, end: i, scope: 'comment.block' })
-			if (i >= len && !(line[len - 2] === '*' && line[len - 1] === '/')) {
+			if (!foundCloser) {
 				return {
 					tokens,
 					brackets,
