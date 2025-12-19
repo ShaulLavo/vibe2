@@ -191,6 +191,14 @@ export function calculateMinimapViewport(
 	minimapScrollTopCss: number,
 	totalMinimapLines: number
 ): MinimapViewport {
+	if (totalMinimapLines <= 0) {
+		return {
+			startMinimapLine: 0,
+			endMinimapLine: 0,
+			minimapLineCount: 0,
+		}
+	}
+
 	const linesVisible = Math.ceil(canvasHeightCss / minimapRowHeightCss)
 	const startMinimapLine = Math.max(
 		0,

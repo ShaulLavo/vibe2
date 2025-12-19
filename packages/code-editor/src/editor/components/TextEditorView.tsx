@@ -49,6 +49,8 @@ export const TextEditorView = (props: EditorProps) => {
 		(previousPath: string | undefined): string | undefined => {
 			const selected = props.isFileSelected()
 			const path = props.document.filePath()
+			const version = props.documentVersion?.()
+			const lineCount = cursor.lines.lineStarts().length
 
 			const hasPath = Boolean(path)
 			const isReady = selected && hasPath
@@ -66,8 +68,15 @@ export const TextEditorView = (props: EditorProps) => {
 			}
 
 			const hasPathChanged = previousPath !== path
-			const hasLineStates = lexer.getAllLineStates().length > 0
-			const shouldRecomputeAll = hasPathChanged || hasLineStates === false
+			const stateCount = lexer.getAllLineStates().length
+			const isCountMismatch = stateCount !== lineCount
+			// Recompute if:
+			// 1. Path changed
+			// 2. We have no states
+			// 3. Line counts don't match (e.g. content loaded but lexer not updated)
+			// 4. We have 1 line (cheap to recompute, handles 1-line file load edge case)
+			const shouldRecomputeAll =
+				hasPathChanged || stateCount === 0 || isCountMismatch || lineCount === 1
 
 			if (shouldRecomputeAll) {
 				lexerStatesPath = path

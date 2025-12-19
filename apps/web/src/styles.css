@@ -6,7 +6,7 @@
 :root {
 	--font-mono: 'JetBrains Mono Variable', monospace;
 	--font-serif: 'Geist Variable', sans-serif;
-	--font-sans: 'Geist Variable', sans-serif;
+	--font-sans: 'Google Sans Flex', sans-serif;
 }
 
 /* TODO: Replace native scrollbars with custom implementation */
