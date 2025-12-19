@@ -214,8 +214,7 @@ const buildPack = async (pack: PackConfig) => {
 	const exists = await pathExists(cacheDir)
 
 	if (!exists) {
-		throw new Error(
-			`Missing cached icons for "${pack.shortName}". Run "bun run fetch-packs" before building.`
+			`Missing cached icons for "${pack.shortName}". Run "bun run fetch-icons" before building.`
 		)
 	}
 

@@ -146,30 +146,48 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 				(lineStart + lineLength - 1) / SPATIAL_CHUNK_SIZE
 			)
 
-			const candidates: EditorSyntaxHighlight[] = []
+			// 2. Gather candidates
+			const candidatesBuffer: EditorSyntaxHighlight[] = []
 
 			if (largeHighlights.length > 0) {
-				candidates.push(...largeHighlights)
+				for (const h of largeHighlights) candidatesBuffer.push(h)
 			}
 
+			// Add bucketed highlights
 			for (let i = startChunk; i <= endChunk; i++) {
 				const bucket = spatialIndex.get(i)
 				if (bucket) {
-					candidates.push(...bucket)
+					for (const h of bucket) candidatesBuffer.push(h)
 				}
 			}
 
-			let relevantHighlights = candidates
-			if (startChunk !== endChunk) {
-				relevantHighlights = Array.from(new Set(candidates))
+			// 3. Sort (mutates buffer)
+			candidatesBuffer.sort((a, b) => a.startIndex - b.startIndex)
+
+			// 4. Deduplicate in-place (if multiple chunks involved)
+			// Only needed if we pulled from >1 source that could overlap.
+			// Buckets overlap in content (same highlight in multiple buckets).
+			let uniqueCount = candidatesBuffer.length
+			if (startChunk !== endChunk && candidatesBuffer.length > 1) {
+				let writeIndex = 1
+				for (let i = 1; i < candidatesBuffer.length; i++) {
+					// Compare with previous unique item
+					if (candidatesBuffer[i] !== candidatesBuffer[writeIndex - 1]) {
+						candidatesBuffer[writeIndex] = candidatesBuffer[i]!
+						writeIndex++
+					}
+				}
+				uniqueCount = writeIndex
+				// Trimming not strictly necessary if we pass length, but toLineHighlightSegmentsForLine iterates input.
+				// We must truncate the buffer to correct length for the callee.
+				candidatesBuffer.length = uniqueCount
 			}
-			relevantHighlights.sort((a, b) => a.startIndex - b.startIndex)
 
 			highlightSegments = toLineHighlightSegmentsForLine(
 				lineStart,
 				lineLength,
 				lineTextLength,
-				relevantHighlights
+				candidatesBuffer
 			)
 		} else {
 			const lineState =
