@@ -8,7 +8,7 @@
 import { createSignal, onCleanup } from 'solid-js'
 import { wrap, transfer, type Remote } from 'comlink'
 import type { MinimapLayout } from './workerTypes'
-import type { MinimapWorkerApi } from './minimapWorker'
+import type { MinimapWorkerApi } from './minimapWorker/worker'
 import type { MinimapTokenSummary } from './tokenSummary'
 
 export type UseMinimapWorkerOptions = {
@@ -47,7 +47,9 @@ export type MinimapWorkerController = {
  * Create URL for the worker
  */
 const createMinimapWorker = () =>
-	new Worker(new URL('./minimapWorker.ts', import.meta.url), { type: 'module' })
+	new Worker(new URL('./minimapWorker/worker.ts', import.meta.url), {
+		type: 'module',
+	})
 
 export const useMinimapWorker = (
 	options: UseMinimapWorkerOptions = {}
