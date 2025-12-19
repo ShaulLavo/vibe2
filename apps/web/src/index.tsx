@@ -5,6 +5,7 @@ import './styles.css'
 import '@repo/code-editor/styles.css'
 import '@fontsource-variable/jetbrains-mono'
 import '@fontsource-variable/geist'
+import '@fontsource/google-sans-flex'
 
 import App from './App'
 

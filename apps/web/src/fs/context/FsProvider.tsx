@@ -200,14 +200,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		},
 		reloadDirectory,
 		hasLocalEdits: (path: string) => {
-			// TODO: Implement proper dirty state tracking
-			// For now, check if there's a piece table with edits
-			// A file has local edits if its add buffer has content
-			const pieceTable = state.pieceTables[path]
-			if (!pieceTable) return false
-
-			// If the add buffer has content, it means there are local edits
-			return pieceTable.buffers.add.length > 0
+			return !!state.dirtyPaths[path]
 		},
 		getRootHandle: () => getRootHandle(state.activeSource ?? DEFAULT_SOURCE),
 		pollIntervalMs: 1000,

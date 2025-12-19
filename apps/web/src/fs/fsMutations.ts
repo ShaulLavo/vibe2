@@ -156,7 +156,6 @@ export const createFsMutations = ({
 				// Clear dirty state
 				setDirtyPath(filePath, false)
 			})
-			await refresh()
 			toast.success('File saved')
 		} catch (error) {
 			console.error('Save failed:', error)
