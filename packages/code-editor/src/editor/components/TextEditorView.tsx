@@ -50,15 +50,15 @@ export const TextEditorView = (props: TextEditorViewProps) => {
 		scrollElement,
 	})
 
-		const layout = createTextEditorLayout({
-			fontSize: () => props.fontSize(),
-			fontFamily: () => props.fontFamily(),
-			isFileSelected: () => props.isFileSelected(),
-			tabSize,
-			scrollElement,
-			folds: () => props.folds?.(),
-			foldedStarts,
-		})
+	const layout = createTextEditorLayout({
+		fontSize: () => props.fontSize(),
+		fontFamily: () => props.fontFamily(),
+		isFileSelected: () => props.isFileSelected(),
+		tabSize,
+		scrollElement,
+		folds: () => props.folds?.(),
+		foldedStarts,
+	})
 
 	const cursorScroll = createCursorScrollSync({
 		scrollElement,
@@ -128,6 +128,7 @@ export const TextEditorView = (props: TextEditorViewProps) => {
 		lexer,
 		highlights: () => props.highlights?.(),
 		errors: () => props.errors?.(),
+		lexerStates,
 	})
 
 	return (
