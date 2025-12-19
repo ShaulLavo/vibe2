@@ -22,6 +22,7 @@ import {
 	useVisibleBracketDepths,
 } from '../hooks'
 import { EditorViewport } from './EditorViewport'
+import { Minimap } from '../minimap'
 import type { DocumentIncrementalEdit, EditorProps } from '../types'
 
 export const TextEditorView = (props: EditorProps) => {
@@ -121,7 +122,7 @@ export const TextEditorView = (props: EditorProps) => {
 	}
 
 	const disposeHistoryLexerSync = history.subscribeAppliedEdits((edit) => {
-		applyLexerEdit(edit)
+		untrack(() => applyLexerEdit(edit))
 	})
 	onCleanup(disposeHistoryLexerSync)
 
@@ -174,10 +175,9 @@ export const TextEditorView = (props: EditorProps) => {
 	const handleLineMouseDown = (
 		event: MouseEvent,
 		lineIndex: number,
-		column: number,
-		textElement: HTMLElement | null
+		column: number
 	) => {
-		mouseSelection.handleMouseDown(event, lineIndex, column, textElement)
+		mouseSelection.handleMouseDown(event, lineIndex, column)
 		if (isEditable()) input.focusInput()
 	}
 
@@ -216,23 +216,32 @@ export const TextEditorView = (props: EditorProps) => {
 				</p>
 			}
 		>
-			<EditorViewport
-				setScrollElement={setScrollElement}
-				setInputElement={setInputElement}
-				layout={layout}
-				input={input}
-				isEditable={isEditable}
-				fontSize={props.fontSize}
-				fontFamily={props.fontFamily}
-				cursorMode={props.cursorMode}
-				tabSize={tabSize}
-				bracketDepths={bracketDepths}
-				getLineHighlights={getLineHighlights}
-				folds={props.folds}
-				foldedStarts={foldedStarts}
-				onToggleFold={toggleFold}
-				onLineMouseDown={handleLineMouseDown}
-			/>
+			<div class="flex h-full">
+				<EditorViewport
+					setScrollElement={setScrollElement}
+					setInputElement={setInputElement}
+					layout={layout}
+					input={input}
+					isEditable={isEditable}
+					fontSize={props.fontSize}
+					fontFamily={props.fontFamily}
+					cursorMode={props.cursorMode}
+					tabSize={tabSize}
+					bracketDepths={bracketDepths}
+					getLineHighlights={getLineHighlights}
+					folds={props.folds}
+					foldedStarts={foldedStarts}
+					onToggleFold={toggleFold}
+					onLineMouseDown={handleLineMouseDown}
+				/>
+				<Minimap
+					scrollElement={scrollElement}
+					errors={props.errors}
+					treeSitterWorker={props.treeSitterWorker}
+					filePath={props.document.filePath()}
+					version={props.documentVersion}
+				/>
+			</div>
 		</Show>
 	)
 }

@@ -87,6 +87,10 @@ export type EditorProps = {
 	folds?: Accessor<FoldRange[] | undefined>
 	brackets?: Accessor<BracketInfo[] | undefined>
 	errors?: Accessor<EditorError[] | undefined>
+	/** Tree-sitter worker for minimap communication */
+	treeSitterWorker?: Worker
+	/** Document version for minimap re-render */
+	documentVersion?: Accessor<number>
 }
 
 export type LineEntry = {
