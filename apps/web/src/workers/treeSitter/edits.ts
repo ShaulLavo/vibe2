@@ -105,25 +105,30 @@ export const shiftBrackets = (
 
 /**
  * Shifts fold ranges after a line edit.
+ * Filters out folds that become invalid (endLine <= startLine) after shifting.
  */
 export const shiftFolds = (
 	folds: FoldRange[],
 	insertLineRow: number,
 	lineDelta: number
 ): FoldRange[] => {
-	return folds.map((fold) => {
-		const startAfterInsert = fold.startLine >= insertLineRow
-		const endAfterInsert = fold.endLine >= insertLineRow
+	return folds
+		.map((fold) => {
+			const startAfterInsert = fold.startLine >= insertLineRow
+			const endAfterInsert = fold.endLine >= insertLineRow
 
-		const newStartLine = startAfterInsert
-			? fold.startLine + lineDelta
-			: fold.startLine
-		const newEndLine = endAfterInsert ? fold.endLine + lineDelta : fold.endLine
+			const newStartLine = startAfterInsert
+				? fold.startLine + lineDelta
+				: fold.startLine
+			const newEndLine = endAfterInsert
+				? fold.endLine + lineDelta
+				: fold.endLine
 
-		return {
-			...fold,
-			startLine: newStartLine,
-			endLine: newEndLine,
-		}
-	})
+			return {
+				...fold,
+				startLine: newStartLine,
+				endLine: newEndLine,
+			}
+		})
+		.filter((fold) => fold.endLine > fold.startLine)
 }
