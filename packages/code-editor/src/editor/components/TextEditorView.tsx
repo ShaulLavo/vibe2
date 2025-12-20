@@ -226,7 +226,7 @@ export const TextEditorView = (props: EditorProps) => {
 				</p>
 			}
 		>
-			<div class="flex h-full">
+			<div class="relative flex h-full min-h-0 min-w-0 flex-1 overflow-hidden">
 				<EditorViewport
 					setScrollElement={setScrollElement}
 					setInputElement={setInputElement}

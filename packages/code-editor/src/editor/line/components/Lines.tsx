@@ -9,8 +9,6 @@ export const Lines = (props: LinesProps) => {
 		<div class="relative flex-1">
 			<For each={props.rows()}>
 				{(virtualRow) => {
-					// Convert display index to actual line index (accounting for folds)
-					// MUST be reactive so it updates when folds change
 					const lineIndex = createMemo(() =>
 						props.displayToLine
 							? props.displayToLine(virtualRow.index)

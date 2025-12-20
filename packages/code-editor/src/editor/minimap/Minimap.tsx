@@ -105,6 +105,9 @@ export const Minimap = (props: MinimapProps) => {
 		if (canvas.height !== deviceHeight) canvas.height = deviceHeight
 		return { dpr, deviceWidth, deviceHeight }
 	}
+	// ... (rest of helper functions same)
+
+	// ...
 
 	const getLayout = (): MinimapLayout | null => {
 		const size = getCanvasSizeCss()
@@ -512,7 +515,7 @@ export const Minimap = (props: MinimapProps) => {
 
 	return (
 		<div
-			class="relative h-full w-[50px] shrink-0 group before:absolute before:-left-1 before:top-0 before:h-full before:w-[4px] before:content-['']"
+			class="absolute right-0 top-0 h-full w-[50px] z-50 opacity-0 hover:opacity-100 transition-all duration-300 data-[show=true]:opacity-100 group before:absolute before:-left-1 before:top-0 before:h-full before:w-[4px] before:content-[''] bg-zinc-950/20 hover:bg-zinc-950/90 border-l border-white/5"
 			style={{ 'view-transition-name': 'minimap' }}
 			ref={setContainer}
 			onPointerDown={handlePointerDown}
@@ -525,14 +528,14 @@ export const Minimap = (props: MinimapProps) => {
 		>
 			<canvas
 				ref={setBaseCanvas}
-				class="absolute left-0 top-0 h-full w-full opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-data-[show=true]:opacity-100"
+				class="absolute left-0 top-0 h-full w-full"
 				style={{
 					'pointer-events': 'none',
 				}}
 			/>
 			<canvas
 				ref={setOverlayCanvas}
-				class="absolute left-0 top-0 h-full w-full opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-data-[show=true]:opacity-100"
+				class="absolute left-0 top-0 h-full w-full"
 				style={{
 					'pointer-events': 'none',
 				}}
