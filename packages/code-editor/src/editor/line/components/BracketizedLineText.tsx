@@ -1,5 +1,5 @@
-import { createMemo, type Accessor, type JSX } from 'solid-js'
-import type { BracketDepthMap, LineHighlightSegment } from '../../types'
+import { createMemo, type JSX } from 'solid-js'
+import type { LineBracketDepthMap, LineHighlightSegment } from '../../types'
 import { getBracketDepthTextClass } from '../../theme/bracketColors'
 
 type NormalizedHighlightSegment = {
@@ -70,8 +70,7 @@ const normalizeHighlightSegments = (
  */
 const buildTextRuns = (
 	text: string,
-	lineStart: number,
-	depthMap: BracketDepthMap | undefined,
+	depthMap: LineBracketDepthMap | undefined,
 	highlights: NormalizedHighlightSegment[]
 ): TextRun[] => {
 	if (text.length === 0) return []
@@ -98,7 +97,6 @@ const buildTextRuns = (
 		}
 
 		const char = text[i]!
-		const absoluteIndex = lineStart + i
 		const isBracketChar =
 			char === '(' ||
 			char === ')' ||
@@ -106,7 +104,7 @@ const buildTextRuns = (
 			char === ']' ||
 			char === '{' ||
 			char === '}'
-		const depth = isBracketChar ? depthMap?.[absoluteIndex] : undefined
+		const depth = isBracketChar ? depthMap?.[i] : undefined
 
 		// Check if we can extend the current run
 		const canExtend =
@@ -178,8 +176,7 @@ const renderRun = (run: TextRun): string | JSX.Element => {
 
 type BracketizedLineTextProps = {
 	text: string
-	lineStart: number
-	bracketDepths: Accessor<BracketDepthMap | undefined>
+	bracketDepths?: LineBracketDepthMap
 	highlightSegments?: LineHighlightSegment[]
 }
 
@@ -192,14 +189,14 @@ export const BracketizedLineText = (props: BracketizedLineTextProps) => {
 			return ''
 		}
 
-		const depthMap = props.bracketDepths()
+		const depthMap = props.bracketDepths
 		const highlights = normalizeHighlightSegments(
 			props.highlightSegments,
 			text.length
 		)
 
 		// Build optimized text runs - groups consecutive chars with same styling
-		const runs = buildTextRuns(text, props.lineStart, depthMap, highlights)
+		const runs = buildTextRuns(text, depthMap, highlights)
 
 		// Fast path: single unstyled run = just return the text
 		const firstRun = runs[0]

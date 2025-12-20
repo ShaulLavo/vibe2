@@ -1,4 +1,3 @@
-import { loggers } from '@repo/logger'
 import type { MinimapTokenSummary, MinimapLayout } from './types'
 import {
 	Constants,
@@ -20,8 +19,6 @@ import {
 	setCachedImageData,
 	setPreviousState,
 } from './partialRepaint'
-
-const log = loggers.codeEditor.withTag('minimap')
 
 // ============================================================================
 // Waiter System for Tree-sitter Ready Notifications
@@ -248,26 +245,6 @@ export const renderFromSummary = (
 		// So we just need to ensure renderLine uses the current scrollY.
 
 		clearLines(imageData.data, dirtyLines, charH, deviceWidth, deviceHeight)
-
-		// Also we must clear lines that are dirty?
-		// Wait, `clearLines` clears the rect at `line * charH`.
-		// If `renderLine` uses `scrollY`, then `clearLines` must also uses `scrollY`!
-		// But `partialRepaint.ts` doesn't know about `scrollY`.
-		// This suggests we should probably DISABLE partial repaint if scrollY > 0 or just always full repaint on scroll.
-		// For simplicity in this iteration: If scrollY is non-zero, we might just fallback to full repaint or update clearLines.
-		// Actually, let's just make `renderLine` do the work.
-		// For partial repaint to work with scroll:
-		// 1. `clearLines` needs to know where the line is on screen to clear it.
-		//    Currently `clearLines` assumes `y = line * charH`.
-		//    We need to update `clearLines` logic or just avoid it.
-
-		// Let's rely on full repaint for now if things are complex, but let's see.
-		// If we are just editing code, scrollY is likely stable.
-		// So we just need `clearLines` to respect scroll, OR we implemented a `scrollY` offset in `clearLines`.
-		// Since I cannot easily change `clearLines` signature in this tool call (it's in another file),
-		// I will assume for this step that we only support partial repaint if we can handle it.
-		// Actually, I should probably UPDATE `partialRepaint.ts` too.
-		// But for now, let's just render.
 
 		for (const line of dirtyLines) {
 			if (line >= startLine && line < endLine && line < lineCount) {

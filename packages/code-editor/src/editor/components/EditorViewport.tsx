@@ -7,11 +7,11 @@ import { Input } from './Input'
 import { LINE_NUMBER_WIDTH } from '../consts'
 import type { TextEditorLayout, TextEditorInputHandlers } from '../hooks'
 import type {
-	BracketDepthMap,
 	CursorMode,
 	FoldRange,
 	LineEntry,
 	LineHighlightSegment,
+	LineBracketDepthMap,
 } from '../types'
 
 type EditorViewportProps = {
@@ -24,7 +24,7 @@ type EditorViewportProps = {
 	fontFamily: Accessor<string>
 	cursorMode: Accessor<CursorMode>
 	tabSize: Accessor<number>
-	bracketDepths: Accessor<BracketDepthMap | undefined>
+	getLineBracketDepths: (entry: LineEntry) => LineBracketDepthMap | undefined
 	getLineHighlights: (entry: LineEntry) => LineHighlightSegment[] | undefined
 	folds?: Accessor<FoldRange[] | undefined>
 	foldedStarts: Accessor<Set<number>>
@@ -112,7 +112,7 @@ export const EditorViewport = (props: EditorViewportProps) => {
 						onPreciseClick={props.input.handlePreciseClick}
 						onMouseDown={props.onLineMouseDown}
 						activeLineIndex={props.layout.activeLineIndex}
-						bracketDepths={props.bracketDepths}
+						getLineBracketDepths={props.getLineBracketDepths}
 						getLineHighlights={props.getLineHighlights}
 						displayToLine={props.layout.displayToLine}
 					/>

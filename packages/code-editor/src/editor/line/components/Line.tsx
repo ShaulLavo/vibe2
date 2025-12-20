@@ -58,8 +58,7 @@ export const Line = (props: LineProps) => {
 		>
 			<BracketizedLineText
 				text={props.entry.text}
-				lineStart={props.entry.start}
-				bracketDepths={props.bracketDepths}
+				bracketDepths={props.lineBracketDepths}
 				highlightSegments={props.highlights}
 			/>
 		</div>

@@ -11,6 +11,8 @@ export type VirtualItem = {
 
 // Bracket depth map: character index -> nesting depth
 export type BracketDepthMap = Record<number, number>
+// Line bracket depth map: offset-in-line -> nesting depth
+export type LineBracketDepthMap = Record<number, number>
 
 // Re-exported from @repo/lexer: BracketInfo
 export type EditorSyntaxHighlight = {
@@ -123,7 +125,7 @@ export type LineProps = {
 		textElement: HTMLElement | null
 	) => void
 	isActive: boolean
-	bracketDepths: Accessor<BracketDepthMap | undefined>
+	lineBracketDepths?: LineBracketDepthMap
 	highlights?: LineHighlightSegment[]
 }
 
@@ -146,7 +148,7 @@ export type LinesProps = {
 		textElement: HTMLElement | null
 	) => void
 	activeLineIndex: Accessor<number | null>
-	bracketDepths: Accessor<BracketDepthMap | undefined>
+	getLineBracketDepths: (entry: LineEntry) => LineBracketDepthMap | undefined
 	getLineHighlights?: (entry: LineEntry) => LineHighlightSegment[] | undefined
 	/** Convert display row index to actual document line index */
 	displayToLine?: (displayIndex: number) => number

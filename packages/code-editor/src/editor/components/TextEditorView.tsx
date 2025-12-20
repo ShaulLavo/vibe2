@@ -14,12 +14,12 @@ import { getPieceTableText } from '@repo/utils'
 import {
 	createCursorScrollSync,
 	createMouseSelection,
+	createLineBracketDepths,
 	createTextEditorInput,
 	createTextEditorLayout,
 	createLineHighlights,
 	useFoldedStarts,
 	useStartBenchmark,
-	useVisibleBracketDepths,
 } from '../hooks'
 import { EditorViewport } from './EditorViewport'
 import { Minimap } from '../minimap'
@@ -28,7 +28,7 @@ import type { DocumentIncrementalEdit, EditorProps } from '../types'
 export const TextEditorView = (props: EditorProps) => {
 	const cursor = useCursor()
 	const history = useHistory()
-	const lexer = props.lexer ?? Lexer.create()
+	const lexer = untrack(() => props.lexer) ?? Lexer.create()
 	let lexerStatesPath: string | undefined
 
 	const tabSize = () => props.tabSize?.() ?? DEFAULT_TAB_SIZE
@@ -46,11 +46,11 @@ export const TextEditorView = (props: EditorProps) => {
 	const isEditable = () => props.document.isEditable()
 
 	const syncLexer = createMemo(
-		(previousPath: string | undefined): string | undefined => {
-			const selected = props.isFileSelected()
-			const path = props.document.filePath()
-			const version = props.documentVersion?.()
-			const lineCount = cursor.lines.lineStarts().length
+			(previousPath: string | undefined): string | undefined => {
+				const selected = props.isFileSelected()
+				const path = props.document.filePath()
+				void props.documentVersion?.()
+				const lineCount = cursor.lines.lineStarts().length
 
 			const hasPath = Boolean(path)
 			const isReady = selected && hasPath
@@ -163,17 +163,17 @@ export const TextEditorView = (props: EditorProps) => {
 		cursorScroll.scrollToCursor(pos.line, pos.column)
 	}
 
-	const input = createTextEditorInput({
-		visibleLineRange: layout.visibleLineRange,
-		updatePieceTable: (updater) => props.document.updatePieceTable(updater),
-		isFileSelected: () => props.isFileSelected(),
-		isEditable,
-		getInputElement: () => inputElement,
-		scrollCursorIntoView,
-		activeScopes: () => props.activeScopes?.() ?? ['editor', 'global'],
-		onIncrementalEdit: handleIncrementalEdit,
-		onSave: props.onSave,
-	})
+		const input = createTextEditorInput({
+			visibleLineRange: layout.visibleLineRange,
+			updatePieceTable: (updater) => props.document.updatePieceTable(updater),
+			isFileSelected: () => props.isFileSelected(),
+			isEditable,
+			getInputElement: () => inputElement,
+			scrollCursorIntoView,
+			activeScopes: () => props.activeScopes?.() ?? ['editor', 'global'],
+			onIncrementalEdit: handleIncrementalEdit,
+			onSave: untrack(() => props.onSave),
+		})
 
 	const mouseSelection = createMouseSelection({
 		scrollElement,
@@ -201,13 +201,9 @@ export const TextEditorView = (props: EditorProps) => {
 		}
 	})
 
-	const bracketDepths = useVisibleBracketDepths({
+	const { getLineBracketDepths } = createLineBracketDepths({
 		lexer,
 		lexerStates,
-		virtualItems: layout.virtualItems,
-		displayToLine: layout.displayToLine,
-		getLineStart: (lineIndex) => cursor.lines.getLineStart(lineIndex),
-		getLineText: (lineIndex) => cursor.lines.getLineText(lineIndex),
 	})
 
 	const { getLineHighlights } = createLineHighlights({
@@ -237,7 +233,7 @@ export const TextEditorView = (props: EditorProps) => {
 					fontFamily={props.fontFamily}
 					cursorMode={props.cursorMode}
 					tabSize={tabSize}
-					bracketDepths={bracketDepths}
+					getLineBracketDepths={getLineBracketDepths}
 					getLineHighlights={getLineHighlights}
 					folds={props.folds}
 					foldedStarts={foldedStarts}

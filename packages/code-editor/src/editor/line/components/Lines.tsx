@@ -33,6 +33,11 @@ export const Lines = (props: LinesProps) => {
 						return e ? props.getLineHighlights?.(e) : undefined
 					})
 
+					const lineBracketDepths = createMemo(() => {
+						const e = entry()
+						return e ? props.getLineBracketDepths(e) : undefined
+					})
+
 					return (
 						<Show when={entry()}>
 							{(validEntry) => (
@@ -47,7 +52,7 @@ export const Lines = (props: LinesProps) => {
 									onPreciseClick={props.onPreciseClick}
 									onMouseDown={props.onMouseDown}
 									isActive={props.activeLineIndex() === lineIndex()}
-									bracketDepths={props.bracketDepths}
+									lineBracketDepths={lineBracketDepths()}
 									highlights={highlights()}
 								/>
 							)}
