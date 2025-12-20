@@ -37,6 +37,8 @@ export type MinimapWorkerController = {
 	renderSummary: (summary: MinimapTokenSummary) => Promise<void>
 	/** Request render from Tree-sitter by path */
 	renderFromPath: (path: string, version: number) => Promise<boolean>
+	/** Render from plain text (fallback for unsupported languages) */
+	renderFromText: (text: string, version: number) => Promise<boolean>
 	/** Clear the canvas */
 	clear: () => Promise<void>
 	/** Dispose the worker */
@@ -146,6 +148,13 @@ export const useMinimapWorker = (
 	}
 
 	/**
+	 * Render from plain text (fallback for unsupported languages)
+	 */
+	const renderFromText = async (text: string, version: number) => {
+		return (await api?.renderFromText(text, version)) ?? false
+	}
+
+	/**
 	 * Clear the canvas
 	 */
 	const clear = async () => {
@@ -185,6 +194,7 @@ export const useMinimapWorker = (
 		updatePalette,
 		renderSummary,
 		renderFromPath,
+		renderFromText,
 		clear,
 		dispose,
 	}

@@ -1,37 +1,21 @@
-import type { MinimapTokenSummary } from './types'
+import type { MinimapTokenSummary, TreeSitterCapture } from './types'
 import { getScopeColorId } from '@repo/code-editor/tokenSummary'
 import { astCache } from './cache'
 import { logger } from '../../logger'
 
 const log = logger.withTag('treeSitter')
 
-export const generateMinimapSummary = (
-	path: string,
-	version: number,
-	maxChars: number = 160
-): MinimapTokenSummary | undefined => {
-	const cached = astCache.get(path)
-	if (!cached) {
-		log.debug('generateMinimapSummary: No cached entry for', path)
-		return undefined
-	}
-	log.debug(
-		'generateMinimapSummary: Cached entry found for',
-		path,
-		'Language:',
-		cached.languageId
-	)
-
-	const text = cached.text
-	const captures = cached.captures ?? []
-
-	// Count lines
+/**
+ * Internal: Build minimap tokens from text and optional captures
+ */
+const buildMinimapTokens = (
+	text: string,
+	captures: TreeSitterCapture[],
+	maxChars: number
+): { tokens: Uint16Array; lineCount: number } => {
 	const lines = text.split('\n')
 	const lineCount = lines.length
 
-	// Allocate buffer for tokens (lineCount * maxChars)
-	// Uint16Array for (Color << 8) | Char
-	// totalBytes = lineCount * maxChars * 2 bytes/element
 	const totalTokens = lineCount * maxChars
 	const buffer = new ArrayBuffer(totalTokens * 2)
 	const tokens = new Uint16Array(buffer)
@@ -99,10 +83,43 @@ export const generateMinimapSummary = (
 		}
 	}
 
-	return {
-		tokens,
-		maxChars,
-		lineCount,
-		version,
+	return { tokens, lineCount }
+}
+
+/**
+ * Generate minimap summary from plain text (no syntax highlighting)
+ * Used as fallback for unsupported languages
+ */
+export const generateMinimapSummaryFromText = (
+	text: string,
+	version: number,
+	maxChars: number = 160
+): MinimapTokenSummary => {
+	const { tokens, lineCount } = buildMinimapTokens(text, [], maxChars)
+	return { tokens, maxChars, lineCount, version }
+}
+
+export const generateMinimapSummary = (
+	path: string,
+	version: number,
+	maxChars: number = 160
+): MinimapTokenSummary | undefined => {
+	const cached = astCache.get(path)
+	if (!cached) {
+		log.debug('generateMinimapSummary: No cached entry for', path)
+		return undefined
 	}
+	log.debug(
+		'generateMinimapSummary: Cached entry found for',
+		path,
+		'Language:',
+		cached.languageId
+	)
+
+	const { tokens, lineCount } = buildMinimapTokens(
+		cached.text,
+		cached.captures ?? [],
+		maxChars
+	)
+	return { tokens, maxChars, lineCount, version }
 }

@@ -173,7 +173,7 @@ export const reparseWithEditBatch = async (
 	if (edits.length === 0) return undefined
 	const cached = astCache.get(path)
 	if (!cached) {
-		log.warn('[reparseWithEditBatch] No cached entry for path:', path)
+		log.debug('[reparseWithEditBatch] No cached entry for path:', path)
 		return undefined
 	}
 	const { languageId } = cached

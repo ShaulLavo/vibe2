@@ -250,6 +250,7 @@ export const TextEditorView = (props: EditorProps) => {
 					treeSitterWorker={props.treeSitterWorker}
 					filePath={props.document.filePath()}
 					version={props.documentVersion}
+					content={props.document.content}
 				/>
 			</div>
 		</Show>

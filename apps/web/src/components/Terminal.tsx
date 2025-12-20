@@ -3,7 +3,7 @@ import { makePersisted } from '@solid-primitives/storage'
 import { createSignal, onCleanup, onMount, type Component } from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { useFs } from '~/fs/context/FsContext'
-import { dualStorage } from '~/utils/DualStorage'
+import { dualStorage } from '@repo/utils/DualStorage'
 import { createPrompt } from '../terminal/prompt'
 import {
 	createTerminalController,

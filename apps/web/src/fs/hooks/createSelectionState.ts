@@ -1,7 +1,7 @@
 /* eslint-disable solid/reactivity */
 import { makePersisted } from '@solid-primitives/storage'
 import { createSignal } from 'solid-js'
-import { createMemorySafeStorage } from '../../utils/safeLocalStorage'
+import { createMemorySafeStorage } from '@repo/utils/safeLocalStorage'
 import { DEFAULT_SOURCE } from '../config/constants'
 
 export const createSelectionState = () => {

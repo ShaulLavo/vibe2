@@ -7,10 +7,18 @@
     "./bytes": "./src/bytes.ts",
     "./parse": "./src/parse.ts",
     "./pieceTable": "./src/pieceTable.ts",
-    "./textHeuristics": "./src/textHeuristics.ts"
+    "./textHeuristics": "./src/textHeuristics.ts",
+    "./DualStorage": "./src/DualStorage.ts",
+    "./cn": "./src/cn.ts",
+    "./dom": "./src/dom.ts",
+    "./safeLocalStorage": "./src/safeLocalStorage.ts",
+    "./viewTransition": "./src/viewTransition.ts"
   },
   "dependencies": {
-    "@repo/perf": "*"
+    "@repo/perf": "*",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1",
+    "solid-js": "^1.9.5"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

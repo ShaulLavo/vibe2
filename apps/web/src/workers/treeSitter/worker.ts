@@ -13,7 +13,10 @@ import {
 	reparseWithEdit,
 	reparseWithEditBatch,
 } from './parse'
-import { generateMinimapSummary } from './minimap'
+import {
+	generateMinimapSummary,
+	generateMinimapSummaryFromText,
+} from './minimap'
 import { logger } from '../../logger'
 
 const log = logger.withTag('treeSitter')
@@ -53,6 +56,13 @@ const api: TreeSitterWorkerApi = {
 	async getMinimapSummary(payload) {
 		return generateMinimapSummary(
 			payload.path,
+			payload.version,
+			payload.maxChars ?? 160
+		)
+	},
+	async getMinimapSummaryFromText(payload) {
+		return generateMinimapSummaryFromText(
+			payload.text,
 			payload.version,
 			payload.maxChars ?? 160
 		)

@@ -218,6 +218,39 @@ const api = {
 	},
 
 	/**
+	 * Render minimap from plain text (fallback for unsupported languages)
+	 */
+	async renderFromText(text: string, version: number) {
+		if (!treeSitterWorker) {
+			log.warn('Tree-sitter worker not connected')
+			return false
+		}
+
+		const activeLayout = layout
+		if (!activeLayout || !ctx) {
+			log.warn('Missing context/layout')
+			return false
+		}
+
+		try {
+			const summary = await treeSitterWorker.getMinimapSummaryFromText({
+				text,
+				version,
+				maxChars: activeLayout.maxChars,
+			})
+
+			if (summary) {
+				renderFromSummary(summary, ctx, activeLayout, palette)
+				return true
+			}
+		} catch (err) {
+			log.error('getMinimapSummaryFromText failed:', err)
+		}
+
+		return false
+	},
+
+	/**
 	 * Clear the canvas
 	 */
 	clear() {

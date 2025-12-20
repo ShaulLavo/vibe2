@@ -19,5 +19,7 @@ export type MinimapProps = {
 	filePath?: string
 	/** Document version for staleness check */
 	version?: Accessor<number>
+	/** File content for fallback rendering (unsupported languages) */
+	content?: Accessor<string>
 	// TODO: Add searchMatches prop when search feature is implemented
 }

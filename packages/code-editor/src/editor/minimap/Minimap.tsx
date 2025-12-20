@@ -3,6 +3,7 @@ import { useCursor } from '../cursor'
 import type { MinimapProps } from './types'
 import { useMinimapWorker } from './useMinimapWorker'
 import type { MinimapLayout } from './workerTypes'
+import { autoHide } from '@repo/utils/dom'
 
 const MINIMAP_ROW_HEIGHT_CSS = 2
 const MINIMAP_PADDING_X_CSS = 3
@@ -137,6 +138,7 @@ export const Minimap = (props: MinimapProps) => {
 
 	// Initialize worker and transfer base canvas
 	onMount(async () => {
+		autoHide(container()!)
 		const canvas = baseCanvas()
 		if (!canvas) return
 
@@ -187,8 +189,9 @@ export const Minimap = (props: MinimapProps) => {
 					props.treeSitterWorker,
 					props.filePath,
 					props.version?.(),
+					props.content?.(),
 				] as const,
-			async ([active, treeSitterWorker, filePath, version]) => {
+			async ([active, treeSitterWorker, filePath, version, content]) => {
 				if (!active) return
 
 				if (
@@ -215,7 +218,14 @@ export const Minimap = (props: MinimapProps) => {
 					await worker.clear()
 				}
 
-				const rendered = await worker.renderFromPath(filePath, version ?? 0)
+				// Try path-based render first (uses tree-sitter cache with syntax highlighting)
+				let rendered = await worker.renderFromPath(filePath, version ?? 0)
+
+				// Fallback to text-based render for unsupported languages
+				if (!rendered && content) {
+					rendered = await worker.renderFromText(content, version ?? 0)
+				}
+
 				if (!rendered) return
 
 				hasRenderedBase = true
@@ -447,6 +457,7 @@ export const Minimap = (props: MinimapProps) => {
 	return (
 		<div
 			class="relative h-full w-[50px] shrink-0 overflow-hidden"
+			style={{ 'view-transition-name': 'minimap' }}
 			ref={setContainer}
 			onPointerDown={handlePointerDown}
 			onPointerMove={handlePointerMove}
@@ -456,7 +467,11 @@ export const Minimap = (props: MinimapProps) => {
 			<canvas
 				ref={setBaseCanvas}
 				class="absolute left-0 top-0 h-full w-full"
-				style={{ 'pointer-events': 'none' }}
+				style={{
+					'pointer-events': 'none',
+					opacity: overlayVisible() ? '1' : '0',
+					transition: 'opacity 150ms ease-out',
+				}}
 			/>
 			<canvas
 				ref={setOverlayCanvas}

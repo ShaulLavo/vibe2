@@ -20,7 +20,7 @@ import type { FsContextValue, SelectPathOptions } from '../context/FsContext'
 import { findNode } from '../runtime/tree'
 import type { FileCacheController } from '../cache/fileCacheController'
 import { parseBufferWithTreeSitter } from '../../treeSitter/workerClient'
-import { viewTransitionBatched } from '~/utils/viewTransition'
+import { viewTransitionBatched } from '@repo/utils/viewTransition'
 
 const textDecoder = new TextDecoder()
 
@@ -177,7 +177,7 @@ export const useFileSelection = ({
 					}
 
 					timeSync('apply-selection-state', ({ timeSync }) => {
-						batch(() => {
+						viewTransitionBatched(() => {
 							timeSync('set-selected-path', () => setSelectedPath(path))
 							timeSync('clear-error', () => setError(undefined))
 							timeSync('set-selected-file-size', () =>

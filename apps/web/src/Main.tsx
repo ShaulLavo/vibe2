@@ -5,7 +5,7 @@ import { createSignal, type Component } from 'solid-js'
 import { StatusBar } from './components/StatusBar'
 import { Terminal } from './components/Terminal'
 import { Fs } from './fs/components/Fs'
-import { dualStorage } from './utils/DualStorage'
+import { dualStorage } from '@repo/utils/DualStorage'
 
 const Main: Component = () => {
 	const [verticalPanelSize, setVerticalPanelSize] = makePersisted(

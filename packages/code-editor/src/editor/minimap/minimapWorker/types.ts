@@ -19,4 +19,10 @@ export type TreeSitterMinimapApi = {
 		 */
 		targetLineCount?: number
 	}): Promise<MinimapTokenSummary | undefined>
+	/** Generate minimap summary from raw text (fallback for unsupported languages) */
+	getMinimapSummaryFromText(payload: {
+		text: string
+		version: number
+		maxChars?: number
+	}): Promise<MinimapTokenSummary>
 }

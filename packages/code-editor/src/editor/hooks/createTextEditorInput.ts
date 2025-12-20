@@ -84,12 +84,6 @@ export function createTextEditorInput(
 		}
 	}
 
-	createEffect(() => {
-		if (options.isFileSelected()) {
-			focusInput()
-		}
-	})
-
 	const snapshotCursorPosition = () => ({
 		offset: cursor.state.position.offset,
 		line: cursor.state.position.line,
