@@ -60,8 +60,8 @@ export const getMinimapScrollState = (
 		(clientHeight / actualContentHeight) * totalMinimapHeight
 	)
 
-	// Slider position: fixed at top since content scrolls beneath it
-	const sliderTop = 0
+	// Slider position: moves from 0 to (minimapHeight - sliderHeight) as scroll ratio goes 0 to 1
+	const sliderTop = scrollRatio * (minimapHeight - sliderHeight)
 
 	return { minimapScrollTop, sliderTop, sliderHeight }
 }

@@ -136,27 +136,6 @@ const api = {
 
 		scrollY = scrollTop
 
-		// DEBUG: Log worker scroll state
-		if (lastSummary && layout) {
-			const scale = Math.round(layout.size.dpr)
-			const charH = Constants.BASE_CHAR_HEIGHT * scale
-			const deviceHeight = layout.size.deviceHeight
-			const maxLine = lastSummary.lineCount - 1
-			const lastLineY = maxLine * charH - scrollY
-			console.log('[Worker Scroll Debug]', {
-				scrollY,
-				scale,
-				charH,
-				deviceHeight,
-				lineCount: lastSummary.lineCount,
-				// Last line position after scroll
-				lastLineY,
-				lastLineVisible: lastLineY >= 0 && lastLineY < deviceHeight,
-				// First visible line
-				firstVisibleLine: Math.floor(scrollY / charH),
-			})
-		}
-
 		if (lastSummary && ctx && layout) {
 			renderFromSummary(lastSummary, ctx, layout, palette, scrollY)
 		}
