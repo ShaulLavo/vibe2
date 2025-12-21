@@ -26,7 +26,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 
 	const showBranchLine = () => isHovered() || childHoverCount() > 0
 	const isDir = () => props.node.kind === 'dir'
-	const isSelected = () => state.selectedPath === props.node.path
+	const isSelected = () => actions.isSelectedPath(props.node.path)
 	const isOpen = () => isDir() && state.expanded[props.node.path]
 	const indentationOffset = () =>
 		Math.max(props.node.depth - 1, 0) * TREE_INDENT_PX
@@ -173,7 +173,9 @@ export const TreeNode = (props: TreeNodeProps) => {
 						ref={setBranchLineRef}
 						aria-hidden="true"
 						class={`pointer-events-none absolute left-1.5 top-0 bottom-0 z-10 border-l transition-opacity duration-200 ease-linear ${childBranchBorderClass()}`}
-						style={{ opacity: 0 }}
+						style={{
+							opacity: 0,
+						}}
 					/>
 					<For each={(props.node as FsDirTreeNode).children}>
 						{(child) => (

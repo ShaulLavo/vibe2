@@ -1,4 +1,4 @@
-import { Component, For, Show } from 'solid-js'
+import { Component, createSelector, For, Show } from 'solid-js'
 import { Tab } from './Tab'
 
 export type TabsProps = {
@@ -12,6 +12,8 @@ export type TabsProps = {
 export const Tabs: Component<TabsProps> = (props) => {
 	const labelFor = (value: string) =>
 		props.getLabel ? props.getLabel(value) : value
+
+	const isSelected = createSelector(() => props.activeValue)
 
 	return (
 		<div
@@ -31,7 +33,7 @@ export const Tabs: Component<TabsProps> = (props) => {
 						<Tab
 							value={value}
 							label={labelFor(value)}
-							isActive={value === props.activeValue}
+							isActive={isSelected(value)}
 							onSelect={props.onSelect}
 							title={value}
 						/>

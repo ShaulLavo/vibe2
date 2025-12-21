@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 @import '../../../packages/ui/src/styles.css';
 @config '../../../packages/ui/tailwind.config.ts';
+@import 'tw-animate-css';
 
 @theme {
 	--color-background: hsl(var(--background));
@@ -11,8 +12,6 @@
 	--color-accent: hsl(var(--accent));
 	--color-accent-foreground: hsl(var(--accent-foreground));
 }
-
-@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -118,4 +117,28 @@
 	transition-property: display opacity;
 	transition-duration: 0.6s;
 	transition-behavior: allow-discrete;
+}
+
+::view-transition-old(editor-content) {
+	animation: 0.3s cubic-bezier(0.25, 1, 0.5, 1) both fade-out-blur-zoom;
+}
+
+::view-transition-new(editor-content) {
+	animation: 0.3s cubic-bezier(0.25, 1, 0.5, 1) both fade-in-blur-zoom;
+}
+
+@keyframes fade-out-blur-zoom {
+	to {
+		opacity: 0;
+		filter: blur(8px);
+		/* transform: scale(0.98); */
+	}
+}
+
+@keyframes fade-in-blur-zoom {
+	from {
+		opacity: 0;
+		filter: blur(8px);
+		/* transform: scale(1.02); */
+	}
 }

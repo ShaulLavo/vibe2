@@ -147,48 +147,53 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 				getLabel={tabLabel}
 			/>
 
-			<Switch
-				fallback={
-					<Editor
-						document={editorDocument}
-						isFileSelected={props.isFileSelected}
-						stats={() => state.selectedFileStats}
-						fontSize={() => DEFAULT_FONT_SIZE}
-						fontFamily={() => DEFAULT_FONT_FAMILY}
-						cursorMode={() => 'regular'}
-						registerEditorArea={(resolver) =>
-							focus.registerArea('editor', resolver)
-						}
-						activeScopes={focus.activeScopes}
-						previewBytes={() => state.selectedFilePreviewBytes}
-						highlights={editorHighlights}
-						folds={() => state.selectedFileFolds}
-						brackets={() => state.selectedFileBrackets}
-						errors={editorErrors}
-						treeSitterWorker={treeSitterWorker() ?? undefined}
-						lexer={editorLexer()}
-						documentVersion={documentVersion}
-						onSave={() => void saveFile()}
-					/>
-				}
+			<div
+				class="relative flex-1 overflow-hidden"
+				style={{ 'view-transition-name': 'editor-content' }}
 			>
-				<Match when={!props.isFileSelected()}>
-					<p class="mt-2 text-sm text-zinc-500">
-						{/* Select a file to view its contents. Click folders to toggle
+				<Switch
+					fallback={
+						<Editor
+							document={editorDocument}
+							isFileSelected={props.isFileSelected}
+							stats={() => state.selectedFileStats}
+							fontSize={() => DEFAULT_FONT_SIZE}
+							fontFamily={() => DEFAULT_FONT_FAMILY}
+							cursorMode={() => 'regular'}
+							registerEditorArea={(resolver) =>
+								focus.registerArea('editor', resolver)
+							}
+							activeScopes={focus.activeScopes}
+							previewBytes={() => state.selectedFilePreviewBytes}
+							highlights={editorHighlights}
+							folds={() => state.selectedFileFolds}
+							brackets={() => state.selectedFileBrackets}
+							errors={editorErrors}
+							treeSitterWorker={treeSitterWorker() ?? undefined}
+							lexer={editorLexer()}
+							documentVersion={documentVersion}
+							onSave={() => void saveFile()}
+						/>
+					}
+				>
+					<Match when={!props.isFileSelected()}>
+						<p class="mt-2 text-sm text-zinc-500">
+							{/* Select a file to view its contents. Click folders to toggle
 						visibility. */}
-					</p>
-				</Match>
+						</p>
+					</Match>
 
-				<Match when={isBinary()}>
-					<BinaryFileViewer
-						data={() => state.selectedFilePreviewBytes}
-						stats={() => state.selectedFileStats}
-						fileSize={() => state.selectedFileSize}
-						fontSize={() => DEFAULT_FONT_SIZE}
-						fontFamily={() => DEFAULT_FONT_FAMILY}
-					/>
-				</Match>
-			</Switch>
+					{/* <Match when={isBinary()}>
+						<BinaryFileViewer
+							data={() => state.selectedFilePreviewBytes}
+							stats={() => state.selectedFileStats}
+							fileSize={() => state.selectedFileSize}
+							fontSize={() => DEFAULT_FONT_SIZE}
+							fontFamily={() => DEFAULT_FONT_FAMILY}
+						/>
+					</Match> */}
+				</Switch>
+			</div>
 		</div>
 	)
 }

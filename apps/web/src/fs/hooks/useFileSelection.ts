@@ -50,7 +50,8 @@ export const useFileSelection = ({
 
 	const handleReadError = (error: unknown) => {
 		if (error instanceof DOMException && error.name === 'AbortError') return
-		const message = error instanceof Error ? error.message : 'Failed to read file'
+		const message =
+			error instanceof Error ? error.message : 'Failed to read file'
 		loggers.fs.error('[fs] Failed to read file', error)
 		toast.error(message)
 	}
@@ -73,6 +74,7 @@ export const useFileSelection = ({
 				setSelectedFileSize(undefined)
 				setSelectedFileLoading(false)
 			})
+
 			return
 		}
 
@@ -177,7 +179,7 @@ export const useFileSelection = ({
 					}
 
 					timeSync('apply-selection-state', ({ timeSync }) => {
-						viewTransitionBatched(() => {
+						const transition = viewTransitionBatched(() => {
 							timeSync('set-selected-path', () => setSelectedPath(path))
 							timeSync('set-selected-file-size', () =>
 								setSelectedFileSize(fileSize)
