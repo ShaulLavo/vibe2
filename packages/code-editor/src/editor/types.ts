@@ -100,6 +100,15 @@ export type EditorProps = {
 	/** Document version for minimap re-render */
 	documentVersion?: Accessor<number>
 	onSave?: () => void
+	/** Initial scroll position to restore when switching back to this file */
+	initialScrollPosition?: Accessor<ScrollPosition | undefined>
+	/** Called when scroll position changes to save for later restoration */
+	onScrollPositionChange?: (position: ScrollPosition) => void
+}
+
+export type ScrollPosition = {
+	scrollTop: number
+	scrollLeft: number
 }
 
 export type LineEntry = {
@@ -161,6 +170,7 @@ export type LinesProps = {
 export type LineGuttersProps = {
 	rows: Accessor<VirtualItem2D[]>
 	lineHeight: Accessor<number>
+	gutterWidth: Accessor<number>
 	onRowClick: (lineIndex: number) => void
 	activeLineIndex: Accessor<number | null>
 	folds?: Accessor<FoldRange[] | undefined>
