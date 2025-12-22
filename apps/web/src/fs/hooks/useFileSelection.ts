@@ -279,6 +279,13 @@ export const useFileSelection = ({
 			fileCache.set(path, { errors })
 		}
 
+	const updateSelectedFileScrollPosition: FsContextValue[1]['updateSelectedFileScrollPosition'] =
+		(scrollPosition) => {
+			const path = state.lastKnownFilePath
+			if (!path) return
+			fileCache.set(path, { scrollPosition })
+		}
+
 	return {
 		selectPath,
 		updateSelectedFilePieceTable,
@@ -286,5 +293,6 @@ export const useFileSelection = ({
 		updateSelectedFileFolds,
 		updateSelectedFileBrackets,
 		updateSelectedFileErrors,
+		updateSelectedFileScrollPosition,
 	}
 }

@@ -7,6 +7,7 @@ import type {
 	FoldRange,
 } from '../workers/treeSitterWorkerTypes'
 import type { DeferredDirMetadata } from './prefetch/treePrefetchWorkerTypes'
+import type { ScrollPosition } from './cache/fileCacheController'
 
 export type FsSource = 'memory' | 'local' | 'opfs'
 
@@ -45,4 +46,6 @@ export type FsState = {
 	lastKnownFilePath?: string
 	deferredMetadata: Record<string, DeferredDirMetadata>
 	dirtyPaths: Record<string, boolean>
+	scrollPositions: Record<string, ScrollPosition | undefined>
+	selectedFileScrollPosition?: ScrollPosition
 }

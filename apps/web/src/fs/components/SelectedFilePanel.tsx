@@ -50,6 +50,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			updateSelectedFileFolds,
 			updateSelectedFileBrackets,
 			updateSelectedFileErrors,
+			updateSelectedFileScrollPosition,
 			saveFile,
 		},
 	] = useFs()
@@ -173,6 +174,8 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 							lexer={editorLexer()}
 							documentVersion={documentVersion}
 							onSave={() => void saveFile()}
+							initialScrollPosition={() => state.selectedFileScrollPosition}
+							onScrollPositionChange={updateSelectedFileScrollPosition}
 						/>
 					}
 				>

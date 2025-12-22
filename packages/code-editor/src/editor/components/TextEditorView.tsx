@@ -201,6 +201,51 @@ export const TextEditorView = (props: EditorProps) => {
 		}
 	})
 
+	// Scroll position caching: restore on file switch, save on scroll
+	let restoreAttemptedForPath: string | undefined
+	let saveTimeoutId: ReturnType<typeof setTimeout> | undefined
+
+	createEffect(() => {
+		const element = scrollElement()
+		const path = props.document.filePath()
+		const initialPos = props.initialScrollPosition?.()
+
+		// Only restore once per file switch
+		if (!element || !path || restoreAttemptedForPath === path) return
+		restoreAttemptedForPath = path
+
+		if (initialPos) {
+			// Restore scroll position in next microtask to ensure DOM is ready
+			queueMicrotask(() => {
+				element.scrollTop = initialPos.scrollTop
+				element.scrollLeft = initialPos.scrollLeft
+			})
+		}
+	})
+
+	createEffect(() => {
+		const element = scrollElement()
+		const onScroll = props.onScrollPositionChange
+		if (!element || !onScroll) return
+
+		const handleScroll = () => {
+			// Debounce: save after scrolling settles
+			if (saveTimeoutId != null) clearTimeout(saveTimeoutId)
+			saveTimeoutId = setTimeout(() => {
+				onScroll({
+					scrollTop: element.scrollTop,
+					scrollLeft: element.scrollLeft,
+				})
+			}, 150)
+		}
+
+		element.addEventListener('scroll', handleScroll, { passive: true })
+		onCleanup(() => {
+			element.removeEventListener('scroll', handleScroll)
+			if (saveTimeoutId != null) clearTimeout(saveTimeoutId)
+		})
+	})
+
 	const { getLineBracketDepths } = createLineBracketDepths({
 		lexer,
 		lexerStates,

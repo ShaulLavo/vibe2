@@ -24,6 +24,11 @@ import type { FsState } from '../types'
 /** Set to `true` to completely disable file caching */
 export const DISABLE_CACHE = false as const
 
+export type ScrollPosition = {
+	scrollTop: number
+	scrollLeft: number
+}
+
 export type FileCacheEntry = {
 	pieceTable?: PieceTableSnapshot
 	stats?: ParseResult
@@ -32,6 +37,7 @@ export type FileCacheEntry = {
 	folds?: FoldRange[]
 	brackets?: BracketInfo[]
 	errors?: TreeSitterError[]
+	scrollPosition?: ScrollPosition
 }
 
 export type FileCacheController = {
@@ -51,6 +57,7 @@ type FileCacheControllerOptions = {
 		| 'fileFolds'
 		| 'fileBrackets'
 		| 'fileErrors'
+		| 'scrollPositions'
 	>
 	setPieceTable: (path: string, snapshot?: PieceTableSnapshot) => void
 	setFileStats: (path: string, stats?: ParseResult) => void
@@ -58,6 +65,7 @@ type FileCacheControllerOptions = {
 	setFolds: (path: string, folds?: FoldRange[]) => void
 	setBrackets: (path: string, brackets?: BracketInfo[]) => void
 	setErrors: (path: string, errors?: TreeSitterError[]) => void
+	setScrollPosition: (path: string, position?: ScrollPosition) => void
 }
 
 export const createFileCacheController = ({
@@ -68,6 +76,7 @@ export const createFileCacheController = ({
 	setFolds,
 	setBrackets,
 	setErrors,
+	setScrollPosition,
 }: FileCacheControllerOptions): FileCacheController => {
 	// TODO: add eviction and persistence so all artifacts are released together.
 	const previews: Record<string, Uint8Array | undefined> = {}
@@ -82,6 +91,7 @@ export const createFileCacheController = ({
 			folds: state.fileFolds[path],
 			brackets: state.fileBrackets[path],
 			errors: state.fileErrors[path],
+			scrollPosition: state.scrollPositions[path],
 		}
 	}
 
@@ -109,6 +119,9 @@ export const createFileCacheController = ({
 			if (entry.errors !== undefined) {
 				setErrors(path, entry.errors)
 			}
+			if (entry.scrollPosition !== undefined) {
+				setScrollPosition(path, entry.scrollPosition)
+			}
 		})
 	}
 
@@ -126,6 +139,7 @@ export const createFileCacheController = ({
 			setFolds(path, undefined)
 			setBrackets(path, undefined)
 			setErrors(path, undefined)
+			setScrollPosition(path, undefined)
 			delete previews[path]
 		})
 	}
@@ -149,6 +163,9 @@ export const createFileCacheController = ({
 			}
 			for (const path of Object.keys(state.fileErrors)) {
 				setErrors(path, undefined)
+			}
+			for (const path of Object.keys(state.scrollPositions)) {
+				setScrollPosition(path, undefined)
 			}
 			for (const path of Object.keys(previews)) {
 				delete previews[path]

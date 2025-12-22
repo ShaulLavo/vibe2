@@ -7,7 +7,10 @@ import type {
 	TreeSitterError,
 	FoldRange,
 } from '../../workers/treeSitterWorkerTypes'
-import type { FileCacheController } from '../cache/fileCacheController'
+import type {
+	FileCacheController,
+	ScrollPosition,
+} from '../cache/fileCacheController'
 import type { FsState, FsSource } from '../types'
 
 export type SelectPathOptions = {
@@ -39,6 +42,9 @@ export type FsActions = {
 	updateSelectedFileFolds: (folds: FoldRange[] | undefined) => void
 	updateSelectedFileBrackets: (brackets: BracketInfo[] | undefined) => void
 	updateSelectedFileErrors: (errors: TreeSitterError[] | undefined) => void
+	updateSelectedFileScrollPosition: (
+		scrollPosition: ScrollPosition | undefined
+	) => void
 	fileCache: FileCacheController
 	saveFile: (path?: string) => Promise<void>
 	setDirtyPath: (path: string, isDirty: boolean) => void

@@ -16,6 +16,7 @@ import { createFoldState } from './createFoldState'
 import { createBracketState } from './createBracketState'
 import { createDirtyState } from './createDirtyState'
 import { createErrorState } from './createErrorState'
+import { createScrollPositionState } from './createScrollPositionState'
 
 export const createFsState = () => {
 	const { tree, setTree } = createTreeState()
@@ -64,6 +65,8 @@ export const createFsState = () => {
 	const { fileBrackets, setBrackets, clearBrackets } = createBracketState()
 	const { fileErrors, setErrors, clearErrors } = createErrorState()
 	const { dirtyPaths, setDirtyPath, clearDirtyPaths } = createDirtyState()
+	const { scrollPositions, setScrollPosition, clearScrollPositions } =
+		createScrollPositionState()
 
 	const selectedNode = createMemo<FsTreeNode | undefined>(() =>
 		tree ? findNode(tree, selectedPath()) : undefined
@@ -86,6 +89,7 @@ export const createFsState = () => {
 		fileFolds,
 		fileBrackets,
 		fileErrors,
+		scrollPositions,
 		get selectedPath() {
 			return selectedPath()
 		},
@@ -181,6 +185,10 @@ export const createFsState = () => {
 		get dirtyPaths() {
 			return dirtyPaths
 		},
+		get selectedFileScrollPosition() {
+			const path = lastKnownFilePath()
+			return path ? scrollPositions[path] : undefined
+		},
 	} satisfies FsState
 
 	return {
@@ -218,5 +226,7 @@ export const createFsState = () => {
 		clearErrors,
 		setDirtyPath,
 		clearDirtyPaths,
+		setScrollPosition,
+		clearScrollPositions,
 	}
 }
