@@ -38,6 +38,7 @@ export type FileCacheController = {
 	get: (path: string) => FileCacheEntry
 	set: (path: string, entry: FileCacheEntry) => void
 	clearPath: (path: string) => void
+	clearBuffer: (path: string) => void
 	clearAll: () => void
 }
 
@@ -111,6 +112,11 @@ export const createFileCacheController = ({
 		})
 	}
 
+	const clearBuffer = (path: string) => {
+		if (!path) return
+		setPieceTable(path, undefined)
+	}
+
 	const clearPath = (path: string) => {
 		if (!path) return
 		batch(() => {
@@ -154,6 +160,7 @@ export const createFileCacheController = ({
 		get,
 		set,
 		clearPath,
+		clearBuffer,
 		clearAll,
 	}
 }

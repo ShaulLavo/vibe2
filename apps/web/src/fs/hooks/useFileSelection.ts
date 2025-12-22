@@ -86,6 +86,15 @@ export const useFileSelection = ({
 		}
 
 		const requestId = ++selectRequestId
+		// Evict previous file's piece table if it doesn't have unsaved edits
+		const previousPath = state.lastKnownFilePath
+		if (
+			previousPath &&
+			previousPath !== path &&
+			!state.dirtyPaths[previousPath]
+		) {
+			fileCache.clearBuffer(previousPath)
+		}
 		setSelectedFileLoading(true)
 		const source = state.activeSource ?? DEFAULT_SOURCE
 		const perfMetadata: Record<string, unknown> = { path, source }
