@@ -2,44 +2,40 @@ import { Match, Switch } from 'solid-js'
 import { getBracketDepthTextClass } from '../../theme/bracketColors'
 import type { TextRun } from '../utils/textRuns'
 
-type TokenProps = {
-	run: TextRun
-}
-
-export const Token = (props: TokenProps) => {
-	const hasDepth = () => props.run.depth !== undefined && props.run.depth > 0
-	const hasHighlight = () => Boolean(props.run.highlightClass)
+export const Token = (props: TextRun) => {
+	const hasDepth = () => props.depth !== undefined && props.depth > 0
+	const hasHighlight = () => Boolean(props.highlightClass)
 
 	return (
-		<Switch fallback={props.run.text}>
+		<Switch fallback={props.text}>
 			<Match when={hasDepth() && !hasHighlight()}>
 				<span
-					class={getBracketDepthTextClass(props.run.depth!)}
-					data-depth={props.run.depth}
+					class={getBracketDepthTextClass(props.depth!)}
+					data-depth={props.depth}
 				>
-					{props.run.text}
+					{props.text}
 				</span>
 			</Match>
 
 			<Match when={!hasDepth() && hasHighlight()}>
 				<span
-					class={props.run.highlightClass}
-					data-highlight-scope={props.run.highlightScope}
+					class={props.highlightClass}
+					data-highlight-scope={props.highlightScope}
 				>
-					{props.run.text}
+					{props.text}
 				</span>
 			</Match>
 
 			<Match when={hasDepth() && hasHighlight()}>
 				<span
-					class={props.run.highlightClass}
-					data-highlight-scope={props.run.highlightScope}
+					class={props.highlightClass}
+					data-highlight-scope={props.highlightScope}
 				>
 					<span
-						class={getBracketDepthTextClass(props.run.depth!)}
-						data-depth={props.run.depth}
+						class={getBracketDepthTextClass(props.depth!)}
+						data-depth={props.depth}
 					>
-						{props.run.text}
+						{props.text}
 					</span>
 				</span>
 			</Match>

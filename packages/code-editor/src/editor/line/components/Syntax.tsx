@@ -24,5 +24,5 @@ export const Syntax = (props: SyntaxProps) => {
 		columnEnd: () => props.columnEnd,
 	})
 
-	return <For each={runs()}>{(run) => <Token run={run} />}</For>
+	return <For each={runs()}>{(run) => <Token {...run} />}</For>
 }
