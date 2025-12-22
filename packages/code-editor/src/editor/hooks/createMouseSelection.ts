@@ -162,11 +162,11 @@ export function createMouseSelection(
 		document.removeEventListener('mouseup', handleMouseUp)
 	}
 
-		const handleMouseDown = (
-			event: MouseEvent,
-			lineIndex: number,
-			column: number
-		) => {
+	const handleMouseDown = (
+		event: MouseEvent,
+		lineIndex: number,
+		column: number
+	) => {
 		if (event.button !== 0) return
 
 		if (cursor.lines.lineCount() === 0) return
@@ -195,11 +195,18 @@ export function createMouseSelection(
 			return
 		}
 
-		if (clickCount >= 3) {
+		if (clickCount === 3) {
 			// Triple-click: select line
 			event.preventDefault()
 			cursor.actions.selectLine(lineIndex)
-			clickCount = 0 // Reset to prevent quad-click issues
+			return
+		}
+
+		if (clickCount >= 4) {
+			// Quadruple-click: select all
+			event.preventDefault()
+			cursor.actions.selectAll()
+			clickCount = 0 // Reset after selecting all
 			return
 		}
 
