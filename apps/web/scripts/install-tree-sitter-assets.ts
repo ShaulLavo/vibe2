@@ -91,6 +91,33 @@ const assets = [
 		),
 		destination: path.join(publicDir, 'html-highlights.scm'),
 	},
+	/*
+	 * TODO: The @tree-sitter-grammars/tree-sitter-xml package does not include the WASM file by default.
+	 * You must build it using `tree-sitter build-wasm` or download it and place it in the public/tree-sitter directory.
+	 * 
+	{
+		source: path.join(
+			appRoot,
+			'node_modules',
+			'@tree-sitter-grammars',
+			'tree-sitter-xml',
+			'tree-sitter-xml.wasm'
+		),
+		destination: path.join(publicDir, 'tree-sitter-xml.wasm'),
+	},
+	*/
+	{
+		source: path.join(
+			appRoot,
+			'node_modules',
+			'@tree-sitter-grammars',
+			'tree-sitter-xml',
+			'queries',
+			'xml',
+			'highlights.scm'
+		),
+		destination: path.join(publicDir, 'xml-highlights.scm'),
+	},
 ]
 
 mkdirSync(publicDir, { recursive: true })

@@ -60,6 +60,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "@tanstack/solid-virtual": "^3.13.12",
     "@tree-sitter-grammars/tree-sitter-markdown": "^0.3.2",
+    "@tree-sitter-grammars/tree-sitter-xml": "^0.7.0",
     "@xterm/xterm": "^5.5.0",
     "ansis": "^4.2.0",
     "comlink": "^4.4.2",
