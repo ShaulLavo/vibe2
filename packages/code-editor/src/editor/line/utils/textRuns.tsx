@@ -1,8 +1,6 @@
-import { createMemo, type JSX } from 'solid-js'
 import type { LineBracketDepthMap, LineHighlightSegment } from '../../types'
-import { getBracketDepthTextClass } from '../../theme/bracketColors'
 
-type NormalizedHighlightSegment = {
+export type NormalizedHighlightSegment = {
 	start: number
 	end: number
 	className: string
@@ -13,7 +11,7 @@ type NormalizedHighlightSegment = {
  * A text run with optional styling. Represents a contiguous chunk of text
  * that can be rendered as a single DOM node or span.
  */
-type TextRun = {
+export type TextRun = {
 	text: string
 	// For bracket coloring
 	depth?: number
@@ -22,7 +20,7 @@ type TextRun = {
 	highlightScope?: string
 }
 
-const normalizeHighlightSegments = (
+export const normalizeHighlightSegments = (
 	segments: LineHighlightSegment[] | undefined,
 	textLength: number
 ): NormalizedHighlightSegment[] => {
@@ -68,7 +66,7 @@ const normalizeHighlightSegments = (
  * characters with the same styling (bracket depth + highlight) together.
  * This is much more efficient than creating a span per character.
  */
-const buildTextRuns = (
+export const buildTextRuns = (
 	text: string,
 	depthMap: LineBracketDepthMap | undefined,
 	highlights: NormalizedHighlightSegment[],
@@ -142,96 +140,4 @@ const buildTextRuns = (
 	}
 
 	return runs
-}
-
-/**
- * Render a text run to JSX. Plain text is returned as-is,
- * styled runs get wrapped in appropriate spans.
- */
-const renderRun = (run: TextRun): string | JSX.Element => {
-	const hasDepth = run.depth !== undefined && run.depth > 0
-	const hasHighlight = !!run.highlightClass
-
-	// Plain text - no wrapping needed
-	if (!hasDepth && !hasHighlight) {
-		return run.text
-	}
-
-	// Only bracket depth
-	if (hasDepth && !hasHighlight) {
-		return (
-			<span class={getBracketDepthTextClass(run.depth!)} data-depth={run.depth}>
-				{run.text}
-			</span>
-		)
-	}
-
-	// Only highlight
-	if (!hasDepth && hasHighlight) {
-		return (
-			<span
-				class={run.highlightClass}
-				data-highlight-scope={run.highlightScope}
-			>
-				{run.text}
-			</span>
-		)
-	}
-
-	// Both bracket depth and highlight - nest them
-	return (
-		<span class={run.highlightClass} data-highlight-scope={run.highlightScope}>
-			<span class={getBracketDepthTextClass(run.depth!)} data-depth={run.depth}>
-				{run.text}
-			</span>
-		</span>
-	)
-}
-
-type BracketizedLineTextProps = {
-	text: string
-	bracketDepths?: LineBracketDepthMap
-	highlightSegments?: LineHighlightSegment[]
-	columnStart?: number
-	columnEnd?: number
-}
-
-export const BracketizedLineText = (props: BracketizedLineTextProps) => {
-	// Use createMemo instead of children() - we're not resolving passed children,
-	// just computing derived content
-	const content = createMemo(() => {
-		const text = props.text
-		if (text.length === 0) {
-			return ''
-		}
-
-		const depthMap = props.bracketDepths
-		const highlights = normalizeHighlightSegments(
-			props.highlightSegments,
-			text.length
-		)
-
-		const startIndex = Math.max(0, props.columnStart ?? 0)
-		const endIndex = props.columnEnd ?? text.length
-
-		// Build optimized text runs - groups consecutive chars with same styling
-		const runs = buildTextRuns(text, depthMap, highlights, startIndex, endIndex)
-
-		// Fast path: single unstyled run = just return the text
-		const firstRun = runs[0]
-		if (
-			runs.length === 1 &&
-			firstRun &&
-			!firstRun.depth &&
-			!firstRun.highlightClass
-		) {
-			return firstRun.text
-		}
-
-		// Render all runs
-		const nodes = runs.map(renderRun)
-		return nodes.length === 1 ? nodes[0] : nodes
-	})
-
-	return <>{content()}</>
 }

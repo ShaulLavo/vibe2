@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-solid'
-import { BracketizedLineText } from './BracketizedLineText'
+import { Syntax } from './Syntax'
 
 // ============================================================================
-// BracketizedLineText Component Tests - Partial Rendering
+// Syntax Component Tests - Partial Rendering
 // ============================================================================
 
-describe('BracketizedLineText', () => {
+describe('Syntax', () => {
 	describe('full line rendering (default)', () => {
 		it('renders entire text when no column bounds specified', async () => {
 			const text = 'Hello, World!'
-			const screen = render(() => <BracketizedLineText text={text} />)
+			const screen = render(() => <Syntax text={text} />)
 
 			await expect.element(screen.getByText(text)).toBeVisible()
 		})
 
 		it('renders empty string without error', async () => {
-			const screen = render(() => <BracketizedLineText text="" />)
+			const screen = render(() => <Syntax text="" />)
 			// Container should exist but be empty
 			expect(screen.container.textContent).toBe('')
 		})
@@ -26,7 +26,7 @@ describe('BracketizedLineText', () => {
 		it('renders only the specified range', async () => {
 			const text = 'ABCDEFGHIJ'
 			const screen = render(() => (
-				<BracketizedLineText text={text} columnStart={2} columnEnd={7} />
+				<Syntax text={text} columnStart={2} columnEnd={7} />
 			))
 
 			// Should render "CDEFG" (indices 2-6)
@@ -36,7 +36,7 @@ describe('BracketizedLineText', () => {
 		it('renders from start when columnStart is 0', async () => {
 			const text = 'ABCDEFGHIJ'
 			const screen = render(() => (
-				<BracketizedLineText text={text} columnStart={0} columnEnd={3} />
+				<Syntax text={text} columnStart={0} columnEnd={3} />
 			))
 
 			await expect.element(screen.getByText('ABC')).toBeVisible()
@@ -45,7 +45,7 @@ describe('BracketizedLineText', () => {
 		it('renders to end when columnEnd exceeds text length', async () => {
 			const text = 'SHORT'
 			const screen = render(() => (
-				<BracketizedLineText text={text} columnStart={2} columnEnd={100} />
+				<Syntax text={text} columnStart={2} columnEnd={100} />
 			))
 
 			// Should render "ORT" (from 2 to end)
@@ -55,7 +55,7 @@ describe('BracketizedLineText', () => {
 		it('renders nothing when columnStart >= columnEnd', async () => {
 			const text = 'ABCDEFGHIJ'
 			const screen = render(() => (
-				<BracketizedLineText text={text} columnStart={5} columnEnd={5} />
+				<Syntax text={text} columnStart={5} columnEnd={5} />
 			))
 
 			expect(screen.container.textContent).toBe('')
@@ -64,7 +64,7 @@ describe('BracketizedLineText', () => {
 		it('handles columnStart past text length', async () => {
 			const text = 'SHORT'
 			const screen = render(() => (
-				<BracketizedLineText text={text} columnStart={10} columnEnd={20} />
+				<Syntax text={text} columnStart={10} columnEnd={20} />
 			))
 
 			expect(screen.container.textContent).toBe('')
@@ -83,7 +83,7 @@ describe('BracketizedLineText', () => {
 
 			// Render only columns 6-12 ("foo = b")
 			const screen = render(() => (
-				<BracketizedLineText
+				<Syntax
 					text={text}
 					highlightSegments={highlights}
 					columnStart={6}
@@ -110,7 +110,7 @@ describe('BracketizedLineText', () => {
 
 			// Render only columns 4-7 ("EFGH")
 			const screen = render(() => (
-				<BracketizedLineText
+				<Syntax
 					text={text}
 					highlightSegments={highlights}
 					columnStart={4}
@@ -128,11 +128,11 @@ describe('BracketizedLineText', () => {
 
 	describe('bracket depth coloring with partial ranges', () => {
 		it('applies bracket colors at correct indices', async () => {
-			const text = '((()))'
+			const text = '(((())))'
 			const bracketDepths = { 0: 1, 1: 2, 2: 3, 3: 3, 4: 2, 5: 1 }
 
 			const screen = render(() => (
-				<BracketizedLineText
+				<Syntax
 					text={text}
 					bracketDepths={bracketDepths}
 					columnStart={1}

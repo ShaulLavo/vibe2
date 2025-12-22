@@ -1,7 +1,7 @@
 import { loggers } from '@repo/logger'
 import type { LineProps } from '../../types'
 import { calculateColumnFromClick } from '../../utils'
-import { BracketizedLineText } from './BracketizedLineText'
+import { Syntax } from './Syntax'
 
 const log = loggers.codeEditor.withTag('line')
 
@@ -71,7 +71,7 @@ export const Line = (props: LineProps) => {
 			}}
 			onMouseDown={handleMouseDown}
 		>
-			<BracketizedLineText
+			<Syntax
 				text={props.entry.text}
 				bracketDepths={props.lineBracketDepths}
 				highlightSegments={props.highlights}
