@@ -51,6 +51,14 @@ let lastSummary: MinimapTokenSummary | null = null
 let treeSitterWorker: Remote<TreeSitterMinimapApi> | null = null
 let minimapSubscriptionId: number | null = null
 
+// Per-path summary cache for instant tab switching
+const summaryCache = new Map<
+	string,
+	{ summary: MinimapTokenSummary; scrollY: number }
+>()
+let currentPath: string | null = null
+const MAX_CACHE_SIZE = 10
+
 // ============================================================================
 // Worker API
 // ============================================================================
@@ -173,6 +181,7 @@ const api = {
 	 * Request summary from Tree-sitter and render
 	 * Returns immediately if no tree-sitter cache is available.
 	 * The caller should fall back to renderFromText for unsupported languages.
+	 
 	 */
 	async renderFromPath(path: string, version: number) {
 		const nonce = incrementRenderNonce()
@@ -182,6 +191,21 @@ const api = {
 		}
 
 		if (nonce !== getCurrentNonce()) return false
+
+		const isNewPath = currentPath !== path
+		if (isNewPath) {
+			if (currentPath && lastSummary) {
+				summaryCache.set(currentPath, { summary: lastSummary, scrollY })
+			}
+			currentPath = path
+
+			const cached = summaryCache.get(path)
+			if (cached && ctx && layout) {
+				lastSummary = cached.summary
+				scrollY = cached.scrollY
+				renderFromSummary(cached.summary, ctx, layout, palette, scrollY)
+			}
+		}
 
 		let summary: MinimapTokenSummary | undefined
 		try {
@@ -218,7 +242,6 @@ const api = {
 			return true
 		}
 
-		// No summary available - caller should fall back to renderFromText
 		return false
 	},
 
