@@ -67,10 +67,12 @@ describe('Editor (browser integration)', () => {
 
 	// Helper to get the scroll element from the editor
 	const getScrollElement = (): HTMLElement | null => {
-		// The EditorViewport creates a scrollable div with Tailwind class 'overflow-auto'
+		// The EditorViewport creates a scrollable div with class 'editor-viewport-scroll'
 		const container = document.querySelector('[data-testid="editor-container"]')
 		if (!container) return null
-		return container.querySelector('.overflow-auto') as HTMLElement | null
+		return container.querySelector(
+			'.editor-viewport-scroll'
+		) as HTMLElement | null
 	}
 
 	it('renders the editor with content', async () => {

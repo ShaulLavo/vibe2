@@ -128,7 +128,7 @@ describe('Syntax', () => {
 
 	describe('bracket depth coloring with partial ranges', () => {
 		it('applies bracket colors at correct indices', async () => {
-			const text = '(((())))'
+			const text = '((()))'
 			const bracketDepths = { 0: 1, 1: 2, 2: 3, 3: 3, 4: 2, 5: 1 }
 
 			const screen = render(() => (

@@ -55,7 +55,7 @@ export const generateContent = (options: ContentGeneratorOptions): string => {
 		// Generate deterministic content
 		const chars: string[] = []
 		for (let j = 0; j < contentWidth; j++) {
-			chars.push(CHAR_SET[(i + j) % CHAR_SET.length])
+			chars.push(CHAR_SET[(i + j) % CHAR_SET.length]!)
 		}
 		line += chars.join('')
 

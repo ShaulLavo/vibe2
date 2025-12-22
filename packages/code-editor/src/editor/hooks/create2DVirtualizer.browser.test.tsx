@@ -194,6 +194,94 @@ describe('create2DVirtualizer (DOM integration)', () => {
 		unmount()
 	})
 
+	it('does not recompute items for sub-row vertical scroll', async () => {
+		// Create scrollable content
+		const content = document.createElement('div')
+		content.style.height = '2000px'
+		content.style.width = '800px'
+		container.appendChild(content)
+
+		const [count] = createSignal(100)
+		const [enabled] = createSignal(true)
+		const [rowHeight] = createSignal(20)
+		const [charWidth] = createSignal(8)
+		const getLineLength = (_lineIndex: number) => 120
+
+		const { result, unmount } = renderHook(() =>
+			create2DVirtualizer({
+				count,
+				enabled,
+				scrollElement: () => container,
+				rowHeight,
+				charWidth,
+				overscan: 2,
+				getLineLength,
+			})
+		)
+
+		await expect
+			.poll(() => result.current.virtualItems().length)
+			.toBeGreaterThan(0)
+
+		const beforeItems = result.current.virtualItems()
+
+		container.scrollTo({ top: 5 })
+
+		await expect.poll(() => result.current.scrollTop()).toBe(5)
+
+		const afterItems = result.current.virtualItems()
+		expect(afterItems).toBe(beforeItems)
+
+		unmount()
+	})
+
+	it('does not recompute items for sub-column horizontal scroll', async () => {
+		const lineLengths = new Map<number, number>()
+		for (let i = 0; i < 100; i++) {
+			lineLengths.set(i, 2000) // All long lines
+		}
+
+		// Create scrollable content
+		const content = document.createElement('div')
+		content.style.height = '2000px'
+		content.style.width = '16000px'
+		container.appendChild(content)
+
+		const [count] = createSignal(100)
+		const [enabled] = createSignal(true)
+		const [rowHeight] = createSignal(20)
+		const [charWidth] = createSignal(8)
+		const getLineLength = (lineIndex: number) => lineLengths.get(lineIndex) ?? 0
+
+		const { result, unmount } = renderHook(() =>
+			create2DVirtualizer({
+				count,
+				enabled,
+				scrollElement: () => container,
+				rowHeight,
+				charWidth,
+				overscan: 2,
+				horizontalOverscan: 10,
+				getLineLength,
+			})
+		)
+
+		await expect
+			.poll(() => result.current.virtualItems().length)
+			.toBeGreaterThan(0)
+
+		const beforeItems = result.current.virtualItems()
+
+		container.scrollTo({ left: 4 })
+
+		await expect.poll(() => result.current.scrollLeft()).toBe(4)
+
+		const afterItems = result.current.virtualItems()
+		expect(afterItems).toBe(beforeItems)
+
+		unmount()
+	})
+
 	it('updates column ranges on horizontal scroll', async () => {
 		const lineLengths = new Map<number, number>()
 		// All long lines

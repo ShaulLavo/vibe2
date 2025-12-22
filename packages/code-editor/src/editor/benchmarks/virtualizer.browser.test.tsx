@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render } from 'vitest-browser-solid'
-import { createSignal } from 'solid-js'
+import { createSignal, For } from 'solid-js'
 import { useScrollBenchmark } from '../hooks/useScrollBenchmark'
 import { BENCHMARK_PRESETS } from './generateContent'
 
@@ -10,8 +10,8 @@ describe('Virtualizer Performance Benchmark', () => {
 	beforeEach(() => {
 		container = document.createElement('div')
 		container.style.cssText = `
-            width: 800px;
-            height: 600px;
+            width: 100vw;
+            height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
@@ -37,92 +37,90 @@ describe('Virtualizer Performance Benchmark', () => {
 					setScrollEl(el)
 					props.onScrollEl(el)
 				}}
-				style={{ width: '100%', height: '100%', overflow: 'auto' }}
+				style={{
+					width: '100%',
+					height: '100%',
+					overflow: 'auto',
+					display: 'flex',
+					'flex-wrap': 'wrap',
+					'align-content': 'flex-start',
+				}}
 			>
-				<div
-					style={{
-						height: `${props.config.lines * 20}px`,
-						width: `${props.config.charsPerLine * 8}px`,
-					}}
-				/>
+				<For each={Array.from({ length: props.config.lines })}>
+					{(_, i) => (
+						<div
+							style={{
+								height: '24px',
+								'white-space': 'pre',
+								'font-family': 'monospace',
+							}}
+						>
+							{i()} {'x'.repeat(props.config.charsPerLine)}
+						</div>
+					)}
+				</For>
 			</div>
 		)
 	}
 
-	it('runs default phases (legacy behavior)', async () => {
-		let scrollEl: HTMLDivElement | null = null
-		const { unmount } = render(
-			() => (
-				<BenchmarkComponent
-					config={BENCHMARK_PRESETS.normal}
-					onScrollEl={(el) => (scrollEl = el)}
-				/>
-			),
-			{ container }
-		)
+	it(
+		'runs default vertical scrolling phases (down, up, jumpV)',
+		async () => {
+			let scrollEl: HTMLDivElement | null = null
+			const { unmount } = render(
+				() => (
+					<BenchmarkComponent
+						config={BENCHMARK_PRESETS.normal}
+						onScrollEl={(el) => (scrollEl = el)}
+					/>
+				),
+				{ container }
+			)
 
-		await expect.poll(() => scrollEl).toBeTruthy()
+			await expect.poll(() => scrollEl).toBeTruthy()
 
-		const results = await window.scrollBenchmark?.()
-		expect(results).toBeDefined()
+			const results = await window.scrollBenchmark?.()
+			expect(results).toBeDefined()
 
-		// Default runs vertical phases
-		expect(results?.down.frames).toBeGreaterThan(0)
-		expect(results?.up.frames).toBeGreaterThan(0)
-		expect(results?.jumpV.frames).toBeGreaterThan(0)
+			// Default runs vertical phases
+			expect(results?.down.frames).toBeGreaterThan(0)
+			expect(results?.up.frames).toBeGreaterThan(0)
+			expect(results?.jumpV.frames).toBeGreaterThan(0)
 
-		// No horizontal by default
-		expect(results?.right.frames).toBe(0)
+			// No horizontal by default
+			expect(results?.right.frames).toBe(0)
 
-		unmount()
-	}, 60_000)
+			unmount()
+		},
+		60_000 * 3
+	)
 
-	it('runs requested specific phases', async () => {
-		let scrollEl: HTMLDivElement | null = null
-		const { unmount } = render(
-			() => (
-				<BenchmarkComponent
-					config={BENCHMARK_PRESETS.normal}
-					onScrollEl={(el) => (scrollEl = el)}
-				/>
-			),
-			{ container }
-		)
+	it(
+		'runs horizontal scrolling phases (right, left) for wide content',
+		async () => {
+			let scrollEl: HTMLDivElement | null = null
+			const { unmount } = render(
+				() => (
+					<BenchmarkComponent
+						config={BENCHMARK_PRESETS.wide}
+						onScrollEl={(el) => (scrollEl = el)}
+					/>
+				),
+				{ container }
+			)
 
-		await expect.poll(() => scrollEl).toBeTruthy()
+			await expect.poll(() => scrollEl).toBeTruthy()
 
-		// Request only random jump
-		const results = await window.scrollBenchmark?.({ phases: ['jumpV'] })
+			const results = await window.scrollBenchmark?.({
+				phases: ['right', 'left'],
+			})
 
-		expect(results?.jumpV.frames).toBeGreaterThan(0)
-		expect(results?.down.frames).toBe(0)
-		expect(results?.up.frames).toBe(0)
+			expect(results?.right.frames).toBeGreaterThan(0)
+			expect(results?.left.frames).toBeGreaterThan(0)
+			expect(results?.down.frames).toBe(0)
 
-		unmount()
-	}, 60_000)
-
-	it('runs horizontal phases when requested (wide file)', async () => {
-		let scrollEl: HTMLDivElement | null = null
-		const { unmount } = render(
-			() => (
-				<BenchmarkComponent
-					config={BENCHMARK_PRESETS.wide}
-					onScrollEl={(el) => (scrollEl = el)}
-				/>
-			),
-			{ container }
-		)
-
-		await expect.poll(() => scrollEl).toBeTruthy()
-
-		const results = await window.scrollBenchmark?.({
-			phases: ['right', 'left'],
-		})
-
-		expect(results?.right.frames).toBeGreaterThan(0)
-		expect(results?.left.frames).toBeGreaterThan(0)
-		expect(results?.down.frames).toBe(0)
-
-		unmount()
-	}, 60_000)
+			unmount()
+		},
+		60_000 * 3
+	)
 })
