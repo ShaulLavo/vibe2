@@ -48,7 +48,6 @@
 - **CSS Files**: Global styles and theme configuration are in `apps/web/src/styles.css` (using `@theme`).
 - **Component Styles**:
   - Use Tailwind utility classes directly in JSX for structure and layout.
-  - **Extract Complex Styles**: For complex components (e.g., `EditorViewport`, `LineGutter`), define classes in `styles.css` within `@layer utilities` using `@apply`. This keeps the JSX clean and the styles reusable.
   - **Animations**: Use `@apply` for animation classes defined in CSS.
 - **Icons**: Use icons from `@repo/icons`. Do not use custom SVGs.
 
