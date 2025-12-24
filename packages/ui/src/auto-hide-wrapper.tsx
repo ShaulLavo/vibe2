@@ -1,4 +1,4 @@
-import { type Component, type JSX, mergeProps } from 'solid-js'
+import { type Component, type JSX, mergeProps, splitProps } from 'solid-js'
 import { clsx } from 'clsx'
 
 export const enum AutoHideVisibility {
@@ -19,25 +19,43 @@ export const AutoHideWrapper: Component<AutoHideWrapperProps> = (props) => {
 		props
 	)
 
+	// Split out onWheel to handle it with { passive: false } via on:wheel syntax
+	const [wheelProps, restProps] = splitProps(merged, ['onWheel'])
+
+	// Create handler with passive:false to allow preventDefault() without browser warnings
+	const wheelHandler = () => {
+		const handler = wheelProps.onWheel
+		if (!handler) return undefined
+		return {
+			passive: false,
+			handleEvent: (e: WheelEvent) => {
+				if (typeof handler === 'function') {
+					handler(e)
+				}
+			},
+		}
+	}
+
 	return (
 		<div
 			class={clsx(
 				'transition-opacity duration-300',
 				{
 					// SHOW: Always visible
-					'opacity-100': merged.visibility === 'show',
+					'opacity-100': restProps.visibility === 'show',
 
 					// HIDE: Hidden and no pointer events
-					'opacity-0 pointer-events-none': merged.visibility === 'hide',
+					'opacity-0 pointer-events-none': restProps.visibility === 'hide',
 
 					// AUTO: Hidden by default, visible on hover
-					'opacity-0 hover:opacity-100': merged.visibility === 'auto',
+					'opacity-0 hover:opacity-100': restProps.visibility === 'auto',
 				},
-				props.class
+				restProps.class
 			)}
-			{...props}
+			on:wheel={wheelHandler()}
+			{...restProps}
 		>
-			{props.children}
+			{restProps.children}
 		</div>
 	)
 }

@@ -6,7 +6,11 @@ import { flattenTree, type LoggerToggleTree } from './flattenToggleTree'
 const LOGGER_TOGGLE_TREE = {
 	app: {
 		$self: false,
-		modal: false
+		modal: false,
+		pref: {
+			$self: false,
+			global: false,
+		},
 	},
 	'code-editor': {
 		$self: false,
@@ -21,7 +25,7 @@ const LOGGER_TOGGLE_TREE = {
 		scmParser: false,
 		scrollbar: false,
 		virtualizer: false,
-		'virtualizer-2d': false
+		'virtualizer-2d': false,
 	},
 	desktop: false,
 	fs: false,
@@ -33,8 +37,8 @@ const LOGGER_TOGGLE_TREE = {
 		LocalDirectoryFallback: false,
 		prefetch: false,
 		terminal: false,
-		treeSitter: true
-	}
+		treeSitter: false,
+	},
 } as const satisfies LoggerToggleTree
 
 const LOGGER_TOGGLE_DEFAULTS = flattenTree(LOGGER_TOGGLE_TREE)

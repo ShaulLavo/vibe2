@@ -194,7 +194,7 @@ export const Scrollbar = (props: ScrollbarProps) => {
 			onPointerMove={handlePointerMove}
 			onPointerUp={handlePointerUp}
 			onPointerLeave={handlePointerUp}
-			onWheel={handleWheel}
+			on:wheel={{ passive: false, handleEvent: handleWheel }}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 		>
