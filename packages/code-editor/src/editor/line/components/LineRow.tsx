@@ -116,32 +116,28 @@ export const LineRow = (props: LineRowProps) => {
 		return cursor.lines.getLineText(lineIndex())
 	})
 
-	const entry = createMemo<LineEntry | null>(
-		(prev) => {
-			if (!isLineValid()) return null
-			const idx = lineIndex()
-			const start = cursor.lines.getLineStart(idx)
-			const length = cursor.lines.getLineLength(idx)
-			const text = lineText()
-			if (
-				prev &&
-				prev.index === idx &&
-				prev.start === start &&
-				prev.length === length &&
-				prev.text === text
-			) {
-				return prev
-			}
-			return {
-				index: idx,
-				start,
-				length,
-				text,
-			}
-		},
-		null,
-		{ equals: false }
-	)
+	const entry = createMemo<LineEntry | null>((prev) => {
+		if (!isLineValid()) return null
+		const idx = lineIndex()
+		const start = cursor.lines.getLineStart(idx)
+		const length = cursor.lines.getLineLength(idx)
+		const text = lineText()
+		if (
+			prev &&
+			prev.index === idx &&
+			prev.start === start &&
+			prev.length === length &&
+			prev.text === text
+		) {
+			return prev
+		}
+		return {
+			index: idx,
+			start,
+			length,
+			text,
+		}
+	})
 
 	const highlights = createMemo(
 		() => {
