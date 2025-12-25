@@ -1,5 +1,6 @@
 import { type Component, type JSX, mergeProps, splitProps } from 'solid-js'
 import { clsx } from 'clsx'
+import './auto-hide.css'
 
 export const enum AutoHideVisibility {
 	SHOW = 'show',
@@ -19,11 +20,8 @@ export const AutoHideWrapper: Component<AutoHideWrapperProps> = (props) => {
 		props
 	)
 
-	// Split out onWheel to handle it with { passive: false } via on:wheel syntax
-	// Also split out 'class' to prevent it from overwriting our clsx-built class
 	const [localProps, restProps] = splitProps(merged, ['onWheel', 'class'])
 
-	// Create handler with passive:false to allow preventDefault() without browser warnings
 	const wheelHandler = () => {
 		const handler = localProps.onWheel
 		if (!handler) return undefined
@@ -31,6 +29,7 @@ export const AutoHideWrapper: Component<AutoHideWrapperProps> = (props) => {
 			passive: false,
 			handleEvent: (e: WheelEvent) => {
 				if (typeof handler === 'function') {
+					// @ts-expect-error - event type mismatch in Solid on:wheel
 					handler(e)
 				}
 			},
@@ -39,24 +38,12 @@ export const AutoHideWrapper: Component<AutoHideWrapperProps> = (props) => {
 
 	return (
 		<div
-			class={clsx(
-				'transition-opacity duration-300',
-				{
-					// SHOW: Always visible
-					'opacity-100': restProps.visibility === 'show',
-
-					// HIDE: Hidden and no pointer events
-					'opacity-0 pointer-events-none': restProps.visibility === 'hide',
-
-					// AUTO: Hidden by default, visible on hover (including hit zone)
-					'opacity-0 hover:opacity-100': restProps.visibility === 'auto',
-				},
-				localProps.class
-			)}
+			class={clsx('auto-hide-wrapper', localProps.class)}
+			data-visibility={restProps.visibility}
 			on:wheel={wheelHandler()}
 			{...restProps}
 		>
-			{restProps.children}
+			<div class="auto-hide-content">{restProps.children}</div>
 		</div>
 	)
 }

@@ -1,0 +1,57 @@
+@layer components {
+	.auto-hide-wrapper {
+		display: block;
+		transition: opacity 0.3s;
+	}
+
+	.auto-hide-content {
+		width: 100%;
+		height: 100%;
+		transition:
+			opacity 0.3s,
+			display 0.3s;
+		transition-behavior: allow-discrete;
+	}
+
+	/* AUTO: Content hidden by default, shown on parent hover */
+	.auto-hide-wrapper[data-visibility='auto'] {
+		opacity: 0;
+	}
+
+	.auto-hide-wrapper[data-visibility='auto'] .auto-hide-content {
+		display: none;
+	}
+
+	.auto-hide-wrapper[data-visibility='auto']:hover {
+		opacity: 1;
+	}
+
+	.auto-hide-wrapper[data-visibility='auto']:hover .auto-hide-content {
+		display: block;
+	}
+
+	@starting-style {
+		.auto-hide-wrapper[data-visibility='auto']:hover .auto-hide-content {
+			opacity: 0;
+		}
+	}
+
+	/* SHOW: Content always visible */
+	.auto-hide-wrapper[data-visibility='show'] {
+		opacity: 1;
+	}
+
+	.auto-hide-wrapper[data-visibility='show'] .auto-hide-content {
+		display: block;
+	}
+
+	/* HIDE: Content always hidden */
+	.auto-hide-wrapper[data-visibility='hide'] {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.auto-hide-wrapper[data-visibility='hide'] .auto-hide-content {
+		display: none;
+	}
+}
