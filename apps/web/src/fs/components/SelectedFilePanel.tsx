@@ -18,9 +18,11 @@ import {
 import { useFocusManager } from '~/focus/focusManager'
 import { BinaryFileViewer } from '../../components/BinaryFileViewer'
 import { useFs } from '../../fs/context/FsContext'
+import { logger } from '../../logger'
 import { sendIncrementalTreeEdit } from '../../treeSitter/incrementalEdits'
 import { getTreeSitterWorker } from '../../treeSitter/workerClient'
 import { useTabs } from '../hooks/useTabs'
+import { getShiftableWhitespaceEditKind } from '../utils/shiftableEdits'
 import { Tabs } from './Tabs'
 import { unwrap } from 'solid-js/store'
 
@@ -44,6 +46,16 @@ type SelectedFilePanelProps = {
 }
 
 export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
+	const log = logger.withTag('editor')
+	const assert = (
+		condition: boolean,
+		message: string,
+		details?: Record<string, unknown>
+	) => {
+		if (condition) return true
+		log.warn(message, details)
+		return false
+	}
 	const [
 		state,
 		{
@@ -92,24 +104,47 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			const parsePromise = sendIncrementalTreeEdit(path, edit)
 			if (!parsePromise) return
 
+			const charDelta = getEditCharDelta(edit)
+			const lineDelta = getEditLineDelta(edit)
+
 			// Apply offset immediately for ALL edits (O(1) operation)
 			applySelectedFileHighlightOffset({
-				charDelta: getEditCharDelta(edit),
-				lineDelta: getEditLineDelta(edit),
+				charDelta,
+				lineDelta,
 				fromCharIndex: edit.startIndex,
 				fromLineRow: edit.startPosition.row,
 			})
 
-			// For whitespace/newline insertions (shiftable), offset is accurate
-			// so we skip the tree-sitter update to avoid double-render.
-			// For other edits, tree-sitter will return accurate results.
-			const isShiftable =
-				edit.oldEndIndex === edit.startIndex && // Pure insertion
-				/^\s*$/.test(edit.insertedText) && // Whitespace only
-				edit.insertedText.length > 0
-
-			if (isShiftable) {
-				// Shiftable: offset is correct, skip tree-sitter update
+			// Whitespace-only inserts/deletes are shiftable, so offset is accurate.
+			// Skip tree-sitter updates to avoid extra reactive churn.
+			const shiftableKind = getShiftableWhitespaceEditKind(edit)
+			if (shiftableKind) {
+				assert(
+					shiftableKind === 'insert'
+						? edit.deletedText.length === 0
+						: edit.insertedText.length === 0,
+					'Shiftable edit should be pure insert/delete',
+					{
+						path,
+						kind: shiftableKind,
+						startIndex: edit.startIndex,
+						oldEndIndex: edit.oldEndIndex,
+						newEndIndex: edit.newEndIndex,
+						insertedLength: edit.insertedText.length,
+						deletedLength: edit.deletedText.length,
+					}
+				)
+				log.debug('Skipping tree-sitter update for shiftable edit', {
+					path,
+					kind: shiftableKind,
+					startIndex: edit.startIndex,
+					oldEndIndex: edit.oldEndIndex,
+					newEndIndex: edit.newEndIndex,
+					insertedLength: edit.insertedText.length,
+					deletedLength: edit.deletedText.length,
+					charDelta,
+					lineDelta,
+				})
 				return
 			}
 
