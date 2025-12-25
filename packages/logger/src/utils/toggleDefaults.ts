@@ -21,6 +21,7 @@ const LOGGER_TOGGLE_TREE = {
 		'minimap-render': false,
 		'minimap-selection': false,
 		scrollbar: false,
+		trace: true,
 		virtualizer: false,
 		'virtualizer-2d': false,
 	},

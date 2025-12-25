@@ -1,6 +1,5 @@
 import { createMemo, type Accessor } from 'solid-js'
 import { loggers } from '@repo/logger'
-import { trackMicro } from '@repo/perf'
 import {
 	mergeLineSegments,
 	toLineHighlightSegmentsForLine,
@@ -44,20 +43,11 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 	}
 	const EMPTY_HIGHLIGHTS: EditorSyntaxHighlight[] = []
 	const EMPTY_ERRORS: ErrorHighlight[] = []
-	const HIGHLIGHT_SORT_LOG_THRESHOLD_MS = 4
 
 	const sortedHighlights = createMemo(() => {
 		const highlights = options.highlights?.()
 		if (!highlights?.length) return EMPTY_HIGHLIGHTS
-		return trackMicro(
-			'line-highlights:sort',
-			() => highlights.slice().sort((a, b) => a.startIndex - b.startIndex),
-			{
-				logger: log,
-				threshold: HIGHLIGHT_SORT_LOG_THRESHOLD_MS,
-				metadata: { count: highlights.length },
-			}
-		)
+		return highlights.slice().sort((a, b) => a.startIndex - b.startIndex)
 	})
 
 	const sortedErrorHighlights = createMemo<ErrorHighlight[]>(() => {
