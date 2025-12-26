@@ -2,22 +2,23 @@
  * Utilities for calculating dynamic gutter width based on line count and gutter mode.
  */
 
-import type { GutterMode } from '../consts'
+import { EDITOR_PADDING_LEFT, type GutterMode } from '../consts'
 
-// Padding around line number: left padding (EDITOR_PADDING_LEFT=12) + fold button width (16) + small gap
-const GUTTER_PADDING = 28 // px for fold button and spacing
+// Fold button width (matches the w-4 = 16px button in LineGutter.tsx)
+const FOLD_BUTTON_WIDTH = 16
+
+// Padding around line number: left padding + fold button width
+const GUTTER_PADDING = EDITOR_PADDING_LEFT + FOLD_BUTTON_WIDTH
 
 /**
  * Convert a number to a specific numeral system string.
  * Used to calculate the width of the longest line number.
  */
-const toNumeralString = (n: number, mode: GutterMode): string => {
+export const toNumeralString = (n: number, mode: GutterMode): string => {
 	switch (mode) {
 		case 'decimal':
 			return String(n)
 		case 'decimal-leading-zero':
-			// For leading zeros, we need to know the total count, but for width
-			// estimation we can just use the number of digits
 			return String(n)
 		case 'lower-roman':
 			return toRoman(n).toLowerCase()
@@ -220,6 +221,27 @@ const measureTextWidth = (
 }
 
 /**
+ * Calculate a stabilized line count with headroom to prevent gutter shifting.
+ * Rounds up to the next power of 10 when within 10% of a digit boundary.
+ * For example: 95 → 100, 990 → 1000, but 50 stays at 50.
+ */
+const getStabilizedLineCount = (lineCount: number): number => {
+	if (lineCount === 0) return 0
+
+	// Find the next power of 10
+	const digits = Math.ceil(Math.log10(lineCount + 1))
+	const nextPowerOf10 = Math.pow(10, digits)
+
+	// If we're within 10% of the next power of 10, use that for width calculation
+	const threshold = nextPowerOf10 * 0.9
+	if (lineCount >= threshold) {
+		return nextPowerOf10
+	}
+
+	return lineCount
+}
+
+/**
  * Calculate the minimum gutter width needed for a given line count and mode.
  */
 export const calculateGutterWidth = (
@@ -230,14 +252,18 @@ export const calculateGutterWidth = (
 ): number => {
 	if (lineCount === 0) return GUTTER_PADDING + fontSize // Minimum width
 
+	// Use stabilized line count to prevent gutter shifting at digit boundaries
+	const stabilizedCount = getStabilizedLineCount(lineCount)
+
 	// Get the string representation of the largest line number
-	const maxLineStr = toNumeralString(lineCount, mode)
+	const maxLineStr = toNumeralString(stabilizedCount, mode)
 
 	// Measure the width
 	const textWidth = measureTextWidth(maxLineStr, fontSize, fontFamily)
 
-	// Add padding for fold button and spacing
-	return Math.ceil(textWidth + GUTTER_PADDING)
-}
+	// Add extra buffer for RTL scripts (Hebrew) to prevent last letter cutoff
+	const rtlBuffer = mode === 'hebrew' ? fontSize * 0.3 : 0
 
-export { toNumeralString }
+	// Add padding for fold button and spacing
+	return Math.ceil(textWidth + GUTTER_PADDING + rtlBuffer)
+}
