@@ -7,6 +7,8 @@ export type TreeSitterCapture = {
 	startIndex: number
 	endIndex: number
 	scope: string // Renamed from captureName to match EditorSyntaxHighlight
+	/** Precomputed highlight class name for the scope */
+	className?: string
 }
 
 export type BracketInfo = {

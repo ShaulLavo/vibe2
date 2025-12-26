@@ -119,9 +119,55 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 		return mappedIndex
 	}
 
+	const toShiftOffsets = (
+		offsets: HighlightOffsets,
+		lineStart: number,
+		lineEnd: number
+	): { shift: number; intersects: boolean } => {
+		let shift = 0
+		let intersects = false
+
+		for (const offset of offsets) {
+			if (!offset) continue
+			if (offset.newEndIndex <= lineStart) {
+				shift += offset.charDelta
+				continue
+			}
+			if (offset.fromCharIndex >= lineEnd) {
+				continue
+			}
+			intersects = true
+		}
+
+		return { shift, intersects }
+	}
+
+	const applyShiftToSegments = (
+		segments: LineHighlightSegment[],
+		shift: number,
+		lineTextLength: number
+	): LineHighlightSegment[] => {
+		if (segments.length === 0 || shift === 0) return segments
+
+		const shifted: LineHighlightSegment[] = []
+		for (const segment of segments) {
+			const start = Math.max(0, Math.min(lineTextLength, segment.start + shift))
+			const end = Math.max(0, Math.min(lineTextLength, segment.end + shift))
+			if (end <= start) continue
+			shifted.push({
+				start,
+				end,
+				className: segment.className,
+				scope: segment.scope,
+			})
+		}
+		return shifted
+	}
+
 	let spatialIndex: Map<number, EditorSyntaxHighlight[]> = new Map()
 	let largeHighlights: EditorSyntaxHighlight[] = []
 	const SPATIAL_CHUNK_SIZE = 512
+	const candidateScratch: EditorSyntaxHighlight[] = []
 
 	const buildSpatialIndex = (highlights: EditorSyntaxHighlight[]) => {
 		spatialIndex.clear()
@@ -191,6 +237,11 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 
 		const offsets = getValidatedOffsets()
 		const hasOffsets = offsets.length > 0
+		const offsetShift = hasOffsets
+			? toShiftOffsets(offsets, lineStart, lineEnd)
+			: { shift: 0, intersects: false }
+		const offsetShiftAmount = offsetShift.shift
+		const hasIntersectingOffsets = offsetShift.intersects
 		const cacheKey = hasOffsets
 			? mapLineIndexToOldOffsets(entry.index, offsets)
 			: entry.index
@@ -225,48 +276,58 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			const lookupLast = lookupEnd > lookupStart ? lookupEnd - 1 : lookupStart
 			const endChunk = Math.floor(lookupLast / SPATIAL_CHUNK_SIZE)
 
-			// 2. Gather candidates
-			const candidatesBuffer: EditorSyntaxHighlight[] = []
+			let candidates: EditorSyntaxHighlight[] = []
 
-			if (largeHighlights.length > 0) {
-				for (const h of largeHighlights) candidatesBuffer.push(h)
-			}
-
-			// Add bucketed highlights
-			for (let i = startChunk; i <= endChunk; i++) {
-				const bucket = spatialIndex.get(i)
-				if (bucket) {
-					for (const h of bucket) candidatesBuffer.push(h)
+			// Fast path: single bucket, no offsets, no large highlights
+			if (!hasOffsets && largeHighlights.length === 0 && startChunk === endChunk) {
+				const bucket = spatialIndex.get(startChunk)
+				candidates = bucket ?? []
+				candidateCount = candidates.length
+				gatherMs = performance.now() - gatherStart
+			} else {
+				// 2. Gather candidates
+				candidateScratch.length = 0
+				if (largeHighlights.length > 0) {
+					for (const h of largeHighlights) candidateScratch.push(h)
 				}
-			}
 
-			// 3. Sort (mutates buffer)
-			const sortStart = performance.now()
-			candidatesBuffer.sort((a, b) => a.startIndex - b.startIndex)
-			sortMs = performance.now() - sortStart
-
-			// 4. Deduplicate in-place (if multiple chunks involved)
-			// Only needed if we pulled from >1 source that could overlap.
-			// Buckets overlap in content (same highlight in multiple buckets).
-			let uniqueCount = candidatesBuffer.length
-			const dedupeStart = performance.now()
-			if (startChunk !== endChunk && candidatesBuffer.length > 1) {
-				let writeIndex = 1
-				for (let i = 1; i < candidatesBuffer.length; i++) {
-					// Compare with previous unique item
-					if (candidatesBuffer[i] !== candidatesBuffer[writeIndex - 1]) {
-						candidatesBuffer[writeIndex] = candidatesBuffer[i]!
-						writeIndex++
+				// Add bucketed highlights
+				for (let i = startChunk; i <= endChunk; i++) {
+					const bucket = spatialIndex.get(i)
+					if (bucket) {
+						for (const h of bucket) candidateScratch.push(h)
 					}
 				}
-				uniqueCount = writeIndex
-				// Trimming not strictly necessary if we pass length, but toLineHighlightSegmentsForLine iterates input.
-				// We must truncate the buffer to correct length for the callee.
-				candidatesBuffer.length = uniqueCount
+
+				// 3. Sort (mutates buffer)
+				const sortStart = performance.now()
+				candidateScratch.sort((a, b) => a.startIndex - b.startIndex)
+				sortMs = performance.now() - sortStart
+
+				// 4. Deduplicate in-place (if multiple chunks involved)
+				// Only needed if we pulled from >1 source that could overlap.
+				// Buckets overlap in content (same highlight in multiple buckets).
+				let uniqueCount = candidateScratch.length
+				const dedupeStart = performance.now()
+				if (startChunk !== endChunk && candidateScratch.length > 1) {
+					let writeIndex = 1
+					for (let i = 1; i < candidateScratch.length; i++) {
+						// Compare with previous unique item
+						if (candidateScratch[i] !== candidateScratch[writeIndex - 1]) {
+							candidateScratch[writeIndex] = candidateScratch[i]!
+							writeIndex++
+						}
+					}
+					uniqueCount = writeIndex
+					// Trimming not strictly necessary if we pass length, but toLineHighlightSegmentsForLine iterates input.
+					// We must truncate the buffer to correct length for the callee.
+					candidateScratch.length = uniqueCount
+				}
+				dedupeMs = performance.now() - dedupeStart
+				gatherMs = performance.now() - gatherStart
+				candidateCount = uniqueCount
+				candidates = candidateScratch
 			}
-			dedupeMs = performance.now() - dedupeStart
-			gatherMs = performance.now() - gatherStart
-			candidateCount = uniqueCount
 
 			// 5. Apply offset to candidates if needed (shift to new positions)
 			// We pass the offset info to toLineHighlightSegmentsForLine to adjust
@@ -276,8 +337,8 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 				lineStart,
 				lineLength,
 				lineTextLength,
-				candidatesBuffer,
-				hasOffsets ? offsets : undefined
+				candidates,
+				hasIntersectingOffsets ? offsets : undefined
 			)
 			highlightMs = performance.now() - highlightStart
 		} else {
@@ -290,12 +351,26 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			lineLength,
 			lineTextLength,
 			errors,
-			hasOffsets ? offsets : undefined
+			hasIntersectingOffsets ? offsets : undefined
 		)
 		errorMs = performance.now() - errorStart
 
 		const mergeStart = performance.now()
-		const result = mergeLineSegments(highlightSegments, errorSegments)
+		const shiftedHighlightSegments = hasOffsets
+			? applyShiftToSegments(
+					highlightSegments,
+					offsetShiftAmount,
+					lineTextLength
+				)
+			: highlightSegments
+		const shiftedErrorSegments = hasOffsets
+			? applyShiftToSegments(errorSegments, offsetShiftAmount, lineTextLength)
+			: errorSegments
+
+		const result = mergeLineSegments(
+			shiftedHighlightSegments,
+			shiftedErrorSegments
+		)
 		mergeMs = performance.now() - mergeStart
 
 		cacheMap.set(cacheIndex, {
@@ -312,24 +387,29 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 
 		const totalMs = performance.now() - perfStart
 		if (totalMs >= perfThreshold) {
-			console.log('line highlights', {
-				line: entry.index,
-				length: lineLength,
-				textLength: lineTextLength,
-				highlightCount: highlights.length,
+			console.log(
+				JSON.stringify({
+					type: 'line-highlights',
+					line: entry.index,
+					length: lineLength,
+					textLength: lineTextLength,
+					highlightCount: highlights.length,
 				errorCount: errors.length,
 				candidates: candidateCount,
 				segments: highlightSegments.length,
 				errorSegments: errorSegments.length,
 				hasOffsets,
+				hasIntersectingOffsets,
+				offsetShift: offsetShiftAmount,
 				ms: totalMs,
 				gatherMs,
 				sortMs,
 				dedupeMs,
 				highlightMs,
 				errorMs,
-				mergeMs,
-			})
+					mergeMs,
+				})
+			)
 		}
 
 		return result

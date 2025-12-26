@@ -373,7 +373,8 @@ export const toLineHighlightSegmentsForLine = (
 				break
 			}
 
-			const className = getHighlightClassForScope(highlight.scope)
+			const className =
+				highlight.className ?? getHighlightClassForScope(highlight.scope)
 			if (!className) continue
 
 			pushSegment(highlightStart, highlightEnd, className, highlight.scope)
@@ -387,7 +388,8 @@ export const toLineHighlightSegmentsForLine = (
 			break
 		}
 
-		const className = getHighlightClassForScope(highlight.scope)
+		const className =
+			highlight.className ?? getHighlightClassForScope(highlight.scope)
 		if (!className) continue
 
 		const shiftedRanges = applyOffsetsToHighlight(
@@ -448,7 +450,8 @@ export const toLineHighlightSegments = (
 			continue
 		}
 
-		const className = getHighlightClassForScope(highlight.scope)
+		const className =
+			highlight.className ?? getHighlightClassForScope(highlight.scope)
 		if (!className) continue
 
 		let start = Math.max(0, highlight.startIndex)

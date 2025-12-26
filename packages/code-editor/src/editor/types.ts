@@ -24,6 +24,8 @@ export type EditorSyntaxHighlight = {
 	startIndex: number
 	endIndex: number
 	scope: string
+	/** Precomputed CSS class for the scope (filled by the editor) */
+	className?: string
 }
 export type LineHighlightSegment = {
 	start: number

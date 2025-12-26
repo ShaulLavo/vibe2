@@ -3,7 +3,7 @@ import type {
 	HighlightOffsets,
 	TextEditorDocument,
 } from '@repo/code-editor'
-import { Editor } from '@repo/code-editor'
+import { Editor, getHighlightClassForScope } from '@repo/code-editor'
 import { getEditCharDelta, getEditLineDelta } from '@repo/utils/highlightShift'
 
 import {
@@ -127,8 +127,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		},
 	}
 
-	// TreeSitterCapture already has { startIndex, endIndex, scope } which matches EditorSyntaxHighlight
-	// No .map() needed - just pass through directly!
 	const editorHighlights = createMemo<EditorSyntaxHighlight[] | undefined>(
 		() => {
 			const captures = state.selectedFileHighlights
@@ -136,7 +134,20 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 				return undefined
 			}
 			// IMPORTANT: Unwrap the proxy to ensure downstream sorting is fast
-			return unwrap(captures)
+			const unwrapped = unwrap(captures)
+			const next: EditorSyntaxHighlight[] = new Array(unwrapped.length)
+			for (let i = 0; i < unwrapped.length; i += 1) {
+				const capture = unwrapped[i]
+				const className =
+					capture.className ?? getHighlightClassForScope(capture.scope)
+				next[i] = {
+					startIndex: capture.startIndex,
+					endIndex: capture.endIndex,
+					scope: capture.scope,
+					className,
+				}
+			}
+			return next
 		}
 	)
 
