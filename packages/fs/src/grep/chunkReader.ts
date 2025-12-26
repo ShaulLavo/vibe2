@@ -38,6 +38,10 @@ export async function* streamChunksWithOverlap(
 	chunkSize: number,
 	overlapSize: number
 ): AsyncGenerator<ChunkData> {
+	// Guard: Ensure overlapSize is valid to prevent infinite loops.
+	// We clamp it to be at most chunkSize - 1 so that 'advance' is always positive.
+	overlapSize = Math.max(0, Math.min(overlapSize, chunkSize - 1))
+
 	const reader = stream.getReader()
 	let buffer = new Uint8Array(0)
 	let absoluteOffset = 0

@@ -48,9 +48,11 @@ async function grepFile(task: GrepFileTask): Promise<GrepFileResult> {
 			if (isFirstChunk && isBinaryChunk(chunk)) {
 				return { path, matches, bytesScanned: chunk.length, error: 'binary' }
 			}
+			const bytesToAdd = isFirstChunk
+				? chunk.length
+				: Math.max(0, chunk.length - overlapSize)
+			bytesScanned += bytesToAdd
 			isFirstChunk = false
-
-			bytesScanned += chunk.length
 
 			// Find all pattern occurrences in this chunk
 			const offsets = findPatternInChunk(chunk, patternBytes)
