@@ -17,12 +17,7 @@ const FOCUS_LABELS: Record<FocusArea, string> = {
 	fileTree: 'File Tree',
 }
 
-const FOCUS_BADGE_STYLES: Record<FocusArea, string> = {
-	global: 'border-zinc-700/60 bg-zinc-900 text-zinc-200',
-	editor: 'border-blue-500/40 bg-blue-500/10 text-blue-100',
-	terminal: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-200',
-	fileTree: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
-}
+const BADGE_CLASS = 'border-zinc-800 bg-zinc-900 text-zinc-300'
 
 export const StatusBar = () => {
 	const [state] = useFs()
@@ -41,12 +36,12 @@ export const StatusBar = () => {
 		if (state.loading) {
 			return {
 				label: 'Loading filesystem...',
-				class: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
+				class: BADGE_CLASS,
 			}
 		}
 		return {
 			label: state.selectedPath ? 'Ready' : 'Idle',
-			class: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200',
+			class: BADGE_CLASS,
 		}
 	})
 
@@ -54,7 +49,7 @@ export const StatusBar = () => {
 		const area = focus.activeArea()
 		return {
 			label: FOCUS_LABELS[area] ?? 'Global',
-			class: FOCUS_BADGE_STYLES[area] ?? FOCUS_BADGE_STYLES.global,
+			class: BADGE_CLASS,
 		}
 	})
 
@@ -64,7 +59,7 @@ export const StatusBar = () => {
 		if (state.backgroundPrefetching) {
 			return {
 				label: `Indexed ${indexedFileCount} files`,
-				class: 'border-blue-500/40 bg-blue-500/10 text-blue-100',
+				class: BADGE_CLASS,
 				showSpinner: true,
 			}
 		}
@@ -72,7 +67,7 @@ export const StatusBar = () => {
 		if (indexedFileCount > 0) {
 			return {
 				label: `Indexed ${indexedFileCount} files`,
-				class: 'border-zinc-700/60 bg-zinc-900 text-zinc-200/80',
+				class: BADGE_CLASS,
 				showSpinner: false,
 			}
 		}
