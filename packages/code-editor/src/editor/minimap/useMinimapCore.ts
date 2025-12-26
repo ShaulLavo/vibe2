@@ -16,6 +16,8 @@ import { useMinimapResize } from './useMinimapResize'
 import { useMinimapScroll } from './useMinimapScroll'
 import { useMinimapWidth } from './useMinimapWidth'
 import { useMinimapWorker } from './useMinimapWorker'
+import { useTheme } from '@repo/theme'
+import { createMinimapPalette, hexToPacked } from './minimapUtils'
 
 export type UseMinimapCoreOptions = MinimapProps
 
@@ -32,6 +34,10 @@ export type MinimapCoreController = {
 	minimapWidthCss: Accessor<number>
 	/** Whether overlay should be visible */
 	overlayVisible: Accessor<boolean>
+	/** Background color from theme */
+	backgroundColor: Accessor<string>
+	/** Whether dark mode is active */
+	isDark: Accessor<boolean>
 }
 
 /**
@@ -45,6 +51,7 @@ export const useMinimapCore = (
 	const cursor = useCursor()
 	const { setScrollElement, setLineCount, setContainerHeight } =
 		useScrollState()
+	const { theme, isDark } = useTheme()
 
 	const [container, setContainer] = createSignal<HTMLDivElement | null>(null)
 	const [baseCanvas, setBaseCanvas] = createSignal<HTMLCanvasElement | null>(
@@ -99,7 +106,16 @@ export const useMinimapCore = (
 		if (!layout) return
 
 		workerInitialized = true
-		void worker.init(canvas, layout)
+		const bgColor = hexToPacked(theme.editor.background)
+		void worker.init(canvas, layout, createMinimapPalette(theme), bgColor)
+	})
+
+	// Update palette when theme changes
+	createEffect(() => {
+		if (!workerActive()) return
+		const palette = createMinimapPalette(theme)
+		const bgColor = hexToPacked(theme.editor.background)
+		void worker.updatePalette(palette, bgColor)
 	})
 
 	// Width calculation
@@ -195,6 +211,9 @@ export const useMinimapCore = (
 		onScroll: onOverlayRender,
 	})
 
+	// Background color accessor (avoid deep tracking for a single field)
+	const backgroundColor = () => theme.editor.background
+
 	return {
 		container,
 		setContainer,
@@ -202,5 +221,7 @@ export const useMinimapCore = (
 		setBaseCanvas,
 		minimapWidthCss,
 		overlayVisible,
+		backgroundColor,
+		isDark,
 	}
 }

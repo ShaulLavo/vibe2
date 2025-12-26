@@ -9,6 +9,7 @@ import { clsx } from 'clsx'
 import { createEffect, createSignal, onCleanup, type JSX } from 'solid-js'
 import { loggers } from '@repo/logger'
 import { useScrollState } from './ScrollState'
+import { useTheme } from '@repo/theme'
 import styles from './Scrollbar.module.css'
 
 export type ScrollbarProps = {
@@ -26,6 +27,7 @@ const NATIVE_SCROLLBAR_HIDE_CLASS = styles['scrollbar-hidden']!
 
 export const Scrollbar = (props: ScrollbarProps) => {
 	const { scrollState, scrollElement } = useScrollState()
+	const { theme } = useTheme()
 	const log = loggers.codeEditor.withTag('scrollbar')
 
 	const [isHovered, setIsHovered] = createSignal(false)
@@ -214,11 +216,14 @@ export const Scrollbar = (props: ScrollbarProps) => {
 					right: '2px',
 					top: `${thumbTop()}px`,
 					height: `${thumbHeight()}px`,
-					'background-color': isDragging()
-						? 'rgba(255, 255, 255, 0.3)'
-						: isHovered()
-							? 'rgba(255, 255, 255, 0.12)'
-							: 'rgba(255, 255, 255, 0.08)',
+					'background-color':
+						theme.editor.scrollbarThumb ??
+						(isDragging()
+							? 'rgba(255, 255, 255, 0.3)'
+							: isHovered()
+								? 'rgba(255, 255, 255, 0.12)'
+								: 'rgba(255, 255, 255, 0.08)'),
+					opacity: isDragging() ? 0.8 : isHovered() ? 0.6 : 0.4,
 					'border-radius': '0px',
 					transition: isDragging() ? 'none' : 'background-color 0.15s ease',
 					'backdrop-filter': 'blur(4px)',

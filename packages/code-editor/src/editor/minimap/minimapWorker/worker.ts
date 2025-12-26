@@ -22,7 +22,7 @@ import type {
 	TreeSitterMinimapApi,
 } from './types'
 import { Constants } from './constants'
-import { setLightFont as setLightFontAtlas } from './fontAtlas'
+import { setDark as setDarkAtlas } from './fontAtlas'
 import { resetPartialRepaintState, invalidateCache } from './partialRepaint'
 import {
 	renderFromSummary,
@@ -43,6 +43,17 @@ let ctx: OffscreenCanvasRenderingContext2D | null = null
 let layout: MinimapLayout | null = null
 let palette: Uint32Array = MINIMAP_DEFAULT_PALETTE
 
+// Background color state (defaults to zinc-900)
+let bgR = 24
+let bgG = 24
+let bgB = 27
+
+const updateBgFromPacked = (packed: number) => {
+	bgR = packed & 0xff
+	bgG = (packed >> 8) & 0xff
+	bgB = (packed >> 16) & 0xff
+}
+
 // Scroll state
 let scrollY = 0
 let lastSummary: MinimapTokenSummary | null = null
@@ -57,7 +68,6 @@ const summaryCache = new Map<
 	{ summary: MinimapTokenSummary; scrollY: number }
 >()
 let currentPath: string | null = null
-const MAX_CACHE_SIZE = 10
 
 // ============================================================================
 // Worker API
@@ -69,12 +79,16 @@ const api = {
 	init(
 		offscreen: OffscreenCanvas,
 		newLayout: MinimapLayout,
-		newPalette?: Uint32Array
+		newPalette?: Uint32Array,
+		bgColor?: number
 	) {
 		canvas = offscreen
 		layout = newLayout
 		if (newPalette) {
 			palette = newPalette
+		}
+		if (bgColor !== undefined) {
+			updateBgFromPacked(bgColor)
 		}
 
 		canvas.width = layout.size.deviceWidth
@@ -144,23 +158,49 @@ const api = {
 		scrollY = scrollTop
 
 		if (lastSummary && ctx && layout) {
-			renderFromSummary(lastSummary, ctx, layout, palette, scrollY)
+			renderFromSummary(
+				lastSummary,
+				ctx,
+				layout,
+				palette,
+				scrollY,
+				bgR,
+				bgG,
+				bgB
+			)
 		}
 	},
 
 	/**
 	 * Update color palette
 	 */
-	updatePalette(newPalette: Uint32Array) {
+	updatePalette(newPalette: Uint32Array, bgColor?: number) {
 		palette = newPalette
+		if (bgColor !== undefined) {
+			updateBgFromPacked(bgColor)
+		}
 		invalidateCache() // Force full repaint on palette change
+		// Trigger immediate re-render if we have data
+		if (lastSummary && ctx && layout) {
+			renderFromSummary(
+				lastSummary,
+				ctx,
+				layout,
+				palette,
+				scrollY,
+				bgR,
+				bgG,
+				bgB,
+				true
+			)
+		}
 	},
 
 	/**
 	 * Set font variant (light for light themes, normal for dark themes)
 	 */
-	setLightFont(isLight: boolean) {
-		if (setLightFontAtlas(isLight)) {
+	setDark(isDark: boolean) {
+		if (setDarkAtlas(isDark)) {
 			invalidateCache() // Force full repaint on variant change
 		}
 	},
@@ -174,7 +214,7 @@ const api = {
 			return
 		}
 		lastSummary = summary
-		renderFromSummary(summary, ctx, layout, palette, scrollY)
+		renderFromSummary(summary, ctx, layout, palette, scrollY, bgR, bgG, bgB)
 	},
 
 	/**
@@ -203,7 +243,16 @@ const api = {
 			if (cached && ctx && layout) {
 				lastSummary = cached.summary
 				scrollY = cached.scrollY
-				renderFromSummary(cached.summary, ctx, layout, palette, scrollY)
+				renderFromSummary(
+					cached.summary,
+					ctx,
+					layout,
+					palette,
+					scrollY,
+					bgR,
+					bgG,
+					bgB
+				)
 			}
 		}
 
@@ -238,7 +287,7 @@ const api = {
 				return false
 			}
 			lastSummary = summary
-			renderFromSummary(summary, ctx, layout, palette, scrollY)
+			renderFromSummary(summary, ctx, layout, palette, scrollY, bgR, bgG, bgB)
 			return true
 		}
 
@@ -269,7 +318,16 @@ const api = {
 
 			if (summary) {
 				lastSummary = summary
-				renderFromSummary(summary, ctx, activeLayout, palette, scrollY)
+				renderFromSummary(
+					summary,
+					ctx,
+					activeLayout,
+					palette,
+					scrollY,
+					bgR,
+					bgG,
+					bgB
+				)
 				return true
 			}
 		} catch (err) {

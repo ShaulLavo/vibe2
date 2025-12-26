@@ -6,7 +6,7 @@
 
 import { AutoHideVisibility, AutoHideWrapper } from '@repo/ui/auto-hide-wrapper'
 import { clsx } from 'clsx'
-import { createEffect, createSignal } from 'solid-js'
+import { createSignal } from 'solid-js'
 import { useCursor } from '../cursor'
 import { MinimapCanvas } from './MinimapCanvas'
 import { MinimapOverlay } from './MinimapOverlay'
@@ -35,6 +35,7 @@ export const MinimapView = (props: MinimapProps) => {
 		scrollElement: props.scrollElement,
 		errors: props.errors,
 		visible: core.overlayVisible,
+		isDark: core.isDark,
 	})
 
 	// Interaction hook for pointer events
@@ -74,14 +75,15 @@ export const MinimapView = (props: MinimapProps) => {
 			<AutoHideWrapper
 				visibility={computedVisibility()}
 				class={clsx(
-					"absolute right-[14px] top-0 h-full z-50 group before:absolute before:-left-2 before:top-0 before:h-full before:w-[8px] before:content-[''] border-l border-white/5",
+					"absolute right-[14px] top-0 h-full z-50 group/minimap before:absolute before:-left-2 before:top-0 before:h-full before:w-[8px] before:content-[''] border-l border-white/5",
 					computedVisibility() === AutoHideVisibility.SHOW
-						? 'bg-zinc-950/90'
-						: 'bg-zinc-950/20 hover:bg-zinc-950/90'
+						? 'opacity-100'
+						: 'opacity-0 hover:opacity-100'
 				)}
 				style={{
 					'view-transition-name': 'minimap',
 					width: `${core.minimapWidthCss()}px`,
+					'background-color': core.backgroundColor(),
 				}}
 				ref={core.setContainer}
 				onPointerDown={handlePointerDown}

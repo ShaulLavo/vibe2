@@ -26,6 +26,8 @@ export type UseMinimapOverlayOptions = {
 	errors?: Accessor<EditorError[] | undefined>
 	/** Whether overlay should be visible */
 	visible: Accessor<boolean>
+	/** Whether dark mode is active */
+	isDark: Accessor<boolean>
 }
 
 export type MinimapOverlayController = {
@@ -44,7 +46,7 @@ export type MinimapOverlayController = {
 export const useMinimapOverlay = (
 	options: UseMinimapOverlayOptions
 ): MinimapOverlayController => {
-	const { container, scrollElement, errors, visible } = options
+	const { container, scrollElement, errors, visible, isDark } = options
 	const cursor = useCursor()
 
 	const [canvas, setCanvas] = createSignal<HTMLCanvasElement | null>(null)
@@ -101,8 +103,10 @@ export const useMinimapOverlay = (
 		const w = sliderWidthCss * dpr
 		const h = sliderHeight * dpr
 
-		// Draw slider background
-		ctx.fillStyle = 'rgba(228, 228, 231, 0.10)'
+		// Draw slider background (adapt to theme)
+		ctx.fillStyle = isDark()
+			? 'rgba(228, 228, 231, 0.10)'
+			: 'rgba(0, 0, 0, 0.08)'
 		ctx.fillRect(x, y, w, h)
 
 		const scale = Math.round(dpr)
@@ -127,7 +131,9 @@ export const useMinimapOverlay = (
 		const cursorHeight = Math.max(1, rowHeightDevice)
 
 		if (cursorY + cursorHeight >= 0 && cursorY < deviceHeight) {
-			ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'
+			ctx.fillStyle = isDark()
+				? 'rgba(255, 255, 255, 0.15)'
+				: 'rgba(0, 0, 0, 0.12)'
 			ctx.fillRect(x, cursorY, w, cursorHeight)
 		}
 

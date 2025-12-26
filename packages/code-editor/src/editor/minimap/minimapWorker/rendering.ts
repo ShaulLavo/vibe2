@@ -1,10 +1,5 @@
 import type { MinimapTokenSummary, MinimapLayout } from './types'
-import {
-	Constants,
-	BACKGROUND_R,
-	BACKGROUND_G,
-	BACKGROUND_B,
-} from './constants'
+import { Constants } from './constants'
 import {
 	createFontAtlas,
 	getActiveAtlas,
@@ -87,7 +82,10 @@ export const renderLine = (
 	deviceWidth: number,
 	deviceHeight: number,
 	palette: Uint32Array,
-	scrollY: number
+	scrollY: number,
+	bgR: number,
+	bgG: number,
+	bgB: number
 ): void => {
 	const yStart = Math.floor(line * charH - scrollY)
 	if (yStart + charH < 0 || yStart >= deviceHeight) return
@@ -111,9 +109,9 @@ export const renderLine = (
 		const colorB = (rawColor >> 16) & 0xff
 		const foregroundAlpha = (rawColor >> 24) & 0xff
 
-		const deltaR = colorR - BACKGROUND_R
-		const deltaG = colorG - BACKGROUND_G
-		const deltaB = colorB - BACKGROUND_B
+		const deltaR = colorR - bgR
+		const deltaG = colorG - bgG
+		const deltaB = colorB - bgB
 
 		const charIndex = getCharIndex(charCode, scale)
 		const atlasOffset = charIndex * pixelsPerChar
@@ -140,9 +138,9 @@ export const renderLine = (
 				const c = (charAlpha / 255) * (foregroundAlpha / 255)
 
 				if (c > 0.02) {
-					dest[destIdx] = BACKGROUND_R + deltaR * c
-					dest[destIdx + 1] = BACKGROUND_G + deltaG * c
-					dest[destIdx + 2] = BACKGROUND_B + deltaB * c
+					dest[destIdx] = bgR + deltaR * c
+					dest[destIdx + 1] = bgG + deltaG * c
+					dest[destIdx + 2] = bgB + deltaB * c
 					dest[destIdx + 3] = Math.max(foregroundAlpha, 200)
 				}
 
@@ -219,7 +217,10 @@ const renderLinesIntersectingYRange = (
 	palette: Uint32Array,
 	scrollY: number,
 	yStart: number,
-	yEnd: number
+	yEnd: number,
+	bgR: number,
+	bgG: number,
+	bgB: number
 ): void => {
 	const start = Math.max(0, Math.min(deviceHeight, yStart))
 	const end = Math.max(start, Math.min(deviceHeight, yEnd))
@@ -247,7 +248,10 @@ const renderLinesIntersectingYRange = (
 			deviceWidth,
 			deviceHeight,
 			palette,
-			scrollY
+			scrollY,
+			bgR,
+			bgG,
+			bgB
 		)
 	}
 }
@@ -262,7 +266,10 @@ const fullRepaint = (
 	pixelsPerChar: number,
 	scale: number,
 	palette: Uint32Array,
-	scrollY: number
+	scrollY: number,
+	bgR: number,
+	bgG: number,
+	bgB: number
 ): ImageData => {
 	const imageData = ctx.createImageData(deviceWidth, deviceHeight)
 
@@ -285,7 +292,10 @@ const fullRepaint = (
 			deviceWidth,
 			deviceHeight,
 			palette,
-			scrollY
+			scrollY,
+			bgR,
+			bgG,
+			bgB
 		)
 	}
 
@@ -301,6 +311,9 @@ export const renderFromSummary = (
 	layout: MinimapLayout,
 	palette: Uint32Array,
 	scrollY: number,
+	bgR: number,
+	bgG: number,
+	bgB: number,
 	forceFullRepaint = false
 ): void => {
 	const { dpr, deviceWidth, deviceHeight } = layout.size
@@ -327,7 +340,8 @@ export const renderFromSummary = (
 	const cacheMissing = !cachedImageData
 	const cacheSizeChanged =
 		!!cachedImageData &&
-		(cachedImageData.width !== deviceWidth || cachedImageData.height !== deviceHeight)
+		(cachedImageData.width !== deviceWidth ||
+			cachedImageData.height !== deviceHeight)
 	const cacheScaleChanged = !!cachedImageData && getCachedScale() !== scale
 	const structureChanged =
 		!!previousTokens &&
@@ -344,7 +358,8 @@ export const renderFromSummary = (
 	const deltaY = cachedImageData ? normalizedScrollY - cachedScrollY : 0
 	const scrollJumped = !!cachedImageData && Math.abs(deltaY) >= deviceHeight
 
-	const tokensUnchanged = previousTokens === tokens && previousVersion === summary.version
+	const tokensUnchanged =
+		previousTokens === tokens && previousVersion === summary.version
 
 	if (
 		!forceFullRepaint &&
@@ -378,7 +393,10 @@ export const renderFromSummary = (
 					pixelsPerChar,
 					scale,
 					palette,
-					normalizedScrollY
+					normalizedScrollY,
+					bgR,
+					bgG,
+					bgB
 				)
 			: cachedImageData!
 
@@ -402,7 +420,10 @@ export const renderFromSummary = (
 				palette,
 				normalizedScrollY,
 				patchStartY,
-				patchEndY
+				patchEndY,
+				bgR,
+				bgG,
+				bgB
 			)
 		}
 
@@ -426,7 +447,10 @@ export const renderFromSummary = (
 					pixelsPerChar,
 					scale,
 					palette,
-					normalizedScrollY
+					normalizedScrollY,
+					bgR,
+					bgG,
+					bgB
 				)
 			} else {
 				clearLines(
@@ -451,7 +475,10 @@ export const renderFromSummary = (
 						deviceWidth,
 						deviceHeight,
 						palette,
-						normalizedScrollY
+						normalizedScrollY,
+						bgR,
+						bgG,
+						bgB
 					)
 				}
 			}

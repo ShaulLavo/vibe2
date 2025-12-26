@@ -213,11 +213,12 @@ export const getAtlasScale = (): number => atlasScale
 export const hasAtlas = (): boolean => fontAtlasNormal !== null
 
 /**
- * Set font variant (light for light themes, normal for dark themes)
+ * Set dark mode (normal font for dark themes, light font for light themes)
  */
-export const setLightFont = (isLight: boolean): boolean => {
-	if (useLightFont !== isLight) {
-		useLightFont = isLight
+export const setDark = (isDark: boolean): boolean => {
+	const shouldUseLightFont = !isDark
+	if (useLightFont !== shouldUseLightFont) {
+		useLightFont = shouldUseLightFont
 		return true // Changed
 	}
 	return false // No change

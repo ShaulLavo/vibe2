@@ -18,6 +18,15 @@ export type UseMinimapWorkerOptions = {
 	onError?: (error: string) => void
 }
 
+/**
+ * Controller type for the minimap worker.
+ * NOTE: This type mirrors MinimapWorkerApi from ./minimapWorker/worker.ts
+ * Keep in sync when updating the worker API.
+ * Differences:
+ * - init takes HTMLCanvasElement (transfers to OffscreenCanvas internally)
+ * - connectTreeSitter is sync (fires and forgets)
+ * - Adds isReady accessor
+ */
 export type MinimapWorkerController = {
 	/** Whether the worker is initialized and ready */
 	isReady: () => boolean
@@ -25,14 +34,15 @@ export type MinimapWorkerController = {
 	init: (
 		canvas: HTMLCanvasElement,
 		layout: MinimapLayout,
-		palette?: Uint32Array
+		palette?: Uint32Array,
+		bgColor?: number
 	) => Promise<boolean>
 	/** Connect to Tree-sitter worker for direct communication */
 	connectTreeSitter: (treeSitterWorker: Worker) => void
 	/** Update layout */
 	updateLayout: (layout: MinimapLayout) => Promise<void>
 	/** Update color palette */
-	updatePalette: (palette: Uint32Array) => Promise<void>
+	updatePalette: (palette: Uint32Array, bgColor?: number) => Promise<void>
 	/** Update scroll position */
 	updateScroll: (scrollTop: number) => Promise<void>
 	/** Render from token summary */
@@ -45,6 +55,8 @@ export type MinimapWorkerController = {
 	clear: () => Promise<void>
 	/** Dispose the worker */
 	dispose: () => Promise<void>
+	/** Set dark mode (normal font for dark themes, light font for light themes) */
+	setDark: (isDark: boolean) => Promise<void>
 }
 
 /**
@@ -71,7 +83,8 @@ export const useMinimapWorker = (
 	const init = async (
 		canvas: HTMLCanvasElement,
 		layout: MinimapLayout,
-		palette?: Uint32Array
+		palette?: Uint32Array,
+		bgColor?: number
 	): Promise<boolean> => {
 		// Check if OffscreenCanvas is supported
 		if (typeof OffscreenCanvas === 'undefined') {
@@ -88,7 +101,7 @@ export const useMinimapWorker = (
 
 			// Transfer the canvas to the worker
 			const offscreen = canvas.transferControlToOffscreen()
-			await api.init(transfer(offscreen, [offscreen]), layout, palette)
+			await api.init(transfer(offscreen, [offscreen]), layout, palette, bgColor)
 
 			setIsReady(true)
 			options.onReady?.()
@@ -138,8 +151,8 @@ export const useMinimapWorker = (
 	/**
 	 * Update color palette
 	 */
-	const updatePalette = async (palette: Uint32Array) => {
-		await api?.updatePalette(palette)
+	const updatePalette = async (palette: Uint32Array, bgColor?: number) => {
+		await api?.updatePalette(palette, bgColor)
 	}
 
 	/**
@@ -190,6 +203,13 @@ export const useMinimapWorker = (
 		}
 	}
 
+	/**
+	 * Set dark mode (normal font for dark themes, light font for light themes)
+	 */
+	const setDark = async (isDark: boolean) => {
+		await api?.setDark(isDark)
+	}
+
 	// Clean up on unmount
 	onCleanup(() => {
 		void dispose()
@@ -207,5 +227,6 @@ export const useMinimapWorker = (
 		renderFromText,
 		clear,
 		dispose,
+		setDark,
 	}
 }
