@@ -4,9 +4,11 @@
  * Core algorithm for finding literal patterns in raw byte chunks.
  * Uses simple first-byte check + verify approach.
  *
- * Future optimizations:
- * - Boyer-Moore-Horspool for longer patterns (skip table)
- * - SIMD via WebAssembly for large files
+ * TODO: Future optimizations:
+ * - Implement Boyer-Moore-Horspool algorithm (skip table) for longer patterns
+ * - Add case-insensitive search support (requires ASCII folding or full Unicode table)
+ * - Improve binary file detection (beyond simple null-byte check)
+ * - SIMD optimizations via WebAssembly for very large files
  */
 
 /**
