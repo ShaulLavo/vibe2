@@ -13,20 +13,29 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+
 import { GrepCoordinator } from '../GrepCoordinator'
+import type { GrepFileResult, GrepProgress } from '../types'
 import { getMemoryRoot } from '../../getRoot'
 import { createFs } from '../../vfs'
 import { workerApi } from '../grepWorker'
 
+// Mock Worker class since we're in Node/Vitest environment
 // Mock Worker class since we're in Node/Vitest environment
 class MockWorker {
 	postMessage() {}
 	terminate() {}
 	addEventListener() {}
 	removeEventListener() {}
+	dispatchEvent() {
+		return true
+	}
+	onmessage = null
+	onmessageerror = null
+	onerror = null
 }
 
-globalThis.Worker = MockWorker as any
+globalThis.Worker = MockWorker as unknown as typeof Worker
 
 // Mock Comlink to bypass worker messaging and call implementation directly
 vi.mock('comlink', () => ({
@@ -107,7 +116,7 @@ describe('Grep Integration', () => {
 	})
 
 	it('streams results via searchStream', async () => {
-		const results: any[] = []
+		const results: GrepFileResult[] = []
 		for await (const result of coordinator.grepStream({ pattern: 'hello' })) {
 			results.push(result)
 		}
@@ -119,13 +128,13 @@ describe('Grep Integration', () => {
 	})
 
 	it('reports progress', async () => {
-		const progressUpdates: any[] = []
-		await coordinator.grep({ pattern: 'hello' }, (progress) =>
+		const progressUpdates: GrepProgress[] = []
+		await coordinator.grep({ pattern: 'hello' }, (progress: GrepProgress) =>
 			progressUpdates.push(progress)
 		)
 
 		expect(progressUpdates.length).toBeGreaterThan(0)
-		const lastUpdate = progressUpdates[progressUpdates.length - 1]
+		const lastUpdate = progressUpdates[progressUpdates.length - 1]!
 		expect(lastUpdate.filesScanned).toBeGreaterThan(0)
 		expect(lastUpdate.matchesFound).toBe(3)
 	})

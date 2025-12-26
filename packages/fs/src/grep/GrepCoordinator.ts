@@ -18,6 +18,9 @@ import type {
 } from './types'
 import type { GrepWorkerApi } from './grepWorker'
 import { DEFAULT_CHUNK_SIZE } from './chunkReader'
+import { logger } from '@repo/logger'
+
+const log = logger.withTag('fs:grep')
 
 // ============================================================================
 // Configuration
@@ -36,7 +39,7 @@ const textEncoder = new TextEncoder()
 
 export class GrepCoordinator {
 	readonly #fs: FsContext
-	#workerPool: Remote<GrepWorkerApi>[] = []
+	#workerPool: { worker: Worker; proxy: Remote<GrepWorkerApi> }[] = []
 	#terminated = false
 
 	constructor(fs: FsContext) {
@@ -96,7 +99,7 @@ export class GrepCoordinator {
 		// Process batches in parallel across workers
 		const batchPromises = batches.map((batch, batchIndex) => {
 			const workerIndex = batchIndex % this.#workerPool.length
-			const worker = this.#workerPool[workerIndex]!
+			const worker = this.#workerPool[workerIndex]!.proxy
 
 			return worker.grepBatch(batch).then((results: GrepFileResult[]) => {
 				for (const result of results) {
@@ -166,7 +169,7 @@ export class GrepCoordinator {
 				}
 
 				// Use first available worker
-				const worker = this.#workerPool[0]!
+				const worker = this.#workerPool[0]!.proxy
 				const result = await worker.grepFile(task)
 
 				if (!result.error && result.matches.length > 0) {
@@ -208,7 +211,7 @@ export class GrepCoordinator {
 					}
 				}
 			} catch (error) {
-				console.warn(`Failed to enumerate path: ${searchPath}`, error)
+				log.warn('Failed to enumerate path', { searchPath, error })
 			}
 		}
 
@@ -225,7 +228,8 @@ export class GrepCoordinator {
 			const worker = new Worker(new URL('./grepWorker.ts', import.meta.url), {
 				type: 'module',
 			})
-			this.#workerPool.push(wrap<GrepWorkerApi>(worker))
+			const proxy = wrap<GrepWorkerApi>(worker)
+			this.#workerPool.push({ worker, proxy })
 		}
 	}
 
@@ -245,7 +249,9 @@ export class GrepCoordinator {
 	 */
 	terminate(): void {
 		this.#terminated = true
-		// Note: Comlink doesn't expose underlying worker, would need to track it
+		for (const { worker } of this.#workerPool) {
+			worker.terminate()
+		}
 		this.#workerPool = []
 	}
 
