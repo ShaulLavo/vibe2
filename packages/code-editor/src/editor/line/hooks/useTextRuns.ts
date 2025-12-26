@@ -2,9 +2,11 @@ import { createMemo, type Accessor } from 'solid-js'
 import type { LineBracketDepthMap, LineHighlightSegment } from '../../types'
 import {
 	buildTextRuns,
+	buildTextRunsHtml,
 	normalizeHighlightSegments,
 	type TextRun,
 } from '../utils/textRuns'
+import { getBracketDepthTextClass } from '../../theme/bracketColors'
 
 export type UseTextRunsOptions = {
 	text: Accessor<string>
@@ -28,16 +30,52 @@ export const useTextRuns = (
 		}
 
 		const depthMap = options.bracketDepths()
-		const highlights = normalizeHighlightSegments(
-			options.highlightSegments(),
-			text.length
-		)
+		const rawSegments = options.highlightSegments()
+		const highlights = normalizeHighlightSegments(rawSegments, text.length)
 
 		const startIndex = Math.max(0, options.columnStart() ?? 0)
 		const endIndex = options.columnEnd() ?? text.length
 
-		return buildTextRuns(text, depthMap, highlights, startIndex, endIndex)
+		const result = buildTextRuns(
+			text,
+			depthMap,
+			highlights,
+			startIndex,
+			endIndex
+		)
+
+		return result
 	})
 
 	return runs
+}
+
+export const useTextRunsHtml = (
+	options: UseTextRunsOptions
+): Accessor<string> => {
+	const html = createMemo(() => {
+		const text = options.text()
+		if (text.length === 0) {
+			return ''
+		}
+
+		const depthMap = options.bracketDepths()
+		const rawSegments = options.highlightSegments()
+		const highlights = normalizeHighlightSegments(rawSegments, text.length)
+
+		const startIndex = Math.max(0, options.columnStart() ?? 0)
+		const endIndex = options.columnEnd() ?? text.length
+
+		const runs = buildTextRuns(
+			text,
+			depthMap,
+			highlights,
+			startIndex,
+			endIndex
+		)
+
+		return buildTextRunsHtml(runs, getBracketDepthTextClass)
+	})
+
+	return html
 }

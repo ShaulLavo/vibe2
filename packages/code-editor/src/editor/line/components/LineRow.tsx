@@ -9,7 +9,6 @@ import type {
 } from '../../types'
 import type { TextRun } from '../utils/textRuns'
 import { Line } from './Line'
-
 type LineRowProps = {
 	virtualRow: VirtualItem2D
 	lineHeight: Accessor<number>
@@ -99,11 +98,11 @@ export const LineRow = (props: LineRowProps) => {
 	])
 	const cursor = useCursor()
 
-	const lineIndex = createMemo(() =>
-		local.displayToLine
-			? local.displayToLine(local.virtualRow.index)
-			: local.virtualRow.index
-	)
+	const lineIndex = createMemo(() => {
+		const rawIndex = local.virtualRow.index
+		if (rawIndex < 0) return -1
+		return local.displayToLine ? local.displayToLine(rawIndex) : rawIndex
+	})
 
 	const isLineValid = createMemo(() => {
 		const idx = lineIndex()

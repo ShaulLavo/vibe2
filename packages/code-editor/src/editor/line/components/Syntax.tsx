@@ -1,8 +1,8 @@
-import { Index } from 'solid-js'
+import { createMemo } from 'solid-js'
 import type { LineBracketDepthMap, LineHighlightSegment } from '../../types'
-import { useTextRuns } from '../hooks/useTextRuns'
-import type { TextRun } from '../utils/textRuns'
-import { Token } from './Token'
+import { useTextRunsHtml } from '../hooks/useTextRuns'
+import { getBracketDepthTextClass } from '../../theme/bracketColors'
+import { buildTextRunsHtml } from '../utils/textRuns'
 
 type SyntaxProps = {
 	text: string
@@ -20,7 +20,7 @@ type SyntaxProps = {
  * If cachedRuns are provided, uses them directly for instant rendering.
  */
 export const Syntax = (props: SyntaxProps) => {
-	const computedRuns = useTextRuns({
+	const computedHtml = useTextRunsHtml({
 		text: () => props.text,
 		bracketDepths: () => props.bracketDepths,
 		highlightSegments: () => props.highlightSegments,
@@ -28,18 +28,12 @@ export const Syntax = (props: SyntaxProps) => {
 		columnEnd: () => props.columnEnd,
 	})
 
-	const runs = () => props.cachedRuns ?? computedRuns()
+	const cachedHtml = createMemo(() => {
+		const runs = props.cachedRuns
+		if (!runs) return undefined
 
-	return (
-		<Index each={runs()}>
-			{(run) => (
-				<Token
-					text={run().text}
-					depth={run().depth}
-					highlightClass={run().highlightClass}
-					highlightScope={run().highlightScope}
-				/>
-			)}
-		</Index>
-	)
+		return buildTextRunsHtml(runs, getBracketDepthTextClass)
+	})
+
+	return <span innerHTML={cachedHtml() ?? computedHtml()} />
 }

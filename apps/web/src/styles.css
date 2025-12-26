@@ -159,7 +159,7 @@ body {
 
 	/* Line */
 	.editor-line {
-		@apply absolute left-0 top-0 w-full whitespace-pre will-change-transform;
+		@apply absolute left-0 top-0 w-full whitespace-pre;
 		color: var(--editor-foreground);
 	}
 }
