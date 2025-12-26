@@ -1,6 +1,13 @@
 import { createResizeObserver } from '@solid-primitives/resize-observer'
 import { makePersisted } from '@solid-primitives/storage'
-import { createSignal, onCleanup, onMount, type Component } from 'solid-js'
+import {
+	createEffect,
+	createSignal,
+	on,
+	onCleanup,
+	onMount,
+	type Component,
+} from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { useFs } from '~/fs/context/FsContext'
 import { dualStorage } from '@repo/utils/DualStorage'
@@ -9,11 +16,13 @@ import {
 	createTerminalController,
 	TerminalController,
 } from '../terminal/terminalController'
+import { useTheme } from '@repo/theme'
 
 export const Terminal: Component = () => {
 	let containerRef: HTMLDivElement = null!
 	const focus = useFocusManager()
 	const [state, actions] = useFs()
+	const { theme, trackedTheme } = useTheme()
 	const storage = typeof window === 'undefined' ? undefined : dualStorage
 	const [cwd, setCwd] = makePersisted(
 		// eslint-disable-next-line solid/reactivity
@@ -31,14 +40,19 @@ export const Terminal: Component = () => {
 
 	onMount(() => {
 		const unregisterFocus = focus.registerArea('terminal', () => containerRef)
-		let controller: TerminalController
+		let controller: TerminalController | null = null
 
 		createResizeObserver(
 			() => containerRef,
 			() => controller?.fit()
 		)
 
-		const setup = async () => {
+		const setup = async (focusOnMount: boolean) => {
+			if (controller) {
+				controller.dispose()
+				controller = null
+			}
+
 			controller = await createTerminalController(containerRef, {
 				getPrompt: () => createPrompt(cwd(), state.activeSource),
 				commandContext: {
@@ -49,6 +63,8 @@ export const Terminal: Component = () => {
 						setCwd: (path) => setCwd(() => normalizeCwd(path)),
 					},
 				},
+				theme: theme,
+				focusOnMount,
 			})
 			controller.fit()
 			const dir = await actions.ensureDirPathLoaded(cwd())
@@ -56,9 +72,23 @@ export const Terminal: Component = () => {
 				setCwd(() => '')
 			}
 		}
-		void setup().catch((error) => {
+
+		void setup(true).catch((error) => {
 			console.error('Failed to initialize terminal controller', error)
 		})
+
+		createEffect(
+			on(
+				trackedTheme,
+				() => {
+					if (!controller) return
+					void setup(false).catch((error) => {
+						console.error('Failed to update terminal theme', error)
+					})
+				},
+				{ defer: true }
+			)
+		)
 
 		onCleanup(() => {
 			controller?.dispose()

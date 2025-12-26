@@ -8,6 +8,7 @@ import {
 import { LocalEchoController } from './localEcho'
 import { handleCommand, type CommandContext } from './commands'
 import type { TerminalPrompt } from './prompt'
+import type { ThemePalette } from '@repo/theme'
 
 export type TerminalController = Awaited<
 	ReturnType<typeof createTerminalController>
@@ -16,6 +17,9 @@ export type TerminalController = Awaited<
 type TerminalControllerOptions = {
 	getPrompt: () => TerminalPrompt
 	commandContext: Omit<CommandContext, 'localEcho' | 'term'>
+	theme: ThemePalette
+	/** Whether to focus the terminal on mount. Default: true */
+	focusOnMount?: boolean
 }
 
 export const createTerminalController = async (
@@ -37,14 +41,25 @@ export const createTerminalController = async (
 		fontSize: 14,
 		fontFamily: 'JetBrains Mono Variable, monospace',
 		theme: {
-			background: '#0a0a0b',
-			foreground: '#e5e5e5',
-			black: '#0b0c0f',
-			green: '#cbd5e1',
-			white: '#f4f4f5',
-			blue: '#d4d4d8',
-			cursor: '#e4e4e7',
-			brightBlack: '#18181b',
+			background: options.theme.terminal.background,
+			foreground: options.theme.terminal.foreground,
+			black: options.theme.terminal.black,
+			red: options.theme.terminal.red,
+			green: options.theme.terminal.green,
+			yellow: options.theme.terminal.yellow,
+			blue: options.theme.terminal.blue,
+			magenta: options.theme.terminal.magenta,
+			cyan: options.theme.terminal.cyan,
+			white: options.theme.terminal.white,
+			cursor: options.theme.terminal.cursor,
+			brightBlack: options.theme.terminal.brightBlack,
+			brightRed: options.theme.terminal.brightRed,
+			brightGreen: options.theme.terminal.brightGreen,
+			brightYellow: options.theme.terminal.brightYellow,
+			brightBlue: options.theme.terminal.brightBlue,
+			brightMagenta: options.theme.terminal.brightMagenta,
+			brightCyan: options.theme.terminal.brightCyan,
+			brightWhite: options.theme.terminal.brightWhite,
 		},
 	})
 
@@ -101,7 +116,9 @@ export const createTerminalController = async (
 			})
 		})
 	}
-	term.focus()
+	if (options.focusOnMount !== false) {
+		term.focus()
+	}
 
 	echoAddon.println('Welcome to vibe shell')
 	echoAddon.println('Type `help` to see available commands.')
