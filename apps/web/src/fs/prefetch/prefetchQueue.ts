@@ -2,6 +2,7 @@ import type { FsDirTreeNode } from '@repo/fs'
 import { logger } from '~/logger'
 import { formatBytes } from '@repo/utils'
 import type { FsSource } from '../types'
+import { IGNORED_SEGMENTS } from '../config/constants'
 import type {
 	PrefetchDirectoryLoadedPayload,
 	PrefetchErrorPayload,
@@ -16,17 +17,6 @@ import {
 	initSqlite,
 	type FileMetadata,
 } from '../../workers/sqliteClient'
-
-const LOAD_LATER_SEGMENTS = new Set([
-	'node_modules',
-	'.git',
-	'.hg',
-	'.svn',
-	'.vite',
-	'dist',
-	'build',
-	'.cache',
-])
 
 const MAX_PREFETCH_DEPTH = 6
 const MAX_PREFETCHED_DIRS = Infinity
@@ -204,7 +194,7 @@ export class PrefetchQueue {
 	private shouldDeferPath(path: string | undefined) {
 		if (!path) return false
 		const segments = path.split('/').filter(Boolean)
-		return segments.some((segment) => LOAD_LATER_SEGMENTS.has(segment))
+		return segments.some((segment) => IGNORED_SEGMENTS.has(segment))
 	}
 
 	private shouldSkipTarget(target: PrefetchTarget) {

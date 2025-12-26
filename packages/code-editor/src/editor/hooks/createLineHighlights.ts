@@ -4,6 +4,7 @@ import {
 	mergeLineSegments,
 	mapRangeToOldOffsets,
 	toLineHighlightSegmentsForLine,
+	toLineHighlightSegments,
 } from '../utils/highlights'
 import type {
 	EditorError,
@@ -28,6 +29,8 @@ export type CreateLineHighlightsOptions = {
 	errors?: Accessor<EditorError[] | undefined>
 	/** Offset for optimistic updates - applied lazily per-line */
 	highlightOffset?: Accessor<HighlightOffsets | undefined>
+	/** Full line entries for precomputing highlight segments */
+	lineEntries?: Accessor<LineEntry[] | undefined>
 }
 
 export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
@@ -52,6 +55,42 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 				scope: error.isMissing ? 'missing' : 'error',
 			}))
 			.sort((a, b) => a.startIndex - b.startIndex)
+	})
+
+	const precomputedSegments = createMemo<
+		LineHighlightSegment[][] | undefined
+	>(() => {
+		const lineEntries = options.lineEntries?.()
+		if (!lineEntries?.length) return undefined
+
+		const offsets = options.highlightOffset?.()
+		if (offsets && offsets.length > 0) return undefined
+
+		const highlights = sortedHighlights()
+		const errors = sortedErrorHighlights()
+		const hasHighlights = highlights.length > 0
+		const hasErrors = errors.length > 0
+		if (!hasHighlights && !hasErrors) return undefined
+
+		const highlightSegments = hasHighlights
+			? toLineHighlightSegments(lineEntries, highlights)
+			: []
+		const errorSegments = hasErrors
+			? toLineHighlightSegments(lineEntries, errors)
+			: []
+
+		if (!hasErrors) return highlightSegments
+		if (!hasHighlights) return errorSegments
+
+		const merged: LineHighlightSegment[][] = new Array(lineEntries.length)
+		for (let i = 0; i < lineEntries.length; i += 1) {
+			const mergedLine = mergeLineSegments(
+				highlightSegments[i],
+				errorSegments[i]
+			)
+			if (mergedLine.length > 0) merged[i] = mergedLine
+		}
+		return merged
 	})
 
 	let lastOffsetsRef: HighlightOffsets | undefined
@@ -209,6 +248,12 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 	const MAX_HIGHLIGHT_CACHE_SIZE = 500
 
 	const getLineHighlights = (entry: LineEntry): LineHighlightSegment[] => {
+		const precomputed = precomputedSegments()
+		if (precomputed) {
+			const segments = precomputed[entry.index]
+			return segments ?? []
+		}
+
 		const perfThreshold = PERF_THRESHOLD_MS
 		const perfStart = performance.now()
 		let gatherMs = 0

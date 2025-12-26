@@ -198,30 +198,38 @@ export function create2DVirtualizer(
 
 		let rafScrollState = 0
 		let scrollTimeoutId: ReturnType<typeof setTimeout>
+		let pendingScrollTop = untrack(scrollTop)
+		let pendingScrollLeft = untrack(scrollLeft)
+		let lastAppliedTop = pendingScrollTop
+		let lastAppliedLeft = pendingScrollLeft
 
 		const onScroll = () => {
-			const prevTop = untrack(scrollTop)
-			const prevLeft = untrack(scrollLeft)
-
-			const currentScrollTop = normalizeNumber(element.scrollTop)
-			const currentScrollLeft = normalizeNumber(element.scrollLeft)
-
-			if (currentScrollTop !== prevTop || currentScrollLeft !== prevLeft) {
-				batch(() => {
-					setScrollTop(currentScrollTop)
-					setScrollLeft(currentScrollLeft)
-				})
-			}
+			pendingScrollTop = normalizeNumber(element.scrollTop)
+			pendingScrollLeft = normalizeNumber(element.scrollLeft)
 
 			if (!rafScrollState) {
 				rafScrollState = requestAnimationFrame(() => {
 					rafScrollState = 0
 
-					if (!untrack(isScrolling)) {
-						setIsScrolling(true)
+					const nextTop = pendingScrollTop
+					const nextLeft = pendingScrollLeft
+					const didChange =
+						nextTop !== lastAppliedTop || nextLeft !== lastAppliedLeft
+
+					if (didChange) {
+						batch(() => {
+							setScrollTop(nextTop)
+							setScrollLeft(nextLeft)
+						})
+						if (!untrack(isScrolling)) {
+							setIsScrolling(true)
+						}
+						if (nextTop > lastAppliedTop) setScrollDirection('forward')
+						else if (nextTop < lastAppliedTop) setScrollDirection('backward')
+
+						lastAppliedTop = nextTop
+						lastAppliedLeft = nextLeft
 					}
-					if (currentScrollTop > prevTop) setScrollDirection('forward')
-					else if (currentScrollTop < prevTop) setScrollDirection('backward')
 				})
 			}
 

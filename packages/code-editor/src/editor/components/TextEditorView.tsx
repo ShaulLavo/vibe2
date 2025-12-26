@@ -1,4 +1,11 @@
-import { Show, createEffect, createSignal, onCleanup, untrack } from 'solid-js'
+import {
+	Show,
+	createEffect,
+	createMemo,
+	createSignal,
+	onCleanup,
+	untrack,
+} from 'solid-js'
 
 import { DEFAULT_TAB_SIZE } from '../consts'
 import { useCursor } from '../cursor'
@@ -184,25 +191,48 @@ export const TextEditorView = (props: EditorProps) => {
 		return found ? map : undefined
 	}
 
+	const buildLineEntry = (lineIndex: number): LineEntry => ({
+		index: lineIndex,
+		start: cursor.lines.getLineStart(lineIndex),
+		length: cursor.lines.getLineLength(lineIndex),
+		text: cursor.lines.getLineText(lineIndex),
+	})
+
+	// Helper to get line entry for caching
+	const getLineEntry = (lineIndex: number) => {
+		const count = cursor.lines.lineCount()
+		if (lineIndex < 0 || lineIndex >= count) {
+			return null
+		}
+		return buildLineEntry(lineIndex)
+	}
+
+	const lineEntries = createMemo<LineEntry[] | undefined>(() => {
+		const highlights = showHighlights() ? props.highlights?.() : undefined
+		const errors = props.errors?.()
+		if (!highlights?.length && !errors?.length) return undefined
+
+		const offsets = showHighlights() ? props.highlightOffset?.() : undefined
+		if (offsets && offsets.length > 0) return undefined
+
+		const count = cursor.lines.lineCount()
+		if (count === 0) return undefined
+
+		const entries: LineEntry[] = new Array(count)
+		for (let i = 0; i < count; i += 1) {
+			entries[i] = buildLineEntry(i)
+		}
+		return entries
+	})
+
 	const { getLineHighlights } = createLineHighlights({
 		highlights: () => (showHighlights() ? props.highlights?.() : undefined),
 		errors: () => props.errors?.(),
 		highlightOffset: () =>
 			showHighlights() ? props.highlightOffset?.() : undefined,
+		lineEntries,
 	})
 	// const getLineHighlights = () => undefined
-	// Helper to get line entry for caching
-	const getLineEntry = (lineIndex: number) => {
-		if (lineIndex < 0 || lineIndex >= cursor.lines.lineCount()) {
-			return null
-		}
-		return {
-			index: lineIndex,
-			start: cursor.lines.getLineStart(lineIndex),
-			length: cursor.lines.getLineLength(lineIndex),
-			text: cursor.lines.getLineText(lineIndex),
-		}
-	}
 
 	// Visible content caching for instant tab switching
 	const { markLiveContentAvailable, getCachedRuns } = useVisibleContentCache({
