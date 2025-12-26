@@ -22,9 +22,83 @@ export type BenchmarkOptions = {
 	phases?: BenchmarkPhase[]
 }
 
+/**
+ * Fluent builder for scroll benchmarks.
+ * Usage: scrollBench().down().up().vjump().start()
+ */
+export class ScrollBenchmarkBuilder {
+	private phases: BenchmarkPhase[] = []
+	private runFn: (options?: BenchmarkOptions) => Promise<BenchmarkResults>
+
+	constructor(
+		runFn: (options?: BenchmarkOptions) => Promise<BenchmarkResults>
+	) {
+		this.runFn = runFn
+	}
+
+	down() {
+		this.phases.push('down')
+		return this
+	}
+
+	up() {
+		this.phases.push('up')
+		return this
+	}
+
+	vjump() {
+		this.phases.push('jumpV')
+		return this
+	}
+
+	right() {
+		this.phases.push('right')
+		return this
+	}
+
+	left() {
+		this.phases.push('left')
+		return this
+	}
+
+	hjump() {
+		this.phases.push('jumpH')
+		return this
+	}
+
+	/** Convenience: add all vertical phases (down, up, jumpV) */
+	vertical() {
+		return this.down().up().vjump()
+	}
+
+	/** Convenience: add all horizontal phases (right, left, jumpH) */
+	horizontal() {
+		return this.right().left().hjump()
+	}
+
+	/** Convenience: add all phases */
+	all() {
+		return this.vertical().horizontal()
+	}
+
+	/** Run the benchmark with the selected phases */
+	start(): Promise<BenchmarkResults> {
+		if (this.phases.length === 0) {
+			// Default to vertical phases if none selected
+			return this.runFn({ phases: ['down', 'up', 'jumpV'] })
+		}
+		return this.runFn({ phases: this.phases })
+	}
+
+	/** Alias for start() */
+	run(): Promise<BenchmarkResults> {
+		return this.start()
+	}
+}
+
 declare global {
 	interface Window {
-		scrollBenchmark?: (options?: BenchmarkOptions) => Promise<BenchmarkResults>
+		scrollBench?: () => ScrollBenchmarkBuilder
 	}
 }
 
@@ -46,9 +120,10 @@ export type UseScrollBenchmarkOptions = {
 }
 
 export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
-	const previous = window.scrollBenchmark
+	const previousBench = window.scrollBench
 
-	window.scrollBenchmark = async (
+	// The core benchmark function
+	const runBenchmark = async (
 		benchOptions?: BenchmarkOptions
 	): Promise<BenchmarkResults> => {
 		const { includeHorizontal = false, phases: requestedPhases } =
@@ -262,11 +337,14 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 		return stats
 	}
 
+	// Register the fluent builder API on window
+	window.scrollBench = () => new ScrollBenchmarkBuilder(runBenchmark)
+
 	onCleanup(() => {
-		if (previous) {
-			window.scrollBenchmark = previous
+		if (previousBench) {
+			window.scrollBench = previousBench
 		} else {
-			delete window.scrollBenchmark
+			delete window.scrollBench
 		}
 	})
 }

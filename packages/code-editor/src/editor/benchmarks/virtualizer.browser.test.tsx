@@ -79,7 +79,7 @@ describe.skip('Virtualizer Performance Benchmark', () => {
 
 			await expect.poll(() => scrollEl).toBeTruthy()
 
-			const results = await window.scrollBenchmark?.()
+			const results = await window.scrollBench?.().start()
 			expect(results).toBeDefined()
 
 			// Default runs vertical phases
@@ -111,9 +111,7 @@ describe.skip('Virtualizer Performance Benchmark', () => {
 
 			await expect.poll(() => scrollEl).toBeTruthy()
 
-			const results = await window.scrollBenchmark?.({
-				phases: ['right', 'left'],
-			})
+			const results = await window.scrollBench?.().right().left().start()
 
 			expect(results?.right.frames).toBeGreaterThan(0)
 			expect(results?.left.frames).toBeGreaterThan(0)
