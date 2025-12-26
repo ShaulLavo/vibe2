@@ -34,7 +34,7 @@ export const Fs = () => {
 	})
 
 	return (
-		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-zinc-800/70 bg-zinc-950/60 shadow-xl">
+		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border/30 bg-muted/60 shadow-xl">
 			<button type="button" onClick={() => void actions.pickNewRoot()}>
 				Pick New Folder
 			</button>
@@ -50,7 +50,7 @@ export const Fs = () => {
 					initialSize={panelSizes()[0] ?? 0.3}
 					minSize={0.04}
 					collapsible
-					class="min-h-0 overflow-auto border-r border-zinc-800/70 bg-zinc-950/60"
+					class="min-h-0 overflow-auto border-r border-border/30 bg-muted/60"
 					ref={treePanel}
 				>
 					<TreeView tree={() => state.tree} loading={() => state.loading} />
@@ -58,7 +58,7 @@ export const Fs = () => {
 				<ResizableHandle class="z-20" aria-label="Resize file tree" />
 				<ResizablePanel
 					initialSize={panelSizes()[1] ?? 0.7}
-					class="flex-1 min-h-0 overflow-auto bg-zinc-950/30"
+					class="flex-1 min-h-0 overflow-auto bg-background/30"
 				>
 					<SelectedFilePanel
 						isFileSelected={() => state.lastKnownFileNode?.kind === 'file'}

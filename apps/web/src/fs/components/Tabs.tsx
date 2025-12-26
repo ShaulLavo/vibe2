@@ -18,12 +18,12 @@ export const Tabs: Component<TabsProps> = (props) => {
 	return (
 		<div
 			role="tablist"
-			class="flex shrink-0 items-end gap-1 overflow-x-auto border-b border-zinc-900/70 bg-zinc-950/40 text-xs"
+			class="flex shrink-0 items-end gap-1 overflow-x-auto border-b border-border/30 bg-muted/40 text-xs"
 		>
 			<Show
 				when={props.values.length > 0}
 				fallback={
-					<p class="text-[10px] uppercase tracking-[0.08em] text-zinc-500">
+					<p class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
 						{props.emptyLabel ?? 'Open a file to start editing'}
 					</p>
 				}

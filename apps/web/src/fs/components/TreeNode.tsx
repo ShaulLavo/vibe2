@@ -121,7 +121,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 					classList={{
 						'border-cyan-700': isSelected(),
 						'border-transparent': !isSelected(),
-						'group-hover:bg-zinc-800/50': !isSelected(),
+						'group-hover:bg-foreground/10': !isSelected(),
 					}}
 				/>
 
@@ -158,7 +158,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 						</Show>
 					</span>
 					<span
-						class="truncate text-zinc-200"
+						class="truncate text-foreground"
 						classList={{ 'text-cyan-700': isSelected() }}
 					>
 						{isDir() ? props.node.name || 'root' : props.node.name}
