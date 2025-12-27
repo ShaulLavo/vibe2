@@ -68,10 +68,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 	}
 
 	// Track whether we're contributing to parent's branch line
-	// (hovered AND not handling our own branch line via isOpen)
 	let lastContributed = false
-	// Notify parent only when our "contribution" status changes
-	// *Approved*
 	createEffect(() => {
 		const contributes = isHovered() && !isOpen()
 		if (contributes !== lastContributed) {
@@ -80,7 +77,6 @@ export const TreeNode = (props: TreeNodeProps) => {
 		}
 	})
 
-	// Branch line enter/exit animation
 	const branchLineEl = () => (isOpen() ? branchLineRef() : undefined)
 	createSwitchTransition(branchLineEl, {
 		onEnter(el, done) {
@@ -98,7 +94,6 @@ export const TreeNode = (props: TreeNodeProps) => {
 		},
 	})
 
-	// Update branch line opacity when hover state changes (after initial enter animation)
 	createEffect(() => {
 		const el = branchLineRef()
 		if (el && isOpen()) {

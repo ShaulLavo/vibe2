@@ -28,9 +28,6 @@ export function findNode(
 	return undefined
 }
 
-/**
- * Tracked version of findNode that logs slow lookups
- */
 export function findNodeTracked(
 	root?: FsDirTreeNode,
 	path?: string

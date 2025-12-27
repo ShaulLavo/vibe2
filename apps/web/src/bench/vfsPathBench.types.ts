@@ -1,11 +1,3 @@
-/**
- * VFS Path/Tree Walking Benchmark Types
- *
- * These benchmarks focus on measuring the performance impact of
- * directory handle acquisition and path resolution - specifically
- * the "tree walking" overhead when accessing files at various depths.
- */
-
 export type VfsPathScenarioCategory =
 	| 'path-resolution'
 	| 'handle-acquisition'

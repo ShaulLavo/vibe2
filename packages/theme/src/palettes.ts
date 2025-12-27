@@ -100,12 +100,12 @@ export const LIGHT_THEME: ThemePalette = {
 		operator: '#52525b',
 		punctuation: '#52525b',
 		punctuationBracket: '#52525b',
-		variable: '#18181b', // Black
-		variableParameter: '#be123c', // Rose 700
-		variableBuiltin: '#c2410c', // Orange 700
-		constant: '#a21caf', // Fuchsia 700
-		property: '#6d28d9', // Violet 700
-		attribute: '#0f766e', // Teal 700
+		variable: '#18181b',
+		variableParameter: '#be123c',
+		variableBuiltin: '#c2410c',
+		constant: '#a21caf',
+		property: '#6d28d9',
+		attribute: '#0f766e',
 		namespace: '#0e7490',
 		error: '#dc2626',
 		missing: '#dc2626',

@@ -26,6 +26,10 @@ export class TieredCacheController {
 	private readonly hotBackend: SyncStorageBackend<unknown>
 	private readonly warmBackend: SyncStorageBackend<unknown>
 	private readonly coldBackend: AsyncStorageBackend<unknown>
+	
+	private pendingWrites = new Map<string, FileCacheEntry>()
+	private writeTimeout: ReturnType<typeof setTimeout> | null = null
+	private readonly writeDebounceMs = 150
 
 	constructor(options: TieredCacheControllerOptions = {}) {
 		this.routing = options.routing ?? DEFAULT_ROUTING
@@ -96,23 +100,46 @@ export class TieredCacheController {
 			this.activeFileState.setActiveEntry(entry)
 		}
 		
-		const promises: Promise<void>[] = []
-		const currentMtime = this.getFileMtime?.(path)
+		const existing = this.pendingWrites.get(path) || {}
+		this.pendingWrites.set(path, { ...existing, ...entry })
 		
-		for (const [key, value] of Object.entries(entry)) {
-			if (value !== undefined) {
-				const dataType = key as keyof FileCacheEntry
-				if (dataType === 'scrollPosition') {
-					console.log(`[TieredCache] Persisting scrollPosition for ${path}:`, value)
+		this.scheduleWrite()
+	}
+	
+	private scheduleWrite(): void {
+		if (this.writeTimeout) {
+			clearTimeout(this.writeTimeout)
+		}
+		
+		this.writeTimeout = setTimeout(() => {
+			this.flushPendingWrites().catch(error => {
+				console.warn('TieredCacheController: Failed to flush pending writes:', error)
+			})
+		}, this.writeDebounceMs)
+	}
+	
+	private async flushPendingWrites(): Promise<void> {
+		const writes = new Map(this.pendingWrites)
+		this.pendingWrites.clear()
+		this.writeTimeout = null
+		
+		const promises: Promise<void>[] = []
+		
+		for (const [path, entry] of writes) {
+			const currentMtime = this.getFileMtime?.(path)
+			
+			for (const [key, value] of Object.entries(entry)) {
+				if (value !== undefined) {
+					const dataType = key as keyof FileCacheEntry
+					promises.push(this.tierRouter.set(path, dataType, value))
 				}
-				promises.push(this.tierRouter.set(path, dataType, value))
 			}
+			
+			const tier = this.determinePrimaryTier(entry)
+			this.metadataStore.setMetadata(path, createCacheEntryMetadata(tier, currentMtime))
 		}
 		
 		await Promise.all(promises)
-		
-		const tier = this.determinePrimaryTier(entry)
-		this.metadataStore.setMetadata(path, createCacheEntryMetadata(tier, currentMtime))
 		this.metadataStore.persist()
 	}
 
@@ -192,6 +219,10 @@ export class TieredCacheController {
 	}
 
 	async flush(): Promise<void> {
+		if (this.writeTimeout) {
+			clearTimeout(this.writeTimeout)
+		}
+		await this.flushPendingWrites()
 		this.metadataStore.persist()
 	}
 

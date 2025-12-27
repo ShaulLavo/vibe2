@@ -1,10 +1,3 @@
-/**
- * VFS Path Benchmark Dashboard
- *
- * A UI for running and viewing VFS path/tree walking benchmarks.
- * Uses Comlink for clean worker communication.
- */
-
 import { createSignal, For, Show, onCleanup } from 'solid-js'
 import { wrap, proxy, type Remote } from 'comlink'
 import type {

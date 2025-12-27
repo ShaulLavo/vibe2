@@ -74,7 +74,7 @@ export const TextEditorView = (props: EditorProps) => {
 	const [scrollElement, setScrollElement] = createSignal<HTMLDivElement | null>(
 		null
 	)
-	// Perf isolation: disable minimap during scroll benchmarking.
+
 	const showMinimap = () => true
 	const showHighlights = () => true
 
@@ -161,7 +161,6 @@ export const TextEditorView = (props: EditorProps) => {
 		}
 	})
 
-	// Scroll position caching: restore on file switch, save on scroll
 	let restoreAttemptedForPath: string | undefined
 	let saveTimeoutId: ReturnType<typeof setTimeout> | undefined
 
@@ -171,8 +170,12 @@ export const TextEditorView = (props: EditorProps) => {
 		const lineCount = cursor.lines.lineCount()
 
 		if (!path || lineCount <= 1) return
-		
-		if (initialPos && restoreAttemptedForPath !== path && initialPos.lineIndex < lineCount) {
+
+		if (
+			initialPos &&
+			restoreAttemptedForPath !== path &&
+			initialPos.lineIndex < lineCount
+		) {
 			restoreAttemptedForPath = path
 			layout.scrollToLine(initialPos.lineIndex)
 		}
@@ -187,8 +190,6 @@ export const TextEditorView = (props: EditorProps) => {
 			if (saveTimeoutId != null) clearTimeout(saveTimeoutId)
 			saveTimeoutId = setTimeout(() => {
 				const range = layout.visibleLineRange()
-				const path = props.document.filePath()
-				console.log(`[TextEditorView] Saving scroll position for ${path}: lineIndex=${range.start}`)
 				onScroll({
 					lineIndex: range.start,
 					scrollLeft: element.scrollLeft,
@@ -225,7 +226,6 @@ export const TextEditorView = (props: EditorProps) => {
 		const map: Record<number, number> = {}
 		let found = false
 
-		// Binary search for the first bracket in the line
 		let low = 0
 		let high = brackets.length
 		while (low < high) {
@@ -237,7 +237,6 @@ export const TextEditorView = (props: EditorProps) => {
 			}
 		}
 
-		// Collect all brackets within the line
 		for (let i = low; i < brackets.length; i++) {
 			const b = brackets[i]!
 			if (b.index >= bracketEnd) break
@@ -258,7 +257,6 @@ export const TextEditorView = (props: EditorProps) => {
 		text: cursor.lines.getLineText(lineIndex),
 	})
 
-	// Helper to get line entry for caching
 	const getLineEntry = (lineIndex: number) => {
 		const count = cursor.lines.lineCount()
 		if (lineIndex < 0 || lineIndex >= count) {
@@ -294,7 +292,6 @@ export const TextEditorView = (props: EditorProps) => {
 	})
 	// const getLineHighlights = () => undefined
 
-	// Visible content caching for instant tab switching
 	const { markLiveContentAvailable, getCachedRuns } = useVisibleContentCache({
 		filePath: () => props.document.filePath(),
 		scrollElement,
@@ -307,7 +304,6 @@ export const TextEditorView = (props: EditorProps) => {
 			props.onCaptureVisibleContent?.(snapshot),
 	})
 
-	// Mark live content as available when we have highlights (or when file is ready)
 	createEffect(() => {
 		const highlightCount = showHighlights()
 			? (props.highlights?.()?.length ?? 0)

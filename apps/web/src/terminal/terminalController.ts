@@ -91,7 +91,6 @@ export const createTerminalController = async (
 
 		initialFitRaf = requestAnimationFrame(() => {
 			fit()
-			// 2nd pass to catch late layout/font metric settling
 			initialFitRaf = requestAnimationFrame(() => {
 				fit()
 				initialFitRaf = null

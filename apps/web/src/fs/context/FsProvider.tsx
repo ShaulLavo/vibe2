@@ -126,9 +126,13 @@ export function FsProvider(props: { children: JSX.Element }) {
 		fileCache,
 	})
 
-	const selectPath = async (path: string, options?: Parameters<typeof selectPathInternal>[1]) => {
+	const selectPath = async (
+		path: string,
+		options?: Parameters<typeof selectPathInternal>[1]
+	) => {
 		const previousPath = state.lastKnownFilePath
 		if (previousPath && previousPath !== path) {
+			await fileCache.flush()
 			fileCache.setActiveFile(null)
 		}
 		await selectPathInternal(path, options)
@@ -141,7 +145,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 		}
 	}
 
-	// Optimistic highlight offset - queue edits for lazy per-line shifts
 	const applySelectedFileHighlightOffset = (
 		transform: Parameters<typeof applyHighlightOffset>[1]
 	) => {
@@ -200,7 +203,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 			const load = ensureDirLoaded(currentPath)
 			if (load) {
 				await load
-				// Re-read state.tree after await to avoid using a stale reference
 				const latestTree = state.tree
 				if (!latestTree) return undefined
 				const currentNode = findNode(latestTree, currentPath)
@@ -208,7 +210,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 					return undefined
 				}
 			} else {
-				// No await happened, safe to use current state.tree
 				const currentNode = findNode(state.tree, currentPath)
 				if (!currentNode || currentNode.kind !== 'dir') {
 					return undefined
@@ -216,7 +217,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 			}
 		}
 
-		// Final validation with latest tree
 		const latestTree = state.tree
 		if (!latestTree) return undefined
 		const node = findNode(latestTree, path)
@@ -225,12 +225,9 @@ export function FsProvider(props: { children: JSX.Element }) {
 
 	const setSource = (source: FsSource) => refresh(source)
 
-	// FileSystemObserver integration for live file sync
 	const { startObserving, stopObserving } = useFileSystemObserver({
 		state,
 		reloadFile: async (path: string) => {
-			// Only reload the currently selected file
-			// Other files will load fresh from disk when selected
 			if (path !== state.lastKnownFilePath) {
 				return
 			}
@@ -250,7 +247,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 			activeSource: state.activeSource,
 		})
 		void refresh(state.activeSource ?? DEFAULT_SOURCE).then(() => {
-			// Start observing after initial refresh completes
 			void startObserving()
 		})
 	})
@@ -283,10 +279,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 	const isSelectedPath = createSelector(() => state.selectedPath)
 
 	const pickNewRoot = async () => {
-		// Only works for 'local' source
 		if (state.activeSource !== 'local') return
 		await doPick()
-		// Invalidate fsRuntime cache so refresh uses the new handle
 		invalidateFs('local')
 		await refresh('local')
 	}

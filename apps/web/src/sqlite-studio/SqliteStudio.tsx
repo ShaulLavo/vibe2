@@ -14,7 +14,6 @@ export const SqliteStudio: Component = () => {
 	const handleLoadExample = (example: string) => {
 		actions.setSelectedTable(`example:${example}`)
 		actions.setSqlQuery('')
-		// Don't clear search results to allow caching
 	}
 
 	return (

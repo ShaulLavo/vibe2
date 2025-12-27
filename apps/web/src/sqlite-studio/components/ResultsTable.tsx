@@ -42,22 +42,16 @@ export const ResultsTable = (props: ResultsTableProps) => {
 		overscan: OVERSCAN,
 	})
 
-	// Use columns directly (rowid is not included in columns state)
 	const displayColumns = createMemo(() => props.columns())
 
-	// Smart column sizing: 3fr for paths, 2fr for names, 1fr for most, 0.5fr for tiny
 	const gridTemplate = createMemo(() =>
 		displayColumns()
 			.map((col) => {
 				const lc = col.toLowerCase()
-				// Full paths get most space
 				if (lc === 'path' || lc === 'path_lc') return '3fr'
-				// Names and directories get medium space
 				if (lc.includes('basename') && !lc.includes('initials')) return '2fr'
 				if (lc.includes('dir')) return '2fr'
-				// Tiny columns
 				if (lc === 'id' || lc === 'recency') return '0.5fr'
-				// Everything else (initials, kind) gets 1fr
 				return '1fr'
 			})
 			.join(' ')
@@ -65,7 +59,6 @@ export const ResultsTable = (props: ResultsTableProps) => {
 
 	return (
 		<div class="rounded-lg border border-border overflow-hidden bg-card shadow-sm flex flex-col flex-1 min-h-0">
-			{/* Fixed Header */}
 			<div
 				class="shrink-0 bg-muted/50 border-b border-border grid text-sm font-medium text-muted-foreground"
 				style={{ 'grid-template-columns': gridTemplate() }}
@@ -79,7 +72,6 @@ export const ResultsTable = (props: ResultsTableProps) => {
 				</For>
 			</div>
 
-			{/* Virtualized Body */}
 			<div ref={setScrollElement} class="overflow-auto flex-1 min-h-0">
 				<div
 					style={{

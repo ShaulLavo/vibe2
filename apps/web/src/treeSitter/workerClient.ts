@@ -49,9 +49,7 @@ export const disposeTreeSitterWorker = async () => {
 	if (!workerHandle) return
 	try {
 		await workerHandle.proxy.dispose()
-	} catch {
-		// ignore dispose errors
-	}
+	} catch {}
 	;(workerHandle.proxy as unknown as Record<symbol, () => void>)[
 		releaseProxy
 	]?.()
@@ -91,9 +89,6 @@ export const applyTreeSitterEditBatch = async (
 	return handle.proxy.applyEditBatch({ path, edits })
 }
 
-/**
- * Get the raw Tree-sitter worker for direct communication (e.g., minimap)
- */
 export const getTreeSitterWorker = async (): Promise<Worker | null> => {
 	const handle = await ensureTreeSitterWorkerReady()
 	return handle?.worker ?? null
