@@ -7,17 +7,26 @@ import { Syntax } from './Syntax'
 // Syntax Component Tests - Partial Rendering
 // ============================================================================
 
+// Helper to create default props for Syntax component
+const defaultProps = () => ({
+	lineIndex: 0,
+	isEditable: () => true,
+	style: {},
+	onMouseDown: () => {},
+	ref: () => {},
+})
+
 describe('Syntax', () => {
 	describe('full line rendering (default)', () => {
 		it('renders entire text when no column bounds specified', async () => {
 			const text = 'Hello, World!'
-			const screen = render(() => <Syntax text={text} />)
+			const screen = render(() => <Syntax {...defaultProps()} text={text} />)
 
 			await expect.element(screen.getByText(text)).toBeVisible()
 		})
 
 		it('renders empty string without error', async () => {
-			const screen = render(() => <Syntax text="" />)
+			const screen = render(() => <Syntax {...defaultProps()} text="" />)
 			// Container should exist but be empty
 			expect(screen.container.textContent).toBe('')
 		})
@@ -27,7 +36,7 @@ describe('Syntax', () => {
 		it('renders only the specified range', async () => {
 			const text = 'ABCDEFGHIJ'
 			const screen = render(() => (
-				<Syntax text={text} columnStart={2} columnEnd={7} />
+				<Syntax {...defaultProps()} text={text} columnStart={2} columnEnd={7} />
 			))
 
 			// Should render "CDEFG" (indices 2-6)
@@ -37,7 +46,7 @@ describe('Syntax', () => {
 		it('renders from start when columnStart is 0', async () => {
 			const text = 'ABCDEFGHIJ'
 			const screen = render(() => (
-				<Syntax text={text} columnStart={0} columnEnd={3} />
+				<Syntax {...defaultProps()} text={text} columnStart={0} columnEnd={3} />
 			))
 
 			await expect.element(screen.getByText('ABC')).toBeVisible()
@@ -46,7 +55,12 @@ describe('Syntax', () => {
 		it('renders to end when columnEnd exceeds text length', async () => {
 			const text = 'SHORT'
 			const screen = render(() => (
-				<Syntax text={text} columnStart={2} columnEnd={100} />
+				<Syntax
+					{...defaultProps()}
+					text={text}
+					columnStart={2}
+					columnEnd={100}
+				/>
 			))
 
 			// Should render "ORT" (from 2 to end)
@@ -56,7 +70,7 @@ describe('Syntax', () => {
 		it('renders nothing when columnStart >= columnEnd', async () => {
 			const text = 'ABCDEFGHIJ'
 			const screen = render(() => (
-				<Syntax text={text} columnStart={5} columnEnd={5} />
+				<Syntax {...defaultProps()} text={text} columnStart={5} columnEnd={5} />
 			))
 
 			expect(screen.container.textContent).toBe('')
@@ -65,7 +79,12 @@ describe('Syntax', () => {
 		it('handles columnStart past text length', async () => {
 			const text = 'SHORT'
 			const screen = render(() => (
-				<Syntax text={text} columnStart={10} columnEnd={20} />
+				<Syntax
+					{...defaultProps()}
+					text={text}
+					columnStart={10}
+					columnEnd={20}
+				/>
 			))
 
 			expect(screen.container.textContent).toBe('')
@@ -85,6 +104,7 @@ describe('Syntax', () => {
 			// Render only columns 6-12 ("foo = b")
 			const screen = render(() => (
 				<Syntax
+					{...defaultProps()}
 					text={text}
 					highlightSegments={highlights}
 					columnStart={6}
@@ -112,6 +132,7 @@ describe('Syntax', () => {
 			// Render only columns 4-7 ("EFGH")
 			const screen = render(() => (
 				<Syntax
+					{...defaultProps()}
 					text={text}
 					highlightSegments={highlights}
 					columnStart={4}
@@ -134,6 +155,7 @@ describe('Syntax', () => {
 
 			const screen = render(() => (
 				<Syntax
+					{...defaultProps()}
 					text={text}
 					bracketDepths={bracketDepths}
 					columnStart={1}
@@ -158,7 +180,11 @@ describe('Syntax', () => {
 			]
 
 			const screen = render(() => (
-				<Syntax text={text()} highlightSegments={highlights} />
+				<Syntax
+					{...defaultProps()}
+					text={text()}
+					highlightSegments={highlights}
+				/>
 			))
 
 			const initialSpanCount = screen.container.querySelectorAll('span').length

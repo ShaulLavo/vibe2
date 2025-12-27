@@ -287,64 +287,61 @@ describe('LineRow highlight offsets', () => {
 	})
 
 	// This test verifies minimal recomputation when offsets are applied.
-	it(
-		'only recomputes text runs for the edited line after file switch',
-		async () => {
-			const fileAContent = jsContent
-			const fileBContent = jsContent
-			const fileAHighlights = await getTreeSitterHighlights(
-				'fileA.js',
-				fileAContent
-			)
-			const fileBHighlights = await getTreeSitterHighlights(
-				'fileB.js',
-				fileBContent
-			)
-			const fileA: FileState = {
-				path: 'fileA.js',
-				content: fileAContent,
-				highlights: fileAHighlights,
-			}
-			const fileB: FileState = {
-				path: 'fileB.js',
-				content: fileBContent,
-				highlights: fileBHighlights,
-			}
-
-			activeHarness = createHarness(fileA)
-
-			const expectedLines = fileAContent.split('\n').length
-			await expect
-				.poll(
-					() => activeHarness!.container.querySelectorAll('.editor-line').length
-				)
-				.toBe(expectedLines)
-
-			activeHarness.switchFile(fileB)
-			const expectedLinesB = fileBContent.split('\n').length
-			await expect
-				.poll(
-					() => activeHarness!.container.querySelectorAll('.editor-line').length
-				)
-				.toBe(expectedLinesB)
-
-			await waitForFrames(2)
-			buildTextRunsCalls.length = 0
-
-			activeHarness.typeAt(0, 0, 'x')
-
-			await expect.poll(() => buildTextRunsCalls.length).toBeGreaterThan(0)
-
-			await waitForFrames(2)
-
-			const changedLines = collectBuildTextRunsLines(
-				buildTextRunsCalls,
-				activeHarness.getContent()
-			)
-
-			expect(changedLines).toEqual([0])
+	it('only recomputes text runs for the edited line after file switch', async () => {
+		const fileAContent = jsContent
+		const fileBContent = jsContent
+		const fileAHighlights = await getTreeSitterHighlights(
+			'fileA.js',
+			fileAContent
+		)
+		const fileBHighlights = await getTreeSitterHighlights(
+			'fileB.js',
+			fileBContent
+		)
+		const fileA: FileState = {
+			path: 'fileA.js',
+			content: fileAContent,
+			highlights: fileAHighlights,
 		}
-	)
+		const fileB: FileState = {
+			path: 'fileB.js',
+			content: fileBContent,
+			highlights: fileBHighlights,
+		}
+
+		activeHarness = createHarness(fileA)
+
+		const expectedLines = fileAContent.split('\n').length
+		await expect
+			.poll(
+				() => activeHarness!.container.querySelectorAll('.editor-line').length
+			)
+			.toBe(expectedLines)
+
+		activeHarness.switchFile(fileB)
+		const expectedLinesB = fileBContent.split('\n').length
+		await expect
+			.poll(
+				() => activeHarness!.container.querySelectorAll('.editor-line').length
+			)
+			.toBe(expectedLinesB)
+
+		await waitForFrames(2)
+		buildTextRunsCalls.length = 0
+
+		activeHarness.typeAt(0, 0, 'x')
+
+		await expect.poll(() => buildTextRunsCalls.length).toBeGreaterThan(0)
+
+		await waitForFrames(2)
+
+		const changedLines = collectBuildTextRunsLines(
+			buildTextRunsCalls,
+			activeHarness.getContent()
+		)
+
+		expect(changedLines).toEqual([0])
+	})
 
 	// Repro: first edit replaces most line nodes.
 	it('keeps line DOM nodes stable on first edit', async () => {
@@ -372,10 +369,13 @@ describe('LineRow highlight offsets', () => {
 		resetLineRowCounters()
 
 		activeHarness.typeAt(0, 0, 'x')
-		await expect
-			.poll(() => lineRowCounterSnapshots.length)
-			.toBeGreaterThan(0)
-		await waitForFrames(1)
+
+		// Wait for content change to verify the edit was applied
+		await expect.poll(() => activeHarness!.getContent()).toContain('x')
+		await waitForFrames(2)
+
+		// Now consume the counters to create a snapshot
+		consumeLineRowCounters()
 
 		const snapshot = lineRowCounterSnapshots.at(-1)
 		expect(snapshot).toBeDefined()
