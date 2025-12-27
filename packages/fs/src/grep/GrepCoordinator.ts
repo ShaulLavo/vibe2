@@ -2,9 +2,12 @@
  * Grep Coordinator
  *
  * Main thread orchestrator that:
- * 1. Enumerates files using VFS (benefits from directory cache)
- * 2. Dispatches file batches to worker pool
+ * 1. Streams files to workers as they're discovered (no upfront enumeration)
+ * 2. Dispatches file tasks to worker pool in parallel
  * 3. Aggregates and streams results back
+ *
+ * Key optimization: Files are dispatched to workers immediately as they're
+ * found during directory traversal, rather than waiting for full enumeration.
  */
 
 import { wrap, type Remote } from 'comlink'
@@ -30,8 +33,8 @@ const DEFAULT_WORKER_COUNT = Math.min(
 	typeof navigator !== 'undefined' ? navigator.hardwareConcurrency - 1 : 4,
 	6
 )
-const BATCH_SIZE = 10 // Files per worker dispatch
 const textEncoder = new TextEncoder()
+const MAX_CONCURRENT_TASKS = 50 // Max tasks in flight at once
 
 // ============================================================================
 // Coordinator
@@ -48,6 +51,7 @@ export class GrepCoordinator {
 
 	/**
 	 * Search for a pattern across files.
+	 * Files are dispatched to workers as they're discovered during traversal.
 	 *
 	 * @param options - Search configuration
 	 * @param onProgress - Optional progress callback
@@ -64,72 +68,132 @@ export class GrepCoordinator {
 		const workerCount = options.workerCount ?? DEFAULT_WORKER_COUNT
 		await this.#ensureWorkerPool(workerCount)
 
-		// 1. Enumerate files using VFS (benefits from directory handle cache!)
-		const filePaths = await this.#enumerateFilePaths(options)
-
-		if (filePaths.length === 0) {
-			return []
-		}
-
 		const patternBytes = textEncoder.encode(options.pattern)
 		const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE
+		const excludePatterns = options.excludePatterns ?? []
+		const searchPaths = options.paths ?? ['']
 
-		// 2. Get file handles and create tasks
-		const tasks: GrepFileTask[] = []
-		for (const path of filePaths) {
+		const allMatches: GrepMatch[] = []
+		let filesFound = 0
+		let filesScanned = 0
+		let reachedLimit = false
+		let nextWorkerIndex = 0
+
+		// Semaphore for limiting concurrent tasks
+		let activeTasks = 0
+		const taskQueue: (() => void)[] = []
+
+		const acquireSlot = (): Promise<void> => {
+			if (activeTasks < MAX_CONCURRENT_TASKS) {
+				activeTasks++
+				return Promise.resolve()
+			}
+			return new Promise((resolve) => {
+				taskQueue.push(() => {
+					activeTasks++
+					resolve()
+				})
+			})
+		}
+
+		const releaseSlot = (): void => {
+			activeTasks--
+			const next = taskQueue.shift()
+			if (next) next()
+		}
+
+		// Track all pending tasks for final await
+		const pendingTasks: Promise<void>[] = []
+
+		// Process a single file (non-blocking dispatch)
+		const processFile = async (path: string): Promise<void> => {
+			if (reachedLimit) return
+
+			await acquireSlot()
+
 			try {
 				const handle = await this.#fs.getFileHandleForRelative(path, false)
-				tasks.push({
+				const task: GrepFileTask = {
 					fileHandle: handle,
 					path,
 					patternBytes,
 					chunkSize,
+				}
+
+				// Round-robin worker selection
+				const workerIndex = nextWorkerIndex
+				nextWorkerIndex = (nextWorkerIndex + 1) % this.#workerPool.length
+				const worker = this.#workerPool[workerIndex]!.proxy
+
+				const result = await worker.grepFile(task)
+
+				if (!result.error) {
+					allMatches.push(...result.matches)
+				}
+
+				filesScanned++
+				onProgress?.({
+					filesScanned,
+					filesTotal: filesFound,
+					matchesFound: allMatches.length,
+					currentFile: result.path,
 				})
+
+				if (options.maxResults !== undefined && allMatches.length >= options.maxResults) {
+					reachedLimit = true
+				}
 			} catch {
-				// Skip files we can't get handles for
+				filesScanned++
+			} finally {
+				releaseSlot()
 			}
 		}
 
-		// 3. Dispatch batches to worker pool
-		const allMatches: GrepMatch[] = []
-		let filesScanned = 0
+		// Walk directories and dispatch files immediately
+		for (const searchPath of searchPaths) {
+			if (reachedLimit) break
 
-		const batches = this.#chunk(tasks, BATCH_SIZE)
+			const rootDir = this.#fs.dir(searchPath)
 
-		// Process batches in parallel across workers
-		const batchPromises = batches.map((batch, batchIndex) => {
-			const workerIndex = batchIndex % this.#workerPool.length
-			const worker = this.#workerPool[workerIndex]!.proxy
+			try {
+				for await (const entry of rootDir.walk({
+					includeFiles: true,
+					includeDirs: true,
+					filter: (entry) => {
+						if (!options.includeHidden && entry.name.startsWith('.')) {
+							return false
+						}
+						if (this.#matchesExcludePattern(entry.name, excludePatterns)) {
+							return false
+						}
+						return true
+					},
+				})) {
+					if (reachedLimit) break
 
-			return worker.grepBatch(batch).then((results: GrepFileResult[]) => {
-				for (const result of results) {
-					// Skip binary files or errors
-					if (!result.error) {
-						allMatches.push(...result.matches)
-					}
-
-					filesScanned++
-					onProgress?.({
-						filesScanned,
-						filesTotal: tasks.length,
-						matchesFound: allMatches.length,
-						currentFile: result.path,
-					})
-
-					// Check maxResults limit
-					if (
-						options.maxResults !== undefined &&
-						allMatches.length >= options.maxResults
-					) {
-						// Could implement early termination here
+					if (entry.kind === 'file') {
+						filesFound++
+						// Fire and forget - don't await here!
+						const task = processFile(entry.path)
+						pendingTasks.push(task)
 					}
 				}
-			})
+			} catch (error) {
+				log.warn('Failed to enumerate path', { searchPath, error })
+			}
+		}
+
+		// Wait for all tasks to complete
+		await Promise.all(pendingTasks)
+
+		// Final progress update
+		onProgress?.({
+			filesScanned,
+			filesTotal: filesFound,
+			matchesFound: allMatches.length,
+			currentFile: '',
 		})
 
-		await Promise.all(batchPromises)
-
-		// Apply maxResults limit if specified
 		if (options.maxResults !== undefined) {
 			return allMatches.slice(0, options.maxResults)
 		}
@@ -151,71 +215,78 @@ export class GrepCoordinator {
 		const workerCount = options.workerCount ?? DEFAULT_WORKER_COUNT
 		await this.#ensureWorkerPool(workerCount)
 
-		const filePaths = await this.#enumerateFilePaths(options)
-		if (filePaths.length === 0) return
-
 		const patternBytes = textEncoder.encode(options.pattern)
 		const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE
-
-		// Process files one at a time for streaming
-		for (const path of filePaths) {
-			try {
-				const handle = await this.#fs.getFileHandleForRelative(path, false)
-				const task: GrepFileTask = {
-					fileHandle: handle,
-					path,
-					patternBytes,
-					chunkSize,
-				}
-
-				// Use first available worker
-				const worker = this.#workerPool[0]!.proxy
-				const result = await worker.grepFile(task)
-
-				if (!result.error && result.matches.length > 0) {
-					yield result
-				}
-			} catch {
-				// Skip files we can't access
-			}
-		}
-	}
-
-	/**
-	 * Enumerate file paths to search using VFS.
-	 * Leverages the VFS directory handle cache for performance.
-	 */
-	async #enumerateFilePaths(options: GrepOptions): Promise<string[]> {
-		const filePaths: string[] = []
+		const excludePatterns = options.excludePatterns ?? []
 		const searchPaths = options.paths ?? ['']
 
 		for (const searchPath of searchPaths) {
 			const rootDir = this.#fs.dir(searchPath)
 
 			try {
-				// Use VFS tree walker
 				for await (const entry of rootDir.walk({
 					includeFiles: true,
-					includeDirs: false,
+					includeDirs: true,
 					filter: (entry) => {
-						// Skip hidden files/dirs
 						if (!options.includeHidden && entry.name.startsWith('.')) {
 							return false
 						}
-						// TODO: Apply excludePatterns
+						if (this.#matchesExcludePattern(entry.name, excludePatterns)) {
+							return false
+						}
 						return true
 					},
 				})) {
 					if (entry.kind === 'file') {
-						filePaths.push(entry.path)
+						try {
+							const handle = await this.#fs.getFileHandleForRelative(entry.path, false)
+							const task: GrepFileTask = {
+								fileHandle: handle,
+								path: entry.path,
+								patternBytes,
+								chunkSize,
+							}
+
+							const worker = this.#workerPool[0]!.proxy
+							const result = await worker.grepFile(task)
+
+							if (!result.error && result.matches.length > 0) {
+								yield result
+							}
+						} catch {
+							// Skip files we can't access
+						}
 					}
 				}
 			} catch (error) {
 				log.warn('Failed to enumerate path', { searchPath, error })
 			}
 		}
+	}
 
-		return filePaths
+	/**
+	 * Check if a path segment matches any exclude pattern.
+	 * Supports simple glob patterns like "*.test.ts" or exact matches like "node_modules".
+	 */
+	#matchesExcludePattern(name: string, patterns: string[]): boolean {
+		for (const pattern of patterns) {
+			if (name === pattern) {
+				return true
+			}
+			if (pattern.startsWith('*.')) {
+				const ext = pattern.slice(1)
+				if (name.endsWith(ext)) {
+					return true
+				}
+			}
+			if (pattern.endsWith('*') && !pattern.startsWith('*')) {
+				const prefix = pattern.slice(0, -1)
+				if (name.startsWith(prefix)) {
+					return true
+				}
+			}
+		}
+		return false
 	}
 
 	/**
@@ -231,17 +302,6 @@ export class GrepCoordinator {
 			const proxy = wrap<GrepWorkerApi>(worker)
 			this.#workerPool.push({ worker, proxy })
 		}
-	}
-
-	/**
-	 * Split array into chunks of specified size.
-	 */
-	#chunk<T>(arr: T[], size: number): T[][] {
-		const chunks: T[][] = []
-		for (let i = 0; i < arr.length; i += size) {
-			chunks.push(arr.slice(i, i + size))
-		}
-		return chunks
 	}
 
 	/**

@@ -13,6 +13,8 @@ import {
 } from '@repo/utils'
 import {
 	createKeymapController,
+	fromEvent,
+	formatShortcut,
 	type CommandDescriptor,
 	type KeybindingOptions,
 } from '@repo/keyboard'
@@ -277,7 +279,18 @@ export function createTextEditorInput(
 		}
 
 		// Start end-to-end trace from keystroke to render
-		startGlobalTrace('keystroke')
+		startGlobalTrace(
+			'keystroke',
+			event.data
+				? event.data === ' '
+					? '␣'
+					: `"${event.data}"`
+				: event.inputType === 'insertLineBreak'
+					? '⏎'
+					: event.inputType === 'insertFromPaste'
+						? '📋'
+						: event.inputType
+		)
 
 		deleteSelection()
 
@@ -531,6 +544,9 @@ export function createTextEditorInput(
 	})
 
 	const handleKeyDown = (event: KeyboardEvent) => {
+		// Trace all keydowns that might trigger an action
+		startGlobalTrace('keystroke', formatShortcut(fromEvent(event)))
+
 		const ctrlOrMeta = event.ctrlKey || event.metaKey
 		const shiftKey = event.shiftKey
 		const editable = options.isEditable()
@@ -538,8 +554,7 @@ export function createTextEditorInput(
 		if (event.key === 'Backspace') {
 			if (!editable) return
 			event.preventDefault()
-			// Start end-to-end trace from keystroke to render
-			startGlobalTrace('keystroke')
+
 			if (!event.repeat && !deleteKeyRepeat.isActive('Backspace')) {
 				deleteKeyRepeat.start('Backspace', ctrlOrMeta, shiftKey)
 			}

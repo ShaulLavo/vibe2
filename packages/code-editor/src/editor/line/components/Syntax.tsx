@@ -2,7 +2,7 @@ import { createMemo } from 'solid-js'
 import type { LineBracketDepthMap, LineHighlightSegment } from '../../types'
 import { useTextRunsHtml } from '../hooks/useTextRuns'
 import { getBracketDepthTextClass } from '../../theme/bracketColors'
-import { buildTextRunsHtml } from '../utils/textRuns'
+import { buildTextRunsHtml, type TextRun } from '../utils/textRuns'
 
 type SyntaxProps = {
 	text: string

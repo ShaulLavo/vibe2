@@ -7,13 +7,14 @@ import { loggers } from '@repo/logger'
 
 type TraceData = {
 	start: number
+	meta?: string
 }
 
 const globalTraces = new Map<string, TraceData>()
 const traceLog = loggers.codeEditor.withTag('trace')
 
-export const startGlobalTrace = (name: string): void => {
-	globalTraces.set(name, { start: performance.now() })
+export const startGlobalTrace = (name: string, meta?: string): void => {
+	globalTraces.set(name, { start: performance.now(), meta })
 }
 
 export const markGlobalTrace = (name: string, label: string): void => {
@@ -25,7 +26,8 @@ export const endGlobalTrace = (name: string, label = 'total'): number => {
 	const trace = globalTraces.get(name)
 	if (trace) {
 		const duration = performance.now() - trace.start
-		traceLog.debug(`⏱ ${name}:${label} ${duration.toFixed(1)}ms`)
+		const metaStr = trace.meta ? ` [${trace.meta}]` : ''
+		traceLog.debug(`⏱ ${name}:${label}${metaStr} ${duration.toFixed(1)}ms`)
 		globalTraces.delete(name)
 		return duration
 	}

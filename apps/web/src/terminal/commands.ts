@@ -1,4 +1,4 @@
-import type { FsDirTreeNode, FsTreeNode } from '@repo/fs'
+import type { FsDirTreeNode, FsTreeNode, FsContext } from '@repo/fs'
 import {
 	createMinimalBinaryParseResult,
 	detectBinaryFromPreview,
@@ -14,12 +14,14 @@ import { findNode } from '../fs/runtime/tree'
 import type { LocalEchoController } from './localEcho'
 import { ANSI } from './constants'
 import { printColumns } from './utils'
+import { handleGrep } from './grep/grepCommand'
 
 export interface ShellContext {
 	state: FsState
 	actions: FsActions
 	getCwd: () => string
 	setCwd: (path: string) => void
+	getVfsContext: () => Promise<FsContext>
 }
 
 export interface CommandContext {
@@ -129,6 +131,7 @@ const printHelp = (ctx: CommandContext) => {
 		['mkdir <path>', 'Create a directory'],
 		['touch <path>', 'Create an empty file'],
 		['rm <path>', 'Delete a file or directory'],
+		['grep [options] <pattern> [path]', 'Search for text in files'],
 		['echo', 'Echo back the provided text'],
 	])
 }
@@ -377,6 +380,9 @@ export const handleCommand = async (
 				break
 			case 'rm':
 				await handleRm(ctx, args[0])
+				break
+			case 'grep':
+				await handleGrep(ctx, args)
 				break
 			default:
 				ctx.localEcho.println(`Command not found: ${command}`)

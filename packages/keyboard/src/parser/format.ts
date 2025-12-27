@@ -34,7 +34,7 @@ export function formatShortcut(
 	}
 
 	if (combo.key) {
-		parts.push(formatKeyLabel(combo.key))
+		parts.push(formatKeyLabel(combo.key, { platform, useSymbols }))
 	}
 
 	return parts.join(delimiter)
@@ -101,8 +101,26 @@ const labelOverrides: Partial<Record<ContentKey, string>> = {
 	delete: 'Delete',
 }
 
-export function formatKeyLabel(key: ContentKey): string {
+const symbolOverrides: Partial<Record<ContentKey, string>> = {
+	space: '␣',
+	tab: '⇥',
+	enter: '⏎',
+	esc: '⎋',
+	capsLock: '⇪',
+	delete: '⌫',
+}
+
+export function formatKeyLabel(
+	key: ContentKey,
+	options: { platform?: Platform; useSymbols?: boolean } = {}
+): string {
 	if (!key) return ''
+	const { useSymbols = false, platform = detectPlatform() } = options
+
+	if (useSymbols && platform === 'mac' && symbolOverrides[key]) {
+		return symbolOverrides[key] as string
+	}
+
 	if (labelOverrides[key]) {
 		return labelOverrides[key] as string
 	}
