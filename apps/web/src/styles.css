@@ -19,13 +19,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-	--popover: 240 10% 3.9%;
-	--popover-foreground: 0 0% 98%;
-	--card: 240 10% 3.9%;
-	--card-foreground: 0 0% 98%;
-}
-
 /* Apply theme CSS vars to body - these are set dynamically by ThemeProvider */
 body {
 	background-color: var(--editor-background, hsl(240 10% 3.9%));
