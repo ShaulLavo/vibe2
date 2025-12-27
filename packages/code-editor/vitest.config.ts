@@ -4,8 +4,14 @@ import solidPlugin from 'vite-plugin-solid'
 
 export default defineConfig({
 	plugins: [solidPlugin()],
+	resolve: {
+		// Use vdev condition to resolve vitest-browser-solid to source files
+		conditions: ['vdev'],
+	},
 	optimizeDeps: {
-		include: ['vitest-browser-solid'],
+		// Don't pre-bundle vitest-browser-solid - let vite-plugin-solid handle it
+		exclude: ['vitest-browser-solid'],
+		include: ['@repo/logger'],
 	},
 	test: {
 		projects: [
