@@ -176,7 +176,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 	})
 
 	const { createDir, createFile, deleteNode, saveFile } = createFsMutations({
-		refresh,
+		setTree,
 		setExpanded,
 		setSelectedPath,
 		setSelectedFileSize,

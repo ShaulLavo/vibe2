@@ -1,8 +1,11 @@
 import { batch, type Setter } from 'solid-js'
 import type { SetStoreFunction } from 'solid-js/store'
+import type { FsDirTreeNode, FsFileTreeNode } from '@repo/fs'
 import { ensureFs } from './runtime/fsRuntime'
 import type { FsSource, FsState } from './types'
 import { logger } from '../logger'
+import { addNodeToTree, removeNodeFromTree } from './utils/treeMutations'
+import { findNode } from './runtime/tree'
 
 import {
 	createPieceTableSnapshot,
@@ -14,7 +17,7 @@ import { toast } from '@repo/ui/toaster'
 type FsMutationDeps = {
 	getState: () => FsState
 	getActiveSource: () => FsSource
-	refresh: (source?: FsSource) => Promise<void>
+	setTree: SetStoreFunction<FsDirTreeNode>
 	setExpanded: SetStoreFunction<Record<string, boolean>>
 	setSelectedPath: Setter<string | undefined>
 	setSelectedFileSize: Setter<number | undefined>
@@ -33,6 +36,7 @@ const buildPath = (parentPath: string, name: string) =>
 
 export const createFsMutations = ({
 	getActiveSource,
+	setTree,
 	setExpanded,
 	setSelectedPath,
 	setSelectedFileSize,
@@ -41,20 +45,47 @@ export const createFsMutations = ({
 	setSaving,
 	setDirtyPath,
 	getState,
-	refresh,
 }: FsMutationDeps) => {
 	const createDir = async (parentPath: string, name: string) => {
 		const trimmed = name.trim()
 		if (!trimmed) return
+
+		const state = getState()
+		const tree = state.tree
+		if (!tree) return
+
+		const newPath = buildPath(parentPath, trimmed)
+
+		// Check if node already exists
+		if (findNode(tree, newPath)) {
+			toast.error(`A folder named "${trimmed}" already exists`)
+			return
+		}
+
 		try {
 			const ctx = await ensureFs(getActiveSource())
-			const newPath = buildPath(parentPath, trimmed)
 			await ctx.ensureDir(newPath)
+
+			// Calculate depth based on parent
+			const parentNode = findNode(tree, parentPath)
+			const parentDepth = parentNode?.depth ?? 0
+
+			// Create the new directory node
+			const newNode: FsDirTreeNode = {
+				kind: 'dir',
+				name: trimmed,
+				path: newPath,
+				depth: parentDepth + 1,
+				parentPath: parentPath || undefined,
+				children: [],
+				isLoaded: true,
+			}
+
 			batch(() => {
+				setTree(addNodeToTree(parentPath, newNode))
 				setExpanded(parentPath, true)
 				setSelectedPath(newPath)
 			})
-			await refresh()
 		} catch (error) {
 			logger.withTag('fsMutations').error('Create directory failed', { error })
 			toast.error(
@@ -70,17 +101,44 @@ export const createFsMutations = ({
 	) => {
 		const trimmed = name.trim()
 		if (!trimmed) return
+
+		const state = getState()
+		const tree = state.tree
+		if (!tree) return
+
+		const newPath = buildPath(parentPath, trimmed)
+
+		// Check if node already exists
+		if (findNode(tree, newPath)) {
+			toast.error(`A file named "${trimmed}" already exists`)
+			return
+		}
+
 		try {
 			const ctx = await ensureFs(getActiveSource())
-			const newPath = buildPath(parentPath, trimmed)
 			const fileContent = content ?? '// empty file'
 			await ctx.write(newPath, fileContent)
+
+			// Calculate depth based on parent
+			const parentNode = findNode(tree, parentPath)
+			const parentDepth = parentNode?.depth ?? 0
+
+			// Create the new file node
+			const newNode: FsFileTreeNode = {
+				kind: 'file',
+				name: trimmed,
+				path: newPath,
+				depth: parentDepth + 1,
+				parentPath: parentPath || undefined,
+				size: new Blob([fileContent]).size,
+			}
+
 			batch(() => {
+				setTree(addNodeToTree(parentPath, newNode))
 				setExpanded(parentPath, true)
 				setSelectedPath(newPath)
 				setSelectedFileSize(new Blob([fileContent]).size)
 			})
-			await refresh()
 		} catch (error) {
 			logger.withTag('fsMutations').error('Create file failed', { error })
 			toast.error(
@@ -91,11 +149,18 @@ export const createFsMutations = ({
 
 	const deleteNode = async (path: string) => {
 		if (path === '') return
+
+		const state = getState()
+		const tree = state.tree
+		if (!tree) return
+
 		try {
 			const ctx = await ensureFs(getActiveSource())
 			await ctx.remove(path, { recursive: true, force: true })
-			const state = getState()
+
 			batch(() => {
+				setTree(removeNodeFromTree(path))
+
 				if (
 					state.selectedPath === path ||
 					state.selectedPath?.startsWith(`${path}/`)
@@ -104,7 +169,6 @@ export const createFsMutations = ({
 					setSelectedFileSize(undefined)
 				}
 			})
-			await refresh()
 		} catch (error) {
 			logger.withTag('fsMutations').error('Delete entry failed', { error })
 			toast.error(
