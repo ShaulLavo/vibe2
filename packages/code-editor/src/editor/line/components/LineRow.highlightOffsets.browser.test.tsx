@@ -279,9 +279,8 @@ describe('LineRow highlight offsets', () => {
 		buildTextRunsCalls.length = 0
 	})
 
-	// This test verifies minimal recomputation, but performance changes
-	// now batch more line updates together. Marking as expected failure.
-	it.fails(
+	// This test verifies minimal recomputation when offsets are applied.
+	it(
 		'only recomputes text runs for the edited line after file switch',
 		async () => {
 			const fileAContent = jsContent

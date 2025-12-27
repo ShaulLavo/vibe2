@@ -1,4 +1,4 @@
-import { createMemo } from 'solid-js'
+import { createMemo, type Accessor, type JSX } from 'solid-js'
 import type { LineBracketDepthMap, LineHighlightSegment } from '../../types'
 import { useTextRunsHtml } from '../hooks/useTextRuns'
 import { getBracketDepthTextClass } from '../../theme/bracketColors'
@@ -10,15 +10,16 @@ type SyntaxProps = {
 	highlightSegments?: LineHighlightSegment[]
 	columnStart?: number
 	columnEnd?: number
-	/** Pre-computed TextRuns from cache for instant rendering */
 	cachedRuns?: TextRun[]
+
+	// Props for the container div
+	lineIndex: number
+	isEditable: Accessor<boolean>
+	style: JSX.CSSProperties | string
+	onMouseDown: (event: MouseEvent) => void
+	ref: (el: HTMLDivElement | null) => void
 }
 
-/**
- * Renders a line of text with syntax highlighting and bracket coloring.
- * Text is grouped into styled "runs" for efficient DOM rendering.
- * If cachedRuns are provided, uses them directly for instant rendering.
- */
 export const Syntax = (props: SyntaxProps) => {
 	const computedHtml = useTextRunsHtml({
 		text: () => props.text,
@@ -35,8 +36,18 @@ export const Syntax = (props: SyntaxProps) => {
 		return buildTextRunsHtml(runs, getBracketDepthTextClass)
 	})
 
-	// innerHtml allows for massive pref gain
-	// buildTextRunsHtml escapes all text + attributes.
-	// eslint-disable-next-line solid/no-innerhtml
-	return <span innerHTML={cachedHtml() ?? computedHtml()} />
+	return (
+		<div
+			ref={props.ref}
+			data-index={props.lineIndex}
+			class="editor-line"
+			classList={{
+				'cursor-text': props.isEditable(),
+			}}
+			style={props.style}
+			onMouseDown={(e) => props.onMouseDown(e)}
+			// eslint-disable-next-line solid/no-innerhtml
+			innerHTML={cachedHtml() ?? computedHtml()}
+		/>
+	)
 }
