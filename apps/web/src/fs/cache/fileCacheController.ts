@@ -246,18 +246,10 @@ export const createFileCacheController = ({
 		if (DISABLE_CACHE) return {}
 		const memoryEntry = get(path)
 		const hasMemoryData = Object.keys(memoryEntry).some((key) => memoryEntry[key as keyof FileCacheEntry] !== undefined)
-		console.log(`[FileCacheController] getAsync: ${path} ${JSON.stringify({
-			hasMemoryData,
-			memoryScrollPosition: memoryEntry.scrollPosition
-		})}`)
 		if (hasMemoryData) {
 			return memoryEntry
 		}
 		const persistedEntry = await tieredCache.getAsync(path)
-		console.log(`[FileCacheController] getAsync: ${path} persisted entry: ${JSON.stringify({
-			hasScrollPosition: !!persistedEntry.scrollPosition,
-			scrollPosition: persistedEntry.scrollPosition
-		})}`)
 		if (Object.keys(persistedEntry).length > 0) {
 			batch(() => {
 				if (persistedEntry.pieceTable !== undefined) {
@@ -282,7 +274,6 @@ export const createFileCacheController = ({
 					setErrors(path, persistedEntry.errors)
 				}
 				if (persistedEntry.scrollPosition !== undefined) {
-					console.log(`[FileCacheController] Setting scroll position for ${path}: ${JSON.stringify(persistedEntry.scrollPosition)}`)
 					setScrollPosition(path, persistedEntry.scrollPosition)
 				}
 				if (persistedEntry.visibleContent !== undefined) {
