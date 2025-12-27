@@ -107,7 +107,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		})
 
 	const {
-		selectPath,
+		selectPath: selectPathInternal,
 		updateSelectedFilePieceTable,
 		updateSelectedFileHighlights,
 		updateSelectedFileFolds,
@@ -125,6 +125,21 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setDirtyPath,
 		fileCache,
 	})
+
+	const selectPath = async (path: string, options?: Parameters<typeof selectPathInternal>[1]) => {
+		const previousPath = state.lastKnownFilePath
+		if (previousPath && previousPath !== path) {
+			fileCache.setActiveFile(null)
+		}
+		await selectPathInternal(path, options)
+		const tree = state.tree
+		if (tree) {
+			const node = findNode(tree, path)
+			if (node?.kind === 'file') {
+				fileCache.setActiveFile(path)
+			}
+		}
+	}
 
 	// Optimistic highlight offset - queue edits for lazy per-line shifts
 	const applySelectedFileHighlightOffset = (

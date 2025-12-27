@@ -8,21 +8,9 @@ import type {
 	FoldRange,
 } from '../../workers/treeSitterWorkerTypes'
 import type { FsState } from '../types'
+import { TieredCacheController, type TieredCacheControllerOptions } from './tieredCacheController'
+import type { CacheStats } from './backends/types'
 
-/**
- * TODO: Rethink where data lives vs what lives in the cache.
- *
- * Currently, even the active file buffer (pieceTable) is stored through this cache.
- * This means setting DISABLE_CACHE = true breaks typing because updateSelectedFilePieceTable
- * goes through fileCache.set() which does nothing when disabled.
- *
- * We don't want inactive file buffers kept in memory, but the active file's state
- * needs to be stored somewhere that bypasses this cache flag. Need to separate:
- * - Active file state (always stored, not subject to cache eviction)
- * - Inactive file cache (subject to DISABLE_CACHE and future eviction policies)
- */
-
-/** Set to `true` to completely disable file caching */
 export const DISABLE_CACHE = false as const
 
 export type ScrollPosition = {
@@ -39,7 +27,6 @@ export type FileCacheEntry = {
 	brackets?: BracketInfo[]
 	errors?: TreeSitterError[]
 	scrollPosition?: ScrollPosition
-	/** Pre-computed visible content for instant tab switching */
 	visibleContent?: VisibleContentSnapshot
 }
 
@@ -49,6 +36,10 @@ export type FileCacheController = {
 	clearPath: (path: string) => void
 	clearBuffer: (path: string) => void
 	clearAll: () => void
+	getAsync: (path: string) => Promise<FileCacheEntry>
+	setActiveFile: (path: string | null) => void
+	getStats: () => Promise<CacheStats>
+	flush: () => Promise<void>
 }
 
 type FileCacheControllerOptions = {
@@ -71,6 +62,7 @@ type FileCacheControllerOptions = {
 	setErrors: (path: string, errors?: TreeSitterError[]) => void
 	setScrollPosition: (path: string, position?: ScrollPosition) => void
 	setVisibleContent: (path: string, content?: VisibleContentSnapshot) => void
+	tieredCacheOptions?: TieredCacheControllerOptions
 }
 
 export const createFileCacheController = ({
@@ -83,9 +75,10 @@ export const createFileCacheController = ({
 	setErrors,
 	setScrollPosition,
 	setVisibleContent,
+	tieredCacheOptions,
 }: FileCacheControllerOptions): FileCacheController => {
-	// TODO: add eviction and persistence so all artifacts are released together.
 	const previews: Record<string, Uint8Array | undefined> = {}
+	const tieredCache = new TieredCacheController(tieredCacheOptions)
 
 	const get = (path: string): FileCacheEntry => {
 		if (DISABLE_CACHE) return {}
@@ -133,6 +126,9 @@ export const createFileCacheController = ({
 				setVisibleContent(path, entry.visibleContent)
 			}
 		})
+		tieredCache.set(path, entry).catch((error) => {
+			console.warn(`FileCacheController: Failed to persist entry for ${path}:`, error)
+		})
 	}
 
 	const clearBuffer = (path: string) => {
@@ -152,6 +148,9 @@ export const createFileCacheController = ({
 			setScrollPosition(path, undefined)
 			setVisibleContent(path, undefined)
 			delete previews[path]
+		})
+		tieredCache.clearPath(path).catch((error) => {
+			console.warn(`FileCacheController: Failed to clear path ${path}:`, error)
 		})
 	}
 
@@ -185,6 +184,62 @@ export const createFileCacheController = ({
 				delete previews[path]
 			}
 		})
+		tieredCache.clearAll().catch((error) => {
+			console.warn('FileCacheController: Failed to clear all:', error)
+		})
+	}
+
+	const getAsync = async (path: string): Promise<FileCacheEntry> => {
+		if (DISABLE_CACHE) return {}
+		const memoryEntry = get(path)
+		if (Object.keys(memoryEntry).some((key) => memoryEntry[key as keyof FileCacheEntry] !== undefined)) {
+			return memoryEntry
+		}
+		const persistedEntry = await tieredCache.getAsync(path)
+		if (Object.keys(persistedEntry).length > 0) {
+			batch(() => {
+				if (persistedEntry.pieceTable !== undefined) {
+					setPieceTable(path, persistedEntry.pieceTable)
+				}
+				if (persistedEntry.stats !== undefined) {
+					setFileStats(path, persistedEntry.stats)
+				}
+				if (persistedEntry.highlights !== undefined) {
+					setHighlights(path, persistedEntry.highlights)
+				}
+				if (persistedEntry.folds !== undefined) {
+					setFolds(path, persistedEntry.folds)
+				}
+				if (persistedEntry.previewBytes !== undefined) {
+					previews[path] = persistedEntry.previewBytes
+				}
+				if (persistedEntry.brackets !== undefined) {
+					setBrackets(path, persistedEntry.brackets)
+				}
+				if (persistedEntry.errors !== undefined) {
+					setErrors(path, persistedEntry.errors)
+				}
+				if (persistedEntry.scrollPosition !== undefined) {
+					setScrollPosition(path, persistedEntry.scrollPosition)
+				}
+				if (persistedEntry.visibleContent !== undefined) {
+					setVisibleContent(path, persistedEntry.visibleContent)
+				}
+			})
+		}
+		return persistedEntry
+	}
+
+	const setActiveFile = (path: string | null): void => {
+		tieredCache.setActiveFile(path)
+	}
+
+	const getStats = async (): Promise<CacheStats> => {
+		return tieredCache.getStats()
+	}
+
+	const flush = async (): Promise<void> => {
+		return tieredCache.flush()
 	}
 
 	return {
@@ -193,5 +248,9 @@ export const createFileCacheController = ({
 		clearPath,
 		clearBuffer,
 		clearAll,
+		getAsync,
+		setActiveFile,
+		getStats,
+		flush,
 	}
 }
