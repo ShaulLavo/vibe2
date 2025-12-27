@@ -11,6 +11,7 @@ import {
 	type InArgs,
 } from 'sqlite-wasm/client'
 import wasmUrl from 'sqlite-wasm/sqlite3.wasm?url'
+import proxyUrl from 'sqlite-wasm/sqlite3-opfs-async-proxy.js?url'
 
 const log = logger.withTag('sqlite').debug
 
@@ -86,6 +87,7 @@ const performInit = async (): Promise<{
 				if (file.endsWith('.wasm')) return wasmUrl
 				return file
 			},
+			opfsProxyUrl: proxyUrl,
 		})
 	}
 
