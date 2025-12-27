@@ -2,6 +2,8 @@
 import { createSignal, type JSX } from 'solid-js'
 import { render } from 'vitest-browser-solid'
 import { createPieceTableSnapshot, type PieceTableSnapshot } from '@repo/utils'
+import { ColorModeProvider } from '@kobalte/core'
+import { ThemeProvider } from '@repo/theme'
 import { Editor } from '../../components/Editor'
 import type {
 	TextEditorDocument,
@@ -125,20 +127,24 @@ export const createTestEditor = (
 	const [errors] = createSignal<EditorError[] | undefined>(initialErrors)
 
 	const TestEditorComponent = (): JSX.Element => (
-		<Editor
-			document={testDoc}
-			isFileSelected={isFileSelected}
-			stats={stats}
-			fontSize={fontSizeSignal}
-			fontFamily={fontFamilySignal}
-			cursorMode={cursorModeSignal}
-			tabSize={tabSizeSignal}
-			highlights={highlights}
-			highlightOffset={highlightOffsets}
-			brackets={brackets}
-			folds={folds}
-			errors={errors}
-		/>
+		<ColorModeProvider>
+			<ThemeProvider>
+				<Editor
+					document={testDoc}
+					isFileSelected={isFileSelected}
+					stats={stats}
+					fontSize={fontSizeSignal}
+					fontFamily={fontFamilySignal}
+					cursorMode={cursorModeSignal}
+					tabSize={tabSizeSignal}
+					highlights={highlights}
+					highlightOffset={highlightOffsets}
+					brackets={brackets}
+					folds={folds}
+					errors={errors}
+				/>
+			</ThemeProvider>
+		</ColorModeProvider>
 	)
 
 	const { unmount } = render(() => <TestEditorComponent />, { container })

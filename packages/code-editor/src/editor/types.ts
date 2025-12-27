@@ -24,6 +24,8 @@ export type EditorSyntaxHighlight = {
 	startIndex: number
 	endIndex: number
 	scope: string
+	/** Precomputed CSS class for the scope (filled by the editor) */
+	className?: string
 }
 export type LineHighlightSegment = {
 	start: number
@@ -141,7 +143,7 @@ export type EditorProps = {
 }
 
 export type ScrollPosition = {
-	scrollTop: number
+	lineIndex: number
 	scrollLeft: number
 }
 
@@ -200,6 +202,7 @@ export type LinesProps = {
 	activeLineIndex: Accessor<number | null>
 	getLineBracketDepths: (entry: LineEntry) => LineBracketDepthMap | undefined
 	getLineHighlights?: (entry: LineEntry) => LineHighlightSegment[] | undefined
+	highlightRevision?: Accessor<number>
 	/** Get cached TextRuns for a line (for instant rendering on tab switch) */
 	getCachedRuns?: (
 		lineIndex: number,

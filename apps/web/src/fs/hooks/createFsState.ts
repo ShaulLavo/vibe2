@@ -1,6 +1,6 @@
 /* eslint-disable solid/reactivity */
 import type { FsFileTreeNode, FsTreeNode } from '@repo/fs'
-import { createMemo } from 'solid-js'
+import { createMemo, createSignal } from 'solid-js'
 import { findNode } from '../runtime/tree'
 import type { FsState } from '../types'
 import { createTreeState } from './createTreeState'
@@ -20,7 +20,7 @@ import { createVisibleContentState } from './createVisibleContentState'
 
 export const createFsState = () => {
 	const { tree, setTree } = createTreeState()
-	const { expanded, setExpanded } = createExpandedState()
+	const { expanded, setExpanded, collapseAll } = createExpandedState()
 	const { selectedPath, setSelectedPath, activeSource, setActiveSource } =
 		createSelectionState()
 	const {
@@ -87,6 +87,11 @@ export const createFsState = () => {
 	})
 	const lastKnownFilePath = () => lastKnownFileNode()?.path
 
+	const [creationState, setCreationState] = createSignal<{
+		type: 'file' | 'folder'
+		parentPath: string
+	} | null>(null)
+
 	const state = {
 		tree,
 		expanded,
@@ -99,6 +104,9 @@ export const createFsState = () => {
 		fileErrors,
 		scrollPositions,
 		visibleContents,
+		get creationState() {
+			return creationState()
+		},
 		get selectedPath() {
 			return selectedPath()
 		},
@@ -237,5 +245,7 @@ export const createFsState = () => {
 		clearScrollPositions,
 		setVisibleContent,
 		clearVisibleContents,
+		collapseAll,
+		setCreationState,
 	}
 }

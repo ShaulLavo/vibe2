@@ -41,7 +41,6 @@ export type FsActions = {
 	updateSelectedFileHighlights: (
 		highlights: TreeSitterCapture[] | undefined
 	) => void
-	/** Apply an offset transformation for optimistic updates */
 	applySelectedFileHighlightOffset: (transform: HighlightTransform) => void
 	updateSelectedFileFolds: (folds: FoldRange[] | undefined) => void
 	updateSelectedFileBrackets: (brackets: BracketInfo[] | undefined) => void
@@ -56,6 +55,10 @@ export type FsActions = {
 	saveFile: (path?: string) => Promise<void>
 	setDirtyPath: (path: string, isDirty: boolean) => void
 	pickNewRoot: () => Promise<void>
+	collapseAll: () => void
+	setCreationState: (
+		state: { type: 'file' | 'folder'; parentPath: string } | null
+	) => void
 }
 
 export type FsContextValue = [FsState, FsActions]

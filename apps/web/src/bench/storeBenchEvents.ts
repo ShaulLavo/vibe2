@@ -58,10 +58,8 @@ export const subscribeStoreBenchEvents = (
 	options?: { replay?: boolean }
 ): (() => void) => {
 	const replay = options?.replay ?? true
-	// Register listener before replay to avoid missing events emitted during replay
 	listeners.add(listener)
 	if (replay) {
-		// Replay from a snapshot to iterate over a stable copy
 		const snapshot = history.slice()
 		for (const event of snapshot) {
 			try {

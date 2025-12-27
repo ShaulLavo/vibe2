@@ -3,7 +3,7 @@ import type {
 	HighlightOffsets,
 	TextEditorDocument,
 } from '@repo/code-editor'
-import { Editor } from '@repo/code-editor'
+import { Editor, getHighlightClassForScope } from '@repo/code-editor'
 import { getEditCharDelta, getEditLineDelta } from '@repo/utils/highlightShift'
 
 import {
@@ -61,8 +61,9 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			updateSelectedFileScrollPosition,
 			updateSelectedFileVisibleContent,
 			saveFile,
-	},
-] = useFs()
+			fileCache,
+		},
+	] = useFs()
 	const focus = useFocusManager()
 	const highlightLog = logger.withTag('highlights')
 
@@ -73,6 +74,10 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 
 	const tabs = useTabs(() => state.lastKnownFilePath, {
 		maxTabs: MAX_EDITOR_TABS,
+	})
+
+	createEffect(() => {
+		fileCache.setOpenTabs(tabs())
 	})
 
 	const handleTabSelect = (path: string) => {
@@ -100,7 +105,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			const charDelta = getEditCharDelta(edit)
 			const lineDelta = getEditLineDelta(edit)
 
-			// Apply offset immediately for ALL edits (O(1) operation)
 			applySelectedFileHighlightOffset({
 				charDelta,
 				lineDelta,
@@ -119,7 +123,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						updateSelectedFileFolds(result.folds)
 						updateSelectedFileBrackets(result.brackets)
 						updateSelectedFileErrors(result.errors)
-						// Increment version to trigger minimap re-render
 						setDocumentVersion((v) => v + 1)
 					})
 				}
@@ -127,20 +130,30 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		},
 	}
 
-	// TreeSitterCapture already has { startIndex, endIndex, scope } which matches EditorSyntaxHighlight
-	// No .map() needed - just pass through directly!
 	const editorHighlights = createMemo<EditorSyntaxHighlight[] | undefined>(
 		() => {
 			const captures = state.selectedFileHighlights
 			if (!captures || captures.length === 0) {
 				return undefined
 			}
-			// IMPORTANT: Unwrap the proxy to ensure downstream sorting is fast
-			return unwrap(captures)
+			const unwrapped = unwrap(captures)
+			const next: EditorSyntaxHighlight[] = []
+			for (let i = 0; i < unwrapped.length; i += 1) {
+				const capture = unwrapped[i]
+				if (!capture) continue
+				const className =
+					capture.className ?? getHighlightClassForScope(capture.scope)
+				next.push({
+					startIndex: capture.startIndex,
+					endIndex: capture.endIndex,
+					scope: capture.scope,
+					className,
+				})
+			}
+			return next
 		}
 	)
 
-	// Convert internal offset to editor HighlightOffset type
 	const editorHighlightOffset = createMemo<HighlightOffsets | undefined>(() => {
 		const offsets = state.selectedFileHighlightOffset
 		if (!offsets?.length) return undefined

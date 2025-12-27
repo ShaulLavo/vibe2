@@ -3,6 +3,11 @@ export { Minimap } from './Minimap'
 export { MinimapView } from './MinimapView'
 export { MinimapCanvas, type MinimapCanvasProps } from './MinimapCanvas'
 export { MinimapOverlay, type MinimapOverlayProps } from './MinimapOverlay'
+export { Scrollbar, type ScrollbarProps } from './Scrollbar'
+export {
+	HorizontalScrollbar,
+	type HorizontalScrollbarProps,
+} from './HorizontalScrollbar'
 
 // Types
 export type { MinimapProps } from './types'

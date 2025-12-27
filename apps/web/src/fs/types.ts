@@ -56,4 +56,8 @@ export type FsState = {
 	/** Pre-computed visible content for instant tab switching */
 	visibleContents: Record<string, VisibleContentSnapshot | undefined>
 	selectedFileVisibleContent?: VisibleContentSnapshot
+	creationState?: {
+		type: 'file' | 'folder'
+		parentPath: string
+	} | null
 }

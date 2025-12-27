@@ -678,12 +678,12 @@ const rawBinarySyncAdapter: RawBinaryAdapter = {
 				try {
 					handle.flush()
 				} catch {
-					// ignore flush issues on shutdown
+					// ignore flush errors
 				}
 				try {
 					handle.close()
 				} catch {
-					// ignore close issues on shutdown
+					// ignore close errors
 				}
 				try {
 					await directory.removeEntry(fileName)

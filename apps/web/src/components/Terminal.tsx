@@ -17,6 +17,7 @@ import {
 	TerminalController,
 } from '../terminal/terminalController'
 import { useTheme } from '@repo/theme'
+import { ensureFs } from '~/fs/runtime/fsRuntime'
 
 export const Terminal: Component = () => {
 	let containerRef: HTMLDivElement = null!
@@ -61,6 +62,10 @@ export const Terminal: Component = () => {
 						actions,
 						getCwd: () => cwd(),
 						setCwd: (path) => setCwd(() => normalizeCwd(path)),
+						getVfsContext: async () => {
+							const source = state.activeSource ?? 'memory'
+							return ensureFs(source)
+						},
 					},
 				},
 				theme: theme,
@@ -82,9 +87,7 @@ export const Terminal: Component = () => {
 				trackedTheme,
 				() => {
 					if (!controller) return
-					void setup(false).catch((error) => {
-						console.error('Failed to update terminal theme', error)
-					})
+					controller.setTheme(theme)
 				},
 				{ defer: true }
 			)

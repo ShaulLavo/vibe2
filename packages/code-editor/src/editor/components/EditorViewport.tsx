@@ -26,6 +26,7 @@ type EditorViewportProps = {
 	tabSize: Accessor<number>
 	getLineBracketDepths: (entry: LineEntry) => LineBracketDepthMap | undefined
 	getLineHighlights: (entry: LineEntry) => LineHighlightSegment[] | undefined
+	highlightRevision?: Accessor<number>
 	getCachedRuns?: (
 		lineIndex: number,
 		columnStart: number,
@@ -118,11 +119,12 @@ export const EditorViewport = (props: EditorViewportProps) => {
 						onPreciseClick={props.input.handlePreciseClick}
 						onMouseDown={props.onLineMouseDown}
 						activeLineIndex={props.layout.activeLineIndex}
-						getLineBracketDepths={props.getLineBracketDepths}
-						getLineHighlights={props.getLineHighlights}
-						getCachedRuns={props.getCachedRuns}
-						displayToLine={props.layout.displayToLine}
-					/>
+					getLineBracketDepths={props.getLineBracketDepths}
+					getLineHighlights={props.getLineHighlights}
+					highlightRevision={props.highlightRevision}
+					getCachedRuns={props.getCachedRuns}
+					displayToLine={props.layout.displayToLine}
+				/>
 				</div>
 			</div>
 		</div>

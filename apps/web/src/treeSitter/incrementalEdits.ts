@@ -8,11 +8,6 @@ import { logger } from '../logger'
 
 const log = logger.withTag('treeSitter')
 
-/**
- * Small debounce delay to batch rapid keystrokes.
- * This prevents overwhelming the tree-sitter worker with parse requests
- * while the user is actively typing.
- */
 const DEBOUNCE_MS = 50
 
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null
@@ -27,13 +22,6 @@ let currentRequestId = 0
 let pendingBatchStartedAt = 0
 let pendingBatchId = 0
 
-/**
- * Sends an incremental tree-sitter edit with debouncing and batching.
- *
- * - Accumulates rapid edits into a batch during the debounce window
- * - Sends the entire batch to tree-sitter for sequential processing
- * - Returns a promise that resolves with parse results (or undefined if cancelled/failed)
- */
 export const sendIncrementalTreeEdit = (
 	path: string | undefined,
 	edit: DocumentIncrementalEdit
@@ -50,7 +38,6 @@ export const sendIncrementalTreeEdit = (
 		insertedText: edit.insertedText,
 	}
 
-	// If there's an existing pending batch for a different path, flush it
 	if (pendingEdits && pendingEdits.path !== path) {
 		if (debounceTimeout) {
 			clearTimeout(debounceTimeout)
@@ -66,7 +53,6 @@ export const sendIncrementalTreeEdit = (
 		pendingResolve = null
 	}
 
-	// Add to existing batch or create new batch
 	if (pendingEdits && pendingEdits.path === path) {
 		pendingEdits.edits.push(editPayload)
 	} else {
@@ -75,13 +61,11 @@ export const sendIncrementalTreeEdit = (
 		pendingBatchId += 1
 	}
 
-	// Reset the debounce timer
 	if (debounceTimeout) {
 		clearTimeout(debounceTimeout)
 	}
 
 	return new Promise((resolve) => {
-		// Replace the pending resolve - only the final caller gets the result
 		if (pendingResolve) {
 			pendingResolve(undefined)
 		}
@@ -97,7 +81,6 @@ export const sendIncrementalTreeEdit = (
 			const batchId = pendingBatchId
 			const editCount = batch.edits.length
 
-			// Increment request ID to track this specific request
 			const requestId = ++currentRequestId
 			const requestStartedAt = performance.now()
 
@@ -116,7 +99,7 @@ export const sendIncrementalTreeEdit = (
 							totalMs: totalDuration,
 						})
 					}
-					// Only resolve if this is still the latest request
+
 					if (requestId === currentRequestId) {
 						resolve(result)
 					} else {
@@ -125,7 +108,6 @@ export const sendIncrementalTreeEdit = (
 							editCount,
 							batchId,
 						})
-						// Request was superseded, resolve with undefined
 						resolve(undefined)
 					}
 				})
@@ -137,10 +119,6 @@ export const sendIncrementalTreeEdit = (
 	})
 }
 
-/**
- * Clears any pending debounced tree-sitter edit.
- * Useful when switching files or cleaning up.
- */
 export const clearPendingTreeEdit = () => {
 	if (debounceTimeout) {
 		clearTimeout(debounceTimeout)
@@ -149,6 +127,6 @@ export const clearPendingTreeEdit = () => {
 	pendingEdits = null
 	pendingResolve?.(undefined)
 	pendingResolve = null
-	// Increment request ID to invalidate any in-flight requests
+
 	currentRequestId++
 }

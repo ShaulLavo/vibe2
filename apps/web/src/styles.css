@@ -19,13 +19,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-	--popover: 240 10% 3.9%;
-	--popover-foreground: 0 0% 98%;
-	--card: 240 10% 3.9%;
-	--card-foreground: 0 0% 98%;
-}
-
 /* Apply theme CSS vars to body - these are set dynamically by ThemeProvider */
 body {
 	background-color: var(--editor-background, hsl(240 10% 3.9%));
@@ -122,14 +115,6 @@ body {
 	.editor-gutter-container {
 		@apply shrink-0 select-none text-[11px] font-semibold tracking-[0.08em] tabular-nums flex items-center justify-between gap-1;
 	}
-	.editor-fold-button {
-		@apply flex h-4 w-4 shrink-0 items-center justify-center rounded text-[10px];
-		color: var(--editor-line-number);
-	}
-	.editor-fold-button:hover {
-		color: var(--editor-line-number-active);
-		background-color: var(--editor-cursor-line);
-	}
 
 	/* Line Gutters */
 	.editor-gutter-wrapper {
@@ -137,7 +122,7 @@ body {
 		background-color: var(--editor-gutter-background);
 	}
 	.editor-gutter-row {
-		@apply absolute left-0 right-0 flex items-center justify-end;
+		@apply absolute left-0 right-0 flex items-center justify-around;
 	}
 
 	/* Tree Node */
@@ -157,9 +142,23 @@ body {
 		@apply pointer-events-none absolute left-1.5 top-0 bottom-0 z-10 border-l transition-opacity duration-200 ease-linear;
 	}
 
+	/* Fs Toolbar */
+	.fs-toolbar {
+		@apply flex items-center gap-0.5 px-1 py-1;
+	}
+	.fs-toolbar-btn {
+		@apply flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground;
+	}
+	.fs-toolbar-input-container {
+		@apply ml-2 flex-1;
+	}
+	.fs-toolbar-input {
+		@apply w-full rounded border border-border/50 bg-background/50 px-2 py-0.5 text-xs text-foreground outline-none focus:border-accent;
+	}
+
 	/* Line */
 	.editor-line {
-		@apply absolute left-0 top-0 w-full whitespace-pre will-change-transform;
+		@apply absolute left-0 top-0 w-full whitespace-pre;
 		color: var(--editor-foreground);
 	}
 }
@@ -193,4 +192,21 @@ body {
 		filter: blur(8px);
 		/* transform: scale(1.02); */
 	}
+}
+
+/* Theme toggle: disable default view transition so JS can animate the circle */
+/* Only applies when .theme-transitioning class is on html element */
+html.theme-transitioning::view-transition-old(*) {
+	animation: none;
+	display: none;
+}
+
+html.theme-transitioning::view-transition-new(*) {
+	animation: none;
+	mix-blend-mode: normal;
+}
+
+/* During theme toggle, disable all named view transitions so everything is part of root */
+html.theme-transitioning * {
+	view-transition-name: none !important;
 }

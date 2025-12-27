@@ -8,6 +8,7 @@ import { VsChevronRight } from '@repo/icons/vs/VsChevronRight'
 import { FileIcon } from './FileIcon'
 import { VsFolder } from '@repo/icons/vs/VsFolder'
 import { VsFolderOpened } from '@repo/icons/vs/VsFolderOpened'
+import { CreationRow } from './CreationRow'
 
 const TREE_INDENT_PX = 8
 
@@ -68,10 +69,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 	}
 
 	// Track whether we're contributing to parent's branch line
-	// (hovered AND not handling our own branch line via isOpen)
 	let lastContributed = false
-	// Notify parent only when our "contribution" status changes
-	// *Approved*
 	createEffect(() => {
 		const contributes = isHovered() && !isOpen()
 		if (contributes !== lastContributed) {
@@ -80,7 +78,6 @@ export const TreeNode = (props: TreeNodeProps) => {
 		}
 	})
 
-	// Branch line enter/exit animation
 	const branchLineEl = () => (isOpen() ? branchLineRef() : undefined)
 	createSwitchTransition(branchLineEl, {
 		onEnter(el, done) {
@@ -98,7 +95,6 @@ export const TreeNode = (props: TreeNodeProps) => {
 		},
 	})
 
-	// Update branch line opacity when hover state changes (after initial enter animation)
 	createEffect(() => {
 		const el = branchLineRef()
 		if (el && isOpen()) {
@@ -181,6 +177,28 @@ export const TreeNode = (props: TreeNodeProps) => {
 							<TreeNode node={child} hasParent onHover={handleChildHover} />
 						)}
 					</For>
+					<Show
+						when={
+							state.creationState &&
+							state.creationState.parentPath === props.node.path
+						}
+					>
+						<CreationRow
+							depth={props.node.depth + 1}
+							type={state.creationState!.type}
+							onSubmit={async (name) => {
+								const parent = state.creationState!.parentPath
+								const type = state.creationState!.type
+								if (type === 'file') {
+									await actions.createFile(parent, name)
+								} else {
+									await actions.createDir(parent, name)
+								}
+								actions.setCreationState(null)
+							}}
+							onCancel={() => actions.setCreationState(null)}
+						/>
+					</Show>
 				</div>
 			</Show>
 		</>

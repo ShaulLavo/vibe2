@@ -3,7 +3,7 @@ import { useFs } from '~/fs/context/FsContext'
 import type { FsSource } from '~/fs/types'
 import { formatBytes } from '@repo/utils'
 import { useFocusManager, type FocusArea } from '~/focus/focusManager'
-import { useColorMode } from '@kobalte/core'
+import { AnimatedModeToggle } from '@repo/ui/AnimatedModeToggle'
 
 const SOURCE_LABELS: Record<FsSource, string> = {
 	local: 'Local Folder',
@@ -21,7 +21,6 @@ const FOCUS_LABELS: Record<FocusArea, string> = {
 export const StatusBar = () => {
 	const [state] = useFs()
 	const focus = useFocusManager()
-	const { colorMode, toggleColorMode } = useColorMode()
 
 	const filePath = createMemo(() => state.selectedPath ?? 'No file selected')
 
@@ -144,12 +143,7 @@ export const StatusBar = () => {
 					</span>
 				</div>
 
-				<button
-					onClick={toggleColorMode}
-					class="ml-auto flex items-center gap-1.5 rounded border border-border/30 bg-background px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.08em] text-foreground transition hover:opacity-80"
-				>
-					{colorMode() === 'dark' ? '🌙' : '☀️'} {colorMode()}
-				</button>
+				<AnimatedModeToggle />
 			</div>
 		</div>
 	)

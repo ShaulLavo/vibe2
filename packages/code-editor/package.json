@@ -17,6 +17,7 @@
     "repo:health": "bun run depcheck && bun run unimported && bun run tsprune"
   },
   "dependencies": {
+    "@kobalte/core": "^0.13.11",
     "@repo/icons": "*",
     "@repo/keyboard": "*",
     "@repo/logger": "*",

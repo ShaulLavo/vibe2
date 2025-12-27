@@ -176,3 +176,4 @@ export const calculateColumnFromClick = (
 
 export * from './incrementalEdits'
 export * from './gutterWidth'
+export * from './highlights'

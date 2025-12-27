@@ -160,6 +160,40 @@ async function canUseHandle(
 	}
 }
 
+async function requestHandlePermission(
+	handle: FileSystemDirectoryHandle,
+	mode: 'read' | 'readwrite'
+): Promise<PermissionState> {
+	const candidate = handle as PermissionCapableDirectoryHandle
+	if (typeof candidate.requestPermission !== 'function') return 'prompt'
+
+	try {
+		return await candidate.requestPermission({ mode })
+	} catch (error) {
+		if (isUserGestureError(error)) {
+			throw error
+		}
+		return 'prompt'
+	}
+}
+
+async function waitForUserInteraction(): Promise<void> {
+	return new Promise((resolve) => {
+		const cleanup = () => {
+			window.removeEventListener('click', onInteraction)
+			window.removeEventListener('keydown', onInteraction)
+		}
+
+		const onInteraction = () => {
+			cleanup()
+			resolve()
+		}
+
+		window.addEventListener('click', onInteraction, { once: true })
+		window.addEventListener('keydown', onInteraction, { once: true })
+	})
+}
+
 async function resolveLocalRoot(
 	pickerWindow: DirectoryPickerWindow,
 	options?: GetRootOptions
@@ -179,8 +213,22 @@ async function resolveLocalRoot(
 			if (permission === 'granted' && (await canUseHandle(persisted))) {
 				return persisted
 			}
-		} catch {
-			// requestPermission failed (no user gesture or denied)
+		} catch (error) {
+			if (isUserGestureError(error) && options?.onAwaitingInteraction) {
+				options.onAwaitingInteraction()
+				await waitForUserInteraction()
+				try {
+					const permission = await requestHandlePermission(
+						persisted,
+						'readwrite'
+					)
+					if (permission === 'granted' && (await canUseHandle(persisted))) {
+						return persisted
+					}
+				} catch {
+					// recursive retry not strictly needed, one user interaction should be enough for the browser
+				}
+			}
 		}
 
 		// Permission revoked or denied - clear stale handle
@@ -222,20 +270,6 @@ async function persistHandle(
 		await localforage.setItem(key, handle)
 	} catch {
 		// ignore persistence failures; we'll fall back to prompting again
-	}
-}
-
-async function requestHandlePermission(
-	handle: FileSystemDirectoryHandle,
-	mode: 'read' | 'readwrite'
-): Promise<PermissionState> {
-	const candidate = handle as PermissionCapableDirectoryHandle
-	if (typeof candidate.requestPermission !== 'function') return 'prompt'
-
-	try {
-		return await candidate.requestPermission({ mode })
-	} catch {
-		return 'prompt'
 	}
 }
 

@@ -11,6 +11,7 @@ import {
 	type InArgs,
 } from 'sqlite-wasm/client'
 import wasmUrl from 'sqlite-wasm/sqlite3.wasm?url'
+import proxyUrl from 'sqlite-wasm/sqlite3-opfs-async-proxy.js?url'
 
 const log = logger.withTag('sqlite').debug
 
@@ -77,7 +78,6 @@ const performInit = async (): Promise<{
 	version: string
 	opfsEnabled: boolean
 }> => {
-	// Suppress verbose internal SQLite WASM logging (includes init messages sent to stderr)
 	if (!sqlite3) {
 		sqlite3 = await sqlite3InitModule({
 			print: () => {},
@@ -86,6 +86,7 @@ const performInit = async (): Promise<{
 				if (file.endsWith('.wasm')) return wasmUrl
 				return file
 			},
+			opfsProxyUrl: proxyUrl,
 		})
 	}
 
@@ -150,17 +151,10 @@ export type FileMetadata = {
 	kind: string
 }
 
-// Helpers for initials extraction
 const getInitials = (basename: string): string => {
-	// 1. Remove extension
 	const name = basename.split('.').shift() ?? ''
 	if (!name) return ''
 
-	// 2. Split by non-alphanumeric chars (underscore, dash, dot, space etc)
-	//    AND split by camelCase boundaries
-	//    Regex logic:
-	//    - [^a-zA-Z0-9] matches separators
-	//    - (?=[A-Z]) matches position before a capital letter (camelCase)
 	const parts = name.split(/[^a-zA-Z0-9]|(?=[A-Z])/)
 
 	return parts
@@ -241,8 +235,6 @@ const searchFiles = async (query: string): Promise<SearchResult[]> => {
 	const c = getClient()
 	const qLower = query.toLowerCase()
 
-	// For empty or 1-char queries, use fast prefix matching (alphabetical sort)
-	// For 2+ chars, use fuzzy matching (shortest match sort)
 	const usePrefix = qLower.length <= 1
 	const pattern = usePrefix
 		? `${qLower}%`
@@ -268,7 +260,6 @@ const searchFiles = async (query: string): Promise<SearchResult[]> => {
 }
 
 const reset = async (): Promise<void> => {
-	// 1. Close the database connection
 	if (db) {
 		try {
 			db.close()
@@ -279,7 +270,6 @@ const reset = async (): Promise<void> => {
 		client = null
 	}
 
-	// 2. Delete the OPFS file
 	try {
 		const root = await navigator.storage.getDirectory()
 		await root.removeEntry('vibe.sqlite3')
@@ -288,7 +278,6 @@ const reset = async (): Promise<void> => {
 		log('[SQLite] Error deleting OPFS file (might not exist):', e)
 	}
 
-	// 3. Re-initialize
 	initPromise = null
 	await performInit()
 	log('[SQLite] Re-initialized')

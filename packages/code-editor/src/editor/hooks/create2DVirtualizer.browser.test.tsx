@@ -225,10 +225,15 @@ describe('create2DVirtualizer (DOM integration)', () => {
 
 		const beforeItems = result.current.virtualItems()
 
+		// Sub-row scroll (5px < 20px rowHeight)
+		// Scroll position is quantized to row boundaries for performance,
+		// so the scrollTop signal won't update for sub-row scrolls
 		container.scrollTo({ top: 5 })
 
-		await expect.poll(() => result.current.scrollTop()).toBe(5)
+		// Wait for DOM scroll to complete
+		await expect.poll(() => container.scrollTop).toBe(5)
 
+		// Virtual items should be the same reference (not recomputed)
 		const afterItems = result.current.virtualItems()
 		expect(afterItems).toBe(beforeItems)
 
@@ -272,10 +277,15 @@ describe('create2DVirtualizer (DOM integration)', () => {
 
 		const beforeItems = result.current.virtualItems()
 
+		// Sub-column scroll (4px < 8px charWidth)
+		// Scroll position is quantized to column boundaries for performance,
+		// so the scrollLeft signal won't update for sub-column scrolls
 		container.scrollTo({ left: 4 })
 
-		await expect.poll(() => result.current.scrollLeft()).toBe(4)
+		// Wait for DOM scroll to complete
+		await expect.poll(() => container.scrollLeft).toBe(4)
 
+		// Virtual items should be the same reference (not recomputed)
 		const afterItems = result.current.virtualItems()
 		expect(afterItems).toBe(beforeItems)
 

@@ -57,6 +57,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 		clearDeferredMetadata,
 		setScrollPosition,
 		setVisibleContent,
+		collapseAll,
+		setCreationState,
 	} = createFsState()
 
 	const fileCache = createFileCacheController({
@@ -107,7 +109,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		})
 
 	const {
-		selectPath,
+		selectPath: selectPathInternal,
 		updateSelectedFilePieceTable,
 		updateSelectedFileHighlights,
 		updateSelectedFileFolds,
@@ -122,10 +124,29 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setSelectedFilePreviewBytes,
 		setSelectedFileContent,
 		setSelectedFileLoading,
+		setDirtyPath,
 		fileCache,
 	})
 
-	// Optimistic highlight offset - queue edits for lazy per-line shifts
+	const selectPath = async (
+		path: string,
+		options?: Parameters<typeof selectPathInternal>[1]
+	) => {
+		const previousPath = state.lastKnownFilePath
+		if (previousPath && previousPath !== path) {
+			await fileCache.flush()
+			fileCache.setActiveFile(null)
+		}
+		await selectPathInternal(path, options)
+		const tree = state.tree
+		if (tree) {
+			const node = findNode(tree, path)
+			if (node?.kind === 'file') {
+				fileCache.setActiveFile(path)
+			}
+		}
+	}
+
 	const applySelectedFileHighlightOffset = (
 		transform: Parameters<typeof applyHighlightOffset>[1]
 	) => {
@@ -142,7 +163,7 @@ export function FsProvider(props: { children: JSX.Element }) {
 		setLoading,
 		clearParseResults,
 		clearPieceTables,
-		clearFileCache: fileCache.clearAll,
+		clearFileCache: fileCache.clearMemory,
 		setBackgroundPrefetching,
 		setBackgroundIndexedFileCount,
 		setLastPrefetchedPath,
@@ -184,7 +205,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 			const load = ensureDirLoaded(currentPath)
 			if (load) {
 				await load
-				// Re-read state.tree after await to avoid using a stale reference
 				const latestTree = state.tree
 				if (!latestTree) return undefined
 				const currentNode = findNode(latestTree, currentPath)
@@ -192,7 +212,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 					return undefined
 				}
 			} else {
-				// No await happened, safe to use current state.tree
 				const currentNode = findNode(state.tree, currentPath)
 				if (!currentNode || currentNode.kind !== 'dir') {
 					return undefined
@@ -200,7 +219,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 			}
 		}
 
-		// Final validation with latest tree
 		const latestTree = state.tree
 		if (!latestTree) return undefined
 		const node = findNode(latestTree, path)
@@ -209,12 +227,9 @@ export function FsProvider(props: { children: JSX.Element }) {
 
 	const setSource = (source: FsSource) => refresh(source)
 
-	// FileSystemObserver integration for live file sync
 	const { startObserving, stopObserving } = useFileSystemObserver({
 		state,
 		reloadFile: async (path: string) => {
-			// Only reload the currently selected file
-			// Other files will load fresh from disk when selected
 			if (path !== state.lastKnownFilePath) {
 				return
 			}
@@ -234,7 +249,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 			activeSource: state.activeSource,
 		})
 		void refresh(state.activeSource ?? DEFAULT_SOURCE).then(() => {
-			// Start observing after initial refresh completes
 			void startObserving()
 		})
 	})
@@ -250,6 +264,12 @@ export function FsProvider(props: { children: JSX.Element }) {
 		const lastFilePath =
 			localStorage.getItem('fs-last-known-file-path') ?? undefined
 		setSelectedPath(lastFilePath)
+		if (lastFilePath) {
+			const scrollPos = fileCache.getScrollPosition(lastFilePath)
+			if (scrollPos) {
+				setScrollPosition(lastFilePath, scrollPos)
+			}
+		}
 	})
 
 	onCleanup(() => {
@@ -261,10 +281,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 	const isSelectedPath = createSelector(() => state.selectedPath)
 
 	const pickNewRoot = async () => {
-		// Only works for 'local' source
 		if (state.activeSource !== 'local') return
 		await doPick()
-		// Invalidate fsRuntime cache so refresh uses the new handle
 		invalidateFs('local')
 		await refresh('local')
 	}
@@ -293,6 +311,8 @@ export function FsProvider(props: { children: JSX.Element }) {
 			saveFile,
 			setDirtyPath,
 			pickNewRoot,
+			collapseAll,
+			setCreationState,
 		},
 	]
 

@@ -1,4 +1,11 @@
-import { Show, createMemo, splitProps, type Accessor } from 'solid-js'
+import {
+	Show,
+	createMemo,
+	onCleanup,
+	onMount,
+	splitProps,
+	type Accessor,
+} from 'solid-js'
 
 import { useCursor } from '../../cursor'
 import type {
@@ -31,6 +38,7 @@ type LineRowProps = {
 	activeLineIndex: Accessor<number | null>
 	getLineBracketDepths: (entry: LineEntry) => LineBracketDepthMap | undefined
 	getLineHighlights?: (entry: LineEntry) => LineHighlightSegment[] | undefined
+	highlightRevision?: Accessor<number>
 	getCachedRuns?: (
 		lineIndex: number,
 		columnStart: number,
@@ -81,6 +89,16 @@ const areBracketDepthsEqual = (
 	return true
 }
 
+let pendingMounts = 0
+let pendingCleanups = 0
+
+export const consumeLineRowCounters = () => {
+	const snapshot = { mounts: pendingMounts, cleanups: pendingCleanups }
+	pendingMounts = 0
+	pendingCleanups = 0
+	return snapshot
+}
+
 export const LineRow = (props: LineRowProps) => {
 	const [local] = splitProps(props, [
 		'virtualRow',
@@ -94,16 +112,25 @@ export const LineRow = (props: LineRowProps) => {
 		'activeLineIndex',
 		'getLineBracketDepths',
 		'getLineHighlights',
+		'highlightRevision',
 		'getCachedRuns',
 		'displayToLine',
 	])
 	const cursor = useCursor()
 
-	const lineIndex = createMemo(() =>
-		local.displayToLine
-			? local.displayToLine(local.virtualRow.index)
-			: local.virtualRow.index
-	)
+	onMount(() => {
+		pendingMounts += 1
+	})
+
+	onCleanup(() => {
+		pendingCleanups += 1
+	})
+
+	const lineIndex = createMemo(() => {
+		const rawIndex = local.virtualRow.index
+		if (rawIndex < 0) return -1
+		return local.displayToLine ? local.displayToLine(rawIndex) : rawIndex
+	})
 
 	const isLineValid = createMemo(() => {
 		const idx = lineIndex()
@@ -139,10 +166,35 @@ export const LineRow = (props: LineRowProps) => {
 		}
 	})
 
+	let lastHighlightEntry: LineEntry | null = null
+	let lastHighlightRevision = -1
+
 	const highlights = createMemo(
-		() => {
+		(previous) => {
 			const e = entry()
-			return e ? local.getLineHighlights?.(e) : undefined
+			if (!e) {
+				lastHighlightEntry = null
+				return undefined
+			}
+
+			const revision = local.highlightRevision?.() ?? 0
+			if (
+				previous &&
+				lastHighlightEntry &&
+				lastHighlightRevision === revision &&
+				lastHighlightEntry.index === e.index &&
+				lastHighlightEntry.length === e.length &&
+				lastHighlightEntry.text === e.text &&
+				lastHighlightEntry.start !== e.start
+			) {
+				lastHighlightEntry = e
+				return previous
+			}
+
+			const next = local.getLineHighlights?.(e)
+			lastHighlightEntry = e
+			lastHighlightRevision = revision
+			return next
 		},
 		undefined,
 		{ equals: areHighlightSegmentsEqual }

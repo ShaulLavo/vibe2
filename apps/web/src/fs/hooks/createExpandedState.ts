@@ -1,6 +1,6 @@
 /* eslint-disable solid/reactivity */
 import { makePersisted } from '@solid-primitives/storage'
-import { createStore } from 'solid-js/store'
+import { createStore, reconcile } from 'solid-js/store'
 
 export const createExpandedState = () => {
 	const [expanded, setExpanded] = makePersisted(
@@ -10,8 +10,13 @@ export const createExpandedState = () => {
 		}
 	)
 
+	const collapseAll = () => {
+		setExpanded(reconcile({}))
+	}
+
 	return {
 		expanded,
 		setExpanded,
+		collapseAll,
 	}
 }

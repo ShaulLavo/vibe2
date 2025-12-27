@@ -1,8 +1,8 @@
-import { Index } from 'solid-js'
+import { createMemo, type Accessor, type JSX } from 'solid-js'
 import type { LineBracketDepthMap, LineHighlightSegment } from '../../types'
-import { useTextRuns } from '../hooks/useTextRuns'
-import type { TextRun } from '../utils/textRuns'
-import { Token } from './Token'
+import { useTextRunsHtml } from '../hooks/useTextRuns'
+import { getBracketDepthTextClass } from '../../theme/bracketColors'
+import { buildTextRunsHtml, type TextRun } from '../utils/textRuns'
 
 type SyntaxProps = {
 	text: string
@@ -10,17 +10,17 @@ type SyntaxProps = {
 	highlightSegments?: LineHighlightSegment[]
 	columnStart?: number
 	columnEnd?: number
-	/** Pre-computed TextRuns from cache for instant rendering */
 	cachedRuns?: TextRun[]
+
+	lineIndex: number
+	isEditable: Accessor<boolean>
+	style: JSX.CSSProperties | string
+	onMouseDown: (event: MouseEvent) => void
+	ref: (el: HTMLDivElement | null) => void
 }
 
-/**
- * Renders a line of text with syntax highlighting and bracket coloring.
- * Text is grouped into styled "runs" for efficient DOM rendering.
- * If cachedRuns are provided, uses them directly for instant rendering.
- */
 export const Syntax = (props: SyntaxProps) => {
-	const computedRuns = useTextRuns({
+	const computedHtml = useTextRunsHtml({
 		text: () => props.text,
 		bracketDepths: () => props.bracketDepths,
 		highlightSegments: () => props.highlightSegments,
@@ -28,18 +28,25 @@ export const Syntax = (props: SyntaxProps) => {
 		columnEnd: () => props.columnEnd,
 	})
 
-	const runs = () => props.cachedRuns ?? computedRuns()
+	const cachedHtml = createMemo(() => {
+		const runs = props.cachedRuns
+		if (!runs) return undefined
+
+		return buildTextRunsHtml(runs, getBracketDepthTextClass)
+	})
 
 	return (
-		<Index each={runs()}>
-			{(run) => (
-				<Token
-					text={run().text}
-					depth={run().depth}
-					highlightClass={run().highlightClass}
-					highlightScope={run().highlightScope}
-				/>
-			)}
-		</Index>
+		<div
+			ref={props.ref}
+			data-index={props.lineIndex}
+			class="editor-line"
+			classList={{
+				'cursor-text': props.isEditable(),
+			}}
+			style={props.style}
+			onMouseDown={(e) => props.onMouseDown(e)}
+			// eslint-disable-next-line solid/no-innerhtml
+			innerHTML={cachedHtml() ?? computedHtml()}
+		/>
 	)
 }

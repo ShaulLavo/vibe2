@@ -1,16 +1,3 @@
-/**
- * VFS Path/Tree Walking Benchmark Worker
- *
- * Measures the performance impact of:
- * 1. Path resolution overhead
- * 2. Directory handle tree walking
- * 3. File handle acquisition at various depths
- * 4. Sequential vs batch operations
- * 5. Cache effectiveness
- *
- * Run this benchmark before and after optimizations to measure impact.
- */
-
 import { expose } from 'comlink'
 import { createFs, getRootDirectory, type FsContext } from '@repo/fs'
 import type {
@@ -211,7 +198,7 @@ const measureSync = <T>(fn: () => T): { result: T; ms: number } => {
 const generatePath = (depth: number, index: number): string => {
 	const segments: string[] = []
 	for (let d = 0; d < depth - 1; d++) {
-		segments.push(`dir${d}_${index % (d + 2)}`) // Creates some path sharing
+		segments.push(`dir${d}_${index % (d + 2)}`)
 	}
 	segments.push(`file_${index}.txt`)
 	return segments.join('/')
@@ -220,7 +207,7 @@ const generatePath = (depth: number, index: number): string => {
 const generateScatteredPath = (depth: number, index: number): string => {
 	const segments: string[] = []
 	for (let d = 0; d < depth - 1; d++) {
-		segments.push(`scattered_${d}_${index}`) // No path sharing
+		segments.push(`scattered_${d}_${index}`)
 	}
 	segments.push(`file_${index}.txt`)
 	return segments.join('/')
@@ -240,7 +227,7 @@ const generateSiblingDirPath = (parentDepth: number, index: number): string => {
 	for (let d = 0; d < parentDepth - 1; d++) {
 		segments.push(`parent_${d}`)
 	}
-	segments.push(`sibling_${index % 5}`) // 5 sibling directories
+	segments.push(`sibling_${index % 5}`)
 	segments.push(`file_${index}.txt`)
 	return segments.join('/')
 }
@@ -530,7 +517,7 @@ const runCacheEffectivenessBench = async (
 
 		// Warm reads (reuse VFile instance)
 		const file = ctx.fs.file(path)
-		await file.text() // Prime cache
+		await file.text()
 
 		for (let i = 0; i < iterations - 1; i++) {
 			const { ms: warmMs } = await measure(() => file.text())

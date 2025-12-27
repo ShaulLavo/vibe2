@@ -53,15 +53,18 @@ export const Line = (props: LineProps) => {
 	return (
 		<Show when={columnRange()}>
 			{(range) => (
-				<div
+				<Syntax
 					ref={(el) => {
 						lineElement = el
 					}}
-					data-index={props.lineIndex}
-					class="editor-line"
-					classList={{
-						'cursor-text': props.isEditable(),
-					}}
+					text={props.lineText}
+					bracketDepths={props.lineBracketDepths}
+					highlightSegments={props.highlights}
+					columnStart={range().start}
+					columnEnd={range().end}
+					cachedRuns={props.cachedRuns}
+					lineIndex={props.lineIndex}
+					isEditable={props.isEditable}
 					style={{
 						transform: `translate(${xOffset()}px, ${props.virtualRow.start}px)`,
 						'min-width': `${props.contentWidth}px`,
@@ -69,16 +72,7 @@ export const Line = (props: LineProps) => {
 						'tab-size': Math.max(1, props.tabSize),
 					}}
 					onMouseDown={handleMouseDown}
-				>
-					<Syntax
-						text={props.lineText}
-						bracketDepths={props.lineBracketDepths}
-						highlightSegments={props.highlights}
-						columnStart={range().start}
-						columnEnd={range().end}
-						cachedRuns={props.cachedRuns}
-					/>
-				</div>
+				/>
 			)}
 		</Show>
 	)

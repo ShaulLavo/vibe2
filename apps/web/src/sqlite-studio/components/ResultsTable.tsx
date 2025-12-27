@@ -42,32 +42,25 @@ export const ResultsTable = (props: ResultsTableProps) => {
 		overscan: OVERSCAN,
 	})
 
-	// Use columns directly (rowid is not included in columns state)
 	const displayColumns = createMemo(() => props.columns())
 
-	// Smart column sizing: 3fr for paths, 2fr for names, 1fr for most, 0.5fr for tiny
 	const gridTemplate = createMemo(() =>
 		displayColumns()
 			.map((col) => {
 				const lc = col.toLowerCase()
-				// Full paths get most space
 				if (lc === 'path' || lc === 'path_lc') return '3fr'
-				// Names and directories get medium space
 				if (lc.includes('basename') && !lc.includes('initials')) return '2fr'
 				if (lc.includes('dir')) return '2fr'
-				// Tiny columns
 				if (lc === 'id' || lc === 'recency') return '0.5fr'
-				// Everything else (initials, kind) gets 1fr
 				return '1fr'
 			})
 			.join(' ')
 	)
 
 	return (
-		<div class="rounded-lg border border-zinc-800 overflow-hidden bg-[#0b0c0f] shadow-sm flex flex-col flex-1 min-h-0">
-			{/* Fixed Header */}
+		<div class="rounded-lg border border-border overflow-hidden bg-card shadow-sm flex flex-col flex-1 min-h-0">
 			<div
-				class="shrink-0 bg-zinc-900/50 border-b border-zinc-800 grid text-sm font-medium text-zinc-400"
+				class="shrink-0 bg-muted/50 border-b border-border grid text-sm font-medium text-muted-foreground"
 				style={{ 'grid-template-columns': gridTemplate() }}
 			>
 				<For each={displayColumns()}>
@@ -79,7 +72,6 @@ export const ResultsTable = (props: ResultsTableProps) => {
 				</For>
 			</div>
 
-			{/* Virtualized Body */}
 			<div ref={setScrollElement} class="overflow-auto flex-1 min-h-0">
 				<div
 					style={{
@@ -90,7 +82,7 @@ export const ResultsTable = (props: ResultsTableProps) => {
 					<Show
 						when={props.rows().length > 0}
 						fallback={
-							<div class="px-4 py-8 text-center text-zinc-600 italic">
+							<div class="px-4 py-8 text-center text-muted-foreground italic">
 								No results
 							</div>
 						}
@@ -101,7 +93,7 @@ export const ResultsTable = (props: ResultsTableProps) => {
 								if (!row) return null
 								return (
 									<div
-										class="grid text-sm hover:bg-zinc-800/30 transition-colors"
+										class="grid text-sm hover:bg-muted/50 transition-colors"
 										style={{
 											'grid-template-columns': gridTemplate(),
 											position: 'absolute',
@@ -114,9 +106,9 @@ export const ResultsTable = (props: ResultsTableProps) => {
 										<For each={displayColumns()}>
 											{(col) => (
 												<div
-													class={`px-3 py-1 text-zinc-300 whitespace-nowrap overflow-x-auto font-mono text-xs flex items-center border-r border-zinc-800/30 last:border-r-0 scrollbar-none ${
+													class={`px-3 py-1 text-foreground whitespace-nowrap overflow-x-auto font-mono text-xs flex items-center border-r border-border/30 last:border-r-0 scrollbar-none ${
 														props.hasRowId() || props.primaryKeys().length > 0
-															? 'cursor-text hover:bg-zinc-800'
+															? 'cursor-text hover:bg-muted'
 															: ''
 													}`}
 													style={{ 'scrollbar-width': 'none' }}
@@ -141,7 +133,9 @@ export const ResultsTable = (props: ResultsTableProps) => {
 														}
 														fallback={
 															row[col] === null ? (
-																<span class="text-zinc-600 italic">null</span>
+																<span class="text-muted-foreground italic">
+																	null
+																</span>
 															) : (
 																String(row[col])
 															)
@@ -150,7 +144,7 @@ export const ResultsTable = (props: ResultsTableProps) => {
 														<input
 															ref={(el) => setTimeout(() => el.focus(), 0)}
 															value={String(props.editingCell()?.value ?? '')}
-															class="w-full bg-zinc-900 text-white px-1 py-0.5 rounded border border-indigo-500 outline-none"
+															class="w-full bg-background text-foreground px-1 py-0.5 rounded border border-primary outline-none"
 															onInput={(e) => {
 																const prev = props.editingCell()
 																if (prev) {
@@ -178,7 +172,7 @@ export const ResultsTable = (props: ResultsTableProps) => {
 					</Show>
 				</div>
 			</div>
-			<div class="px-4 py-2 bg-zinc-900/30 border-t border-zinc-800 text-xs text-zinc-500 flex justify-between shrink-0">
+			<div class="px-4 py-2 bg-muted/30 border-t border-border text-xs text-muted-foreground flex justify-between shrink-0">
 				<span>Showing {props.rows().length} rows</span>
 				<span class="font-mono opacity-50">
 					{props.selectedTable()

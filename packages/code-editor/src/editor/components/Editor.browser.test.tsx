@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-solid'
 import { createSignal } from 'solid-js'
 import { createPieceTableSnapshot, type PieceTableSnapshot } from '@repo/utils'
+import { ColorModeProvider } from '@kobalte/core'
+import { ThemeProvider } from '@repo/theme'
 import { Editor } from '../components/Editor'
 import type { TextEditorDocument, CursorMode } from '../types'
 import scrollbarStyles from '../minimap/Scrollbar.module.css'
@@ -43,25 +45,29 @@ describe('Editor (browser integration)', () => {
 		const [stats] = createSignal(undefined)
 
 		return (
-			<div
-				style={{
-					width: '800px',
-					height: '400px',
-					position: 'relative',
-					display: 'flex',
-					'flex-direction': 'column',
-				}}
-				data-testid="editor-container"
-			>
-				<Editor
-					document={document}
-					isFileSelected={isFileSelected}
-					stats={stats}
-					fontSize={fontSize}
-					fontFamily={fontFamily}
-					cursorMode={cursorMode}
-				/>
-			</div>
+			<ColorModeProvider>
+				<ThemeProvider>
+					<div
+						style={{
+							width: '800px',
+							height: '400px',
+							position: 'relative',
+							display: 'flex',
+							'flex-direction': 'column',
+						}}
+						data-testid="editor-container"
+					>
+						<Editor
+							document={document}
+							isFileSelected={isFileSelected}
+							stats={stats}
+							fontSize={fontSize}
+							fontFamily={fontFamily}
+							cursorMode={cursorMode}
+						/>
+					</div>
+				</ThemeProvider>
+			</ColorModeProvider>
 		)
 	}
 

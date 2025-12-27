@@ -15,7 +15,6 @@ export const KeymapProvider: ParentComponent = (props) => {
 	const controller = createKeymapController()
 
 	onMount(() => {
-		// Attach to window by default
 		controller.attach(window)
 	})
 

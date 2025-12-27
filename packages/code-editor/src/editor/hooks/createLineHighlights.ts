@@ -1,9 +1,10 @@
-import { createMemo, untrack, type Accessor } from 'solid-js'
+import { createMemo, createSignal, untrack, type Accessor } from 'solid-js'
 
 import {
 	mergeLineSegments,
 	mapRangeToOldOffsets,
 	toLineHighlightSegmentsForLine,
+	toLineHighlightSegments,
 } from '../utils/highlights'
 import type {
 	EditorError,
@@ -12,8 +13,6 @@ import type {
 	LineEntry,
 	LineHighlightSegment,
 } from '../types'
-
-const PERF_THRESHOLD_MS = 1
 
 type ErrorHighlight = { startIndex: number; endIndex: number; scope: string }
 
@@ -28,12 +27,16 @@ export type CreateLineHighlightsOptions = {
 	errors?: Accessor<EditorError[] | undefined>
 	/** Offset for optimistic updates - applied lazily per-line */
 	highlightOffset?: Accessor<HighlightOffsets | undefined>
+	/** Full line entries for precomputing highlight segments */
+	lineEntries?: Accessor<LineEntry[] | undefined>
 }
 
 export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 	const EMPTY_HIGHLIGHTS: EditorSyntaxHighlight[] = []
 	const EMPTY_ERRORS: ErrorHighlight[] = []
 	const EMPTY_OFFSETS: HighlightOffsets = []
+	const EMPTY_SEGMENTS: LineHighlightSegment[] = []
+	const [highlightsRevision, setHighlightsRevision] = createSignal(0)
 
 	const sortedHighlights = createMemo(() => {
 		const highlights = options.highlights?.()
@@ -54,6 +57,44 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			.sort((a, b) => a.startIndex - b.startIndex)
 	})
 
+	const precomputedSegments = createMemo<
+		LineHighlightSegment[][] | undefined
+	>(() => {
+		const lineEntries = options.lineEntries?.()
+		if (!lineEntries?.length) return undefined
+
+		const offsets = options.highlightOffset?.()
+		if (offsets && offsets.length > 0) return undefined
+
+		const highlights = sortedHighlights()
+		const errors = sortedErrorHighlights()
+		const hasHighlights = highlights.length > 0
+		const hasErrors = errors.length > 0
+		if (!hasHighlights && !hasErrors) return undefined
+
+		const highlightSegments = hasHighlights
+			? toLineHighlightSegments(lineEntries, highlights)
+			: []
+		const errorSegments = hasErrors
+			? toLineHighlightSegments(lineEntries, errors)
+			: []
+
+		if (!hasErrors) return highlightSegments
+		if (!hasHighlights) return errorSegments
+
+		const merged: LineHighlightSegment[][] = new Array(lineEntries.length)
+		for (let i = 0; i < lineEntries.length; i += 1) {
+			const mergedLine = mergeLineSegments(
+				highlightSegments[i],
+				errorSegments[i]
+			)
+			if (mergedLine.length > 0) merged[i] = mergedLine
+		}
+		return merged
+	})
+
+	let precomputedCache = new Map<number, LineHighlightSegment[]>()
+	let lastPrecomputedSegments: LineHighlightSegment[][] | undefined
 	let lastOffsetsRef: HighlightOffsets | undefined
 	let validatedOffsetsRef: HighlightOffsets = EMPTY_OFFSETS
 	let lineIndexCache: Map<number, number | null> | null = null
@@ -73,12 +114,14 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			validatedOffsetsRef = EMPTY_OFFSETS
 			lineIndexCache = null
 			dirtyHighlightCache.clear()
+			precomputedCache.clear()
 			return validatedOffsetsRef
 		}
 
 		lineIndexCache = new Map()
 		dirtyHighlightCache.clear()
-
+		// Keep precomputed segments around so first edit can reuse them.
+		// They remain valid for non-intersecting lines mapped via offsets.
 		validatedOffsetsRef = offsets
 		return validatedOffsetsRef
 	}
@@ -119,9 +162,56 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 		return mappedIndex
 	}
 
+	const toShiftOffsets = (
+		offsets: HighlightOffsets,
+		lineStart: number,
+		lineEnd: number
+	): { shift: number; intersects: boolean } => {
+		let shift = 0
+		let intersects = false
+
+		for (const offset of offsets) {
+			if (!offset) continue
+			if (offset.newEndIndex <= lineStart) {
+				shift += offset.charDelta
+				continue
+			}
+			if (offset.fromCharIndex >= lineEnd) {
+				continue
+			}
+			intersects = true
+		}
+
+		return { shift, intersects }
+	}
+
+	const applyShiftToSegments = (
+		segments: LineHighlightSegment[],
+		shift: number,
+		lineTextLength: number
+	): LineHighlightSegment[] => {
+		if (segments.length === 0 || shift === 0) return segments
+
+		const shifted: LineHighlightSegment[] = []
+		for (const segment of segments) {
+			const start = Math.max(0, Math.min(lineTextLength, segment.start + shift))
+			const end = Math.max(0, Math.min(lineTextLength, segment.end + shift))
+			if (end <= start) continue
+			shifted.push({
+				start,
+				end,
+				className: segment.className,
+				scope: segment.scope,
+			})
+		}
+		return shifted
+	}
+
 	let spatialIndex: Map<number, EditorSyntaxHighlight[]> = new Map()
 	let largeHighlights: EditorSyntaxHighlight[] = []
 	const SPATIAL_CHUNK_SIZE = 512
+	const candidateScratch: EditorSyntaxHighlight[] = []
+	let spatialIndexReady = false
 
 	const buildSpatialIndex = (highlights: EditorSyntaxHighlight[]) => {
 		spatialIndex.clear()
@@ -161,17 +251,47 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 	let lastHighlightsRef: EditorSyntaxHighlight[] | undefined
 	let lastErrorsRef: ErrorHighlight[] | undefined
 	const MAX_HIGHLIGHT_CACHE_SIZE = 500
+	const cacheLineHighlights = (
+		cache: Map<number, CachedLineHighlights>,
+		cacheIndex: number,
+		entry: LineEntry,
+		segments: LineHighlightSegment[]
+	) => {
+		cache.set(cacheIndex, {
+			length: entry.length,
+			text: entry.text,
+			segments,
+		})
+		if (cache.size > MAX_HIGHLIGHT_CACHE_SIZE) {
+			const firstKey = cache.keys().next().value
+			if (typeof firstKey === 'number') {
+				cache.delete(firstKey)
+			}
+		}
+	}
 
 	const getLineHighlights = (entry: LineEntry): LineHighlightSegment[] => {
-		const perfThreshold = PERF_THRESHOLD_MS
-		const perfStart = performance.now()
-		let gatherMs = 0
-		let sortMs = 0
-		let dedupeMs = 0
-		let highlightMs = 0
-		let errorMs = 0
-		let mergeMs = 0
-		let candidateCount = 0
+		const offsets = getValidatedOffsets()
+		const hasOffsets = offsets.length > 0
+
+		const precomputed = hasOffsets ? undefined : precomputedSegments()
+		if (precomputed && !hasOffsets) {
+			lastPrecomputedSegments = precomputed
+			const segments = precomputed[entry.index] ?? []
+			lastHighlightsRef = sortedHighlights()
+			lastErrorsRef = sortedErrorHighlights()
+			cacheLineHighlights(highlightCache, entry.index, entry, segments)
+			if (segments.length > 0) {
+				precomputedCache.set(entry.index, segments)
+				if (precomputedCache.size > MAX_HIGHLIGHT_CACHE_SIZE) {
+					const firstKey = precomputedCache.keys().next().value
+					if (typeof firstKey === 'number') {
+						precomputedCache.delete(firstKey)
+					}
+				}
+			}
+			return segments
+		}
 
 		const lineStart = entry.start
 		const lineLength = entry.length
@@ -181,19 +301,45 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 		const errors = sortedErrorHighlights()
 
 		if (highlights !== lastHighlightsRef || errors !== lastErrorsRef) {
+			setHighlightsRevision((value) => value + 1)
 			highlightCache = new Map()
 			dirtyHighlightCache.clear()
 			lineIndexCache = null
+			precomputedCache.clear()
+			lastPrecomputedSegments = undefined
 			lastHighlightsRef = highlights
 			lastErrorsRef = errors
-			buildSpatialIndex(highlights)
+			spatialIndexReady = false
 		}
 
-		const offsets = getValidatedOffsets()
-		const hasOffsets = offsets.length > 0
-		const cacheKey = hasOffsets
+		if (!spatialIndexReady) {
+			buildSpatialIndex(highlights)
+			spatialIndexReady = true
+		}
+
+		const offsetShift = hasOffsets
+			? toShiftOffsets(offsets, lineStart, lineEnd)
+			: { shift: 0, intersects: false }
+		const offsetShiftAmount = offsetShift.shift
+		const hasIntersectingOffsets = offsetShift.intersects
+		const shouldApplyOffsets =
+			hasOffsets && (hasIntersectingOffsets || offsetShiftAmount !== 0)
+		const offsetsForSegments = shouldApplyOffsets ? offsets : undefined
+		const mappedLineIndex = hasOffsets
 			? mapLineIndexToOldOffsets(entry.index, offsets)
 			: entry.index
+		if (hasOffsets && mappedLineIndex !== null) {
+			const cached = precomputedCache.get(mappedLineIndex)
+			if (cached) {
+				return cached
+			}
+			const precomputed = lastPrecomputedSegments
+			if (precomputed) {
+				const precomputedLine = precomputed[mappedLineIndex]
+				return precomputedLine ?? EMPTY_SEGMENTS
+			}
+		}
+		const cacheKey = hasOffsets ? mappedLineIndex : entry.index
 		const cacheMap = cacheKey === null ? dirtyHighlightCache : highlightCache
 		const cacheIndex = cacheKey === null ? entry.index : cacheKey
 		const cached = cacheMap.get(cacheIndex)
@@ -207,7 +353,6 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 
 		let highlightSegments: LineHighlightSegment[]
 		if (highlights.length > 0) {
-			const gatherStart = performance.now()
 			// Get offset for optimistic updates
 			// Calculate the lookup position for the spatial index.
 			// If edits are pending, map the new line range back to old coordinates.
@@ -225,115 +370,93 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			const lookupLast = lookupEnd > lookupStart ? lookupEnd - 1 : lookupStart
 			const endChunk = Math.floor(lookupLast / SPATIAL_CHUNK_SIZE)
 
-			// 2. Gather candidates
-			const candidatesBuffer: EditorSyntaxHighlight[] = []
+			let candidates: EditorSyntaxHighlight[] = []
 
-			if (largeHighlights.length > 0) {
-				for (const h of largeHighlights) candidatesBuffer.push(h)
-			}
-
-			// Add bucketed highlights
-			for (let i = startChunk; i <= endChunk; i++) {
-				const bucket = spatialIndex.get(i)
-				if (bucket) {
-					for (const h of bucket) candidatesBuffer.push(h)
+			// Fast path: single bucket, no offsets, no large highlights
+			if (!hasOffsets && largeHighlights.length === 0 && startChunk === endChunk) {
+				const bucket = spatialIndex.get(startChunk)
+				candidates = bucket ?? []
+			} else {
+				// 2. Gather candidates
+				candidateScratch.length = 0
+				if (largeHighlights.length > 0) {
+					for (const h of largeHighlights) candidateScratch.push(h)
 				}
-			}
 
-			// 3. Sort (mutates buffer)
-			const sortStart = performance.now()
-			candidatesBuffer.sort((a, b) => a.startIndex - b.startIndex)
-			sortMs = performance.now() - sortStart
-
-			// 4. Deduplicate in-place (if multiple chunks involved)
-			// Only needed if we pulled from >1 source that could overlap.
-			// Buckets overlap in content (same highlight in multiple buckets).
-			let uniqueCount = candidatesBuffer.length
-			const dedupeStart = performance.now()
-			if (startChunk !== endChunk && candidatesBuffer.length > 1) {
-				let writeIndex = 1
-				for (let i = 1; i < candidatesBuffer.length; i++) {
-					// Compare with previous unique item
-					if (candidatesBuffer[i] !== candidatesBuffer[writeIndex - 1]) {
-						candidatesBuffer[writeIndex] = candidatesBuffer[i]!
-						writeIndex++
+				// Add bucketed highlights
+				for (let i = startChunk; i <= endChunk; i++) {
+					const bucket = spatialIndex.get(i)
+					if (bucket) {
+						for (const h of bucket) candidateScratch.push(h)
 					}
 				}
-				uniqueCount = writeIndex
-				// Trimming not strictly necessary if we pass length, but toLineHighlightSegmentsForLine iterates input.
-				// We must truncate the buffer to correct length for the callee.
-				candidatesBuffer.length = uniqueCount
+
+				// 3. Sort (mutates buffer)
+				candidateScratch.sort((a, b) => a.startIndex - b.startIndex)
+
+				// 4. Deduplicate in-place (if multiple chunks involved)
+				// Only needed if we pulled from >1 source that could overlap.
+				// Buckets overlap in content (same highlight in multiple buckets).
+				let uniqueCount = candidateScratch.length
+				if (startChunk !== endChunk && candidateScratch.length > 1) {
+					let writeIndex = 1
+					for (let i = 1; i < candidateScratch.length; i++) {
+						// Compare with previous unique item
+						if (candidateScratch[i] !== candidateScratch[writeIndex - 1]) {
+							candidateScratch[writeIndex] = candidateScratch[i]!
+							writeIndex++
+						}
+					}
+					uniqueCount = writeIndex
+					// Trimming not strictly necessary if we pass length, but toLineHighlightSegmentsForLine iterates input.
+					// We must truncate the buffer to correct length for the callee.
+					candidateScratch.length = uniqueCount
+				}
+				candidates = candidateScratch
 			}
-			dedupeMs = performance.now() - dedupeStart
-			gatherMs = performance.now() - gatherStart
-			candidateCount = uniqueCount
 
 			// 5. Apply offset to candidates if needed (shift to new positions)
 			// We pass the offset info to toLineHighlightSegmentsForLine to adjust
 			// positions inline, avoiding object creation per-line.
-			const highlightStart = performance.now()
 			highlightSegments = toLineHighlightSegmentsForLine(
 				lineStart,
 				lineLength,
 				lineTextLength,
-				candidatesBuffer,
-				hasOffsets ? offsets : undefined
+				candidates,
+				offsetsForSegments
 			)
-			highlightMs = performance.now() - highlightStart
 		} else {
 			highlightSegments = []
 		}
 
-		const errorStart = performance.now()
 		const errorSegments = toLineHighlightSegmentsForLine(
 			lineStart,
 			lineLength,
 			lineTextLength,
 			errors,
-			hasOffsets ? offsets : undefined
+			offsetsForSegments
 		)
-		errorMs = performance.now() - errorStart
 
-		const mergeStart = performance.now()
-		const result = mergeLineSegments(highlightSegments, errorSegments)
-		mergeMs = performance.now() - mergeStart
+		const shiftedHighlightSegments = hasOffsets && !shouldApplyOffsets
+			? applyShiftToSegments(
+					highlightSegments,
+					offsetShiftAmount,
+					lineTextLength
+				)
+			: highlightSegments
+		const shiftedErrorSegments = hasOffsets && !shouldApplyOffsets
+			? applyShiftToSegments(errorSegments, offsetShiftAmount, lineTextLength)
+			: errorSegments
 
-		cacheMap.set(cacheIndex, {
-			length: lineLength,
-			text: entry.text,
-			segments: result,
-		})
-		if (cacheMap.size > MAX_HIGHLIGHT_CACHE_SIZE) {
-			const firstKey = cacheMap.keys().next().value
-			if (typeof firstKey === 'number') {
-				cacheMap.delete(firstKey)
-			}
-		}
+		const result = mergeLineSegments(
+			shiftedHighlightSegments,
+			shiftedErrorSegments
+		)
 
-		const totalMs = performance.now() - perfStart
-		if (totalMs >= perfThreshold) {
-			console.log('line highlights', {
-				line: entry.index,
-				length: lineLength,
-				textLength: lineTextLength,
-				highlightCount: highlights.length,
-				errorCount: errors.length,
-				candidates: candidateCount,
-				segments: highlightSegments.length,
-				errorSegments: errorSegments.length,
-				hasOffsets,
-				ms: totalMs,
-				gatherMs,
-				sortMs,
-				dedupeMs,
-				highlightMs,
-				errorMs,
-				mergeMs,
-			})
-		}
+		cacheLineHighlights(cacheMap, cacheIndex, entry, result)
 
 		return result
 	}
 
-	return { getLineHighlights }
+	return { getLineHighlights, getHighlightsRevision: highlightsRevision }
 }

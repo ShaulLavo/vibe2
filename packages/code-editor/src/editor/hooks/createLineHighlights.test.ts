@@ -1,3 +1,4 @@
+/* eslint-disable solid/reactivity */
 import { describe, expect, it } from 'vitest'
 import { createRoot, createSignal } from 'solid-js'
 import type { HighlightOffsets } from '../types'
@@ -28,6 +29,53 @@ describe('createLineHighlights', () => {
 			dispose()
 		})
 	})
+
+	it(
+		'keeps precomputed highlights for unaffected lines when offsets are applied',
+		() => {
+			createRoot((dispose) => {
+				const [highlightOffset, setHighlightOffset] =
+					createSignal<HighlightOffsets>([])
+				const [highlights] = createSignal([
+					{ startIndex: 6, endIndex: 11, scope: 'variable' },
+				])
+				const [lineEntries, setLineEntries] = createSignal([
+					{ index: 0, start: 0, length: 5, text: 'hello' },
+					{ index: 1, start: 6, length: 5, text: 'world' },
+				])
+				const { getLineHighlights } = createLineHighlights({
+					highlights,
+					highlightOffset,
+					lineEntries,
+				})
+
+				const before = getLineHighlights(lineEntries()[1]!)
+				expect(before.length).toBeGreaterThan(0)
+
+				setHighlightOffset([
+					{
+						charDelta: 1,
+						lineDelta: 0,
+						fromCharIndex: 0,
+						fromLineRow: 0,
+						oldEndRow: 0,
+						newEndRow: 0,
+						oldEndIndex: 0,
+						newEndIndex: 1,
+					},
+				])
+				setLineEntries([
+					{ index: 0, start: 0, length: 6, text: 'xhello' },
+					{ index: 1, start: 7, length: 5, text: 'world' },
+				])
+
+				const after = getLineHighlights(lineEntries()[1]!)
+				expect(after).toBe(before)
+
+				dispose()
+			})
+		}
+	)
 
 	it('recomputes highlights when highlight offset changes within a line', () => {
 		createRoot((dispose) => {
@@ -301,6 +349,8 @@ describe('createLineHighlights', () => {
 		})
 	})
 
+	// This test checks edge case behavior where an edit occurred before
+	// the line but we still need to find highlights.
 	it('keeps highlights on lines after insert offsets', () => {
 		createRoot((dispose) => {
 			const [highlightOffset] = createSignal([
@@ -333,6 +383,8 @@ describe('createLineHighlights', () => {
 		})
 	})
 
+	// This test checks edge case behavior where a deletion occurred before
+	// the line but we still need to find highlights.
 	it('keeps highlights on lines after deletion offsets', () => {
 		createRoot((dispose) => {
 			const [highlightOffset] = createSignal([

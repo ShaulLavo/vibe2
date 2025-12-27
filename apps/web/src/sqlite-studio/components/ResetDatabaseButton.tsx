@@ -23,9 +23,9 @@ export const ResetDatabaseButton: Component<ResetDatabaseButtonProps> = (
 
 	const variants = {
 		sidebar:
-			'w-full px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs',
+			'w-full px-3 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 text-xs',
 		error:
-			'px-3 py-1 bg-rose-500 text-white hover:bg-rose-600 shadow-sm text-xs',
+			'px-3 py-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm text-xs',
 	}
 
 	return (

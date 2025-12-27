@@ -56,6 +56,8 @@ export type TextEditorLayout = {
 	lineToDisplay: (lineIndex: number) => number
 	/** Check if a line is hidden inside a folded region */
 	isLineHidden: (lineIndex: number) => boolean
+	/** Scroll to a specific line index */
+	scrollToLine: (lineIndex: number) => void
 }
 
 const measureLineHeight = (
@@ -136,6 +138,13 @@ export const scanLineWidthSlice = (options: {
 		linesProcessed,
 	}
 }
+
+export const shouldResetWidthScan = (
+	nextTabSize: number,
+	nextLineCount: number,
+	prevTabSize: number,
+	prevLineCount: number
+) => nextTabSize !== prevTabSize || nextLineCount !== prevLineCount
 
 export function createTextEditorLayout(
 	options: TextEditorLayoutOptions
@@ -373,10 +382,24 @@ export function createTextEditorLayout(
 		scheduleWidthScan()
 	}
 
+	let lastTabSize = options.tabSize()
+	let lastLineCount = cursor.lines.lineCount()
+
 	// *Approved*
 	createEffect(() => {
-		options.tabSize()
-		cursor.lines.lineStarts()
+		const tabSize = options.tabSize()
+		const lineCount = cursor.lines.lineCount()
+		const shouldReset = shouldResetWidthScan(
+			tabSize,
+			lineCount,
+			lastTabSize,
+			lastLineCount
+		)
+		lastTabSize = tabSize
+		lastLineCount = lineCount
+
+		if (!shouldReset) return
+
 		setMaxColumnsSeen(0)
 		lastWidthScanStart = 0
 		lastWidthScanEnd = -1
@@ -485,6 +508,13 @@ export function createTextEditorLayout(
 		return Math.max(0, displayIndex) * lineHeight()
 	}
 
+	const scrollToLine = (lineIndex: number): void => {
+		const displayIndex = foldMapping.lineToDisplay(lineIndex)
+		if (displayIndex >= 0) {
+			rowVirtualizer.scrollToIndex(displayIndex, { align: 'start' })
+		}
+	}
+
 	const visibleLineRange = rowVirtualizer.visibleRange
 
 	return {
@@ -504,5 +534,6 @@ export function createTextEditorLayout(
 		displayToLine: foldMapping.displayToLine,
 		lineToDisplay: foldMapping.lineToDisplay,
 		isLineHidden: foldMapping.isLineHidden,
+		scrollToLine,
 	}
 }

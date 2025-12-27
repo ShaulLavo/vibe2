@@ -16,5 +16,8 @@
 		"wasmer"
 	],
 	"chatgpt.openOnStartup": true,
-	"chatgpt.commentCodeLensEnabled": false
+	"chatgpt.commentCodeLensEnabled": false,
+	"window.autoDetectColorScheme": true,
+	"workbench.preferredLightColorTheme": "Tokyo Night Light",
+	"workbench.preferredDarkColorTheme": "poimandres"
 }
