@@ -14,6 +14,7 @@ const LOGGER_TOGGLE_TREE = {
 		clipboard: false,
 		cursor: false,
 		history: false,
+		'horizontal-scrollbar': false,
 		minimap: false,
 		'minimap-render': false,
 		scrollbar: false,
