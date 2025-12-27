@@ -105,7 +105,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			const charDelta = getEditCharDelta(edit)
 			const lineDelta = getEditLineDelta(edit)
 
-			// Apply offset immediately for ALL edits (O(1) operation)
 			applySelectedFileHighlightOffset({
 				charDelta,
 				lineDelta,
@@ -124,7 +123,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						updateSelectedFileFolds(result.folds)
 						updateSelectedFileBrackets(result.brackets)
 						updateSelectedFileErrors(result.errors)
-						// Increment version to trigger minimap re-render
 						setDocumentVersion((v) => v + 1)
 					})
 				}
@@ -138,7 +136,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			if (!captures || captures.length === 0) {
 				return undefined
 			}
-			// IMPORTANT: Unwrap the proxy to ensure downstream sorting is fast
 			const unwrapped = unwrap(captures)
 			const next: EditorSyntaxHighlight[] = []
 			for (let i = 0; i < unwrapped.length; i += 1) {
@@ -157,7 +154,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		}
 	)
 
-	// Convert internal offset to editor HighlightOffset type
 	const editorHighlightOffset = createMemo<HighlightOffsets | undefined>(() => {
 		const offsets = state.selectedFileHighlightOffset
 		if (!offsets?.length) return undefined

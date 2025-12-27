@@ -102,7 +102,9 @@ export class TieredCacheController {
 		for (const [key, value] of Object.entries(entry)) {
 			if (value !== undefined) {
 				const dataType = key as keyof FileCacheEntry
-				console.debug(`[TieredCache] Setting ${dataType} for ${path}`)
+				if (dataType === 'scrollPosition') {
+					console.log(`[TieredCache] Persisting scrollPosition for ${path}:`, value)
+				}
 				promises.push(this.tierRouter.set(path, dataType, value))
 			}
 		}

@@ -143,7 +143,7 @@ export type EditorProps = {
 }
 
 export type ScrollPosition = {
-	scrollTop: number
+	lineIndex: number
 	scrollLeft: number
 }
 

@@ -187,6 +187,8 @@ export const TextEditorView = (props: EditorProps) => {
 			if (saveTimeoutId != null) clearTimeout(saveTimeoutId)
 			saveTimeoutId = setTimeout(() => {
 				const range = layout.visibleLineRange()
+				const path = props.document.filePath()
+				console.log(`[TextEditorView] Saving scroll position for ${path}: lineIndex=${range.start}`)
 				onScroll({
 					lineIndex: range.start,
 					scrollLeft: element.scrollLeft,
