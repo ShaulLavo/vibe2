@@ -15,17 +15,17 @@ type SidebarProps = {
 
 export const Sidebar = (props: SidebarProps) => {
 	return (
-		<aside class="w-64 border-r border-zinc-800 bg-[#0b0c0f] flex flex-col">
-			<div class="p-2 border-b border-zinc-800">
-				<h1 class="text-xs font-bold tracking-widest text-zinc-500 uppercase">
+		<aside class="w-64 border-r border-border bg-card flex flex-col">
+			<div class="p-2 border-b border-border">
+				<h1 class="text-xs font-bold tracking-widest text-muted-foreground uppercase">
 					One Table
 				</h1>
-				<div class="text-lg font-semibold text-white tracking-tight">
+				<div class="text-lg font-semibold text-foreground tracking-tight">
 					SQLite Studio
 				</div>
 			</div>
-			<div class="flex-1 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-				<div class="py-1 px-1 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+			<div class="flex-1 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+				<div class="py-1 px-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
 					Tables
 				</div>
 				<div>
@@ -35,9 +35,9 @@ export const Sidebar = (props: SidebarProps) => {
 								onClick={() => props.onLoadTable(table)}
 								class="w-full text-left px-1 pb-1 rounded-sm text-xs transition-colors border"
 								classList={{
-									'bg-indigo-500/10 text-indigo-400 font-medium border-indigo-500/20':
+									'bg-primary/10 text-primary font-medium border-primary/20':
 										props.selectedTable === table,
-									'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border-transparent':
+									'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent':
 										props.selectedTable !== table,
 								}}
 							>
@@ -46,12 +46,12 @@ export const Sidebar = (props: SidebarProps) => {
 						)}
 					</For>
 					<Show when={props.tables.length === 0}>
-						<div class="px-3 py-2 text-sm text-zinc-600 italic">
+						<div class="px-3 py-2 text-sm text-muted-foreground italic">
 							No tables found
 						</div>
 					</Show>
 				</div>
-				<div class="py-1 px-1 mt-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+				<div class="py-1 px-1 mt-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
 					Examples
 				</div>
 				<div>
@@ -59,9 +59,9 @@ export const Sidebar = (props: SidebarProps) => {
 						onClick={() => props.onLoadExample('file-search')}
 						class="w-full text-left px-1 pb-1 rounded-sm text-xs transition-colors border"
 						classList={{
-							'bg-indigo-500/10 text-indigo-400 font-medium border-indigo-500/20':
+							'bg-primary/10 text-primary font-medium border-primary/20':
 								props.selectedTable === 'example:file-search',
-							'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border-transparent':
+							'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent':
 								props.selectedTable !== 'example:file-search',
 						}}
 					>
@@ -69,10 +69,10 @@ export const Sidebar = (props: SidebarProps) => {
 					</button>
 				</div>
 			</div>
-			<div class="p-4 border-t border-zinc-800 space-y-2">
+			<div class="p-4 border-t border-border space-y-2">
 				<button
 					onClick={() => props.onRefreshSchema()}
-					class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-md text-xs font-medium transition-colors"
+					class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-muted-foreground rounded-md text-xs font-medium transition-colors"
 				>
 					Refresh Schema
 				</button>

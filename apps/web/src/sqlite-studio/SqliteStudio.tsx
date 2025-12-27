@@ -18,7 +18,7 @@ export const SqliteStudio: Component = () => {
 	}
 
 	return (
-		<div class="flex h-screen w-full bg-[#0b0c0f] text-zinc-100 font-sans selection:bg-indigo-500/30">
+		<div class="flex h-screen w-full bg-background text-foreground font-sans selection:bg-primary/30">
 			<Sidebar
 				tables={state.tables()}
 				selectedTable={state.selectedTable()}
@@ -31,7 +31,7 @@ export const SqliteStudio: Component = () => {
 				onLoadExample={handleLoadExample}
 			/>
 
-			<main class="flex-1 flex flex-col min-w-0 bg-[#0f1014]">
+			<main class="flex-1 flex flex-col min-w-0 bg-background">
 				<Header
 					selectedTable={state.selectedTable()}
 					hasRowId={state.hasRowId()}
@@ -59,7 +59,7 @@ export const SqliteStudio: Component = () => {
 				<Show when={!state.selectedTable()?.startsWith('example:')}>
 					<div class="flex-1 flex flex-col p-2 min-h-0">
 						<Show when={state.error()}>
-							<div class="mb-4 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center justify-between">
+							<div class="mb-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center justify-between">
 								<span>{state.error()}</span>
 								<Show
 									when={state.error()?.includes('invalid fts5 file format')}
@@ -73,7 +73,7 @@ export const SqliteStudio: Component = () => {
 						</Show>
 
 						<Show when={state.isLoading()}>
-							<div class="flex items-center justify-center h-32 text-zinc-500 text-sm animate-pulse">
+							<div class="flex items-center justify-center h-32 text-muted-foreground text-sm animate-pulse">
 								Loading data...
 							</div>
 						</Show>
@@ -102,7 +102,7 @@ export const SqliteStudio: Component = () => {
 									<For each={state.queryResults()}>
 										{(result, index) => (
 											<div class="flex flex-col gap-2">
-												<div class="text-xs font-mono text-zinc-500 px-1">
+												<div class="text-xs font-mono text-muted-foreground px-1">
 													Result {index() + 1}
 												</div>
 												<ResultsTable

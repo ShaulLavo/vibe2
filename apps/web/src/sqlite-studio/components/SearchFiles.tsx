@@ -17,7 +17,7 @@ export const SearchFiles = (props: Props) => {
 	})
 
 	return (
-		<div class="flex flex-col flex-1 gap-4 p-4 border-b border-zinc-800 bg-[#0f1014] overflow-hidden">
+		<div class="flex flex-col flex-1 gap-4 p-4 border-b border-border bg-card overflow-hidden">
 			<div class="flex gap-2">
 				<input
 					type="text"
@@ -27,11 +27,11 @@ export const SearchFiles = (props: Props) => {
 						props.onSearch()
 					}}
 					placeholder="Search files (fuzzy)..."
-					class="flex-1 bg-[#0b0c0f] border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-indigo-500"
+					class="flex-1 bg-background border border-input rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary"
 				/>
 			</div>
 
-			<div class="flex gap-2 items-center text-zinc-400">
+			<div class="flex gap-2 items-center text-muted-foreground">
 				<span class="text-xs">Examples:</span>
 				<div class="flex gap-1">
 					<For each={['utils', '.tsx', 'schema', 'test']}>
@@ -41,7 +41,7 @@ export const SearchFiles = (props: Props) => {
 									props.setSearchQuery(term)
 									props.onSearch()
 								}}
-								class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded border border-zinc-700 transition-colors"
+								class="text-xs bg-muted hover:bg-muted/80 text-muted-foreground px-2 py-0.5 rounded border border-input transition-colors"
 							>
 								{term}
 							</button>
@@ -53,36 +53,36 @@ export const SearchFiles = (props: Props) => {
 			<Show
 				when={props.results()}
 				fallback={
-					<div class="flex items-center justify-center h-32 text-zinc-500 text-sm animate-pulse">
+					<div class="flex items-center justify-center h-32 text-muted-foreground text-sm animate-pulse">
 						Loading data...
 					</div>
 				}
 			>
 				<div class="flex flex-col gap-2 flex-1 overflow-y-auto min-h-0">
-					<div class="text-xs font-mono text-zinc-500 uppercase tracking-wider flex items-center justify-between min-h-[20px]">
+					<div class="text-xs font-mono text-muted-foreground uppercase tracking-wider flex items-center justify-between min-h-[20px]">
 						<span>Found {props.results()?.length} results</span>
 						<Show when={props.isLoading()}>
-							<span class="text-[10px] bg-zinc-800 px-2 py-0.5 rounded-full text-zinc-400 animate-pulse border border-zinc-700">
+							<span class="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground animate-pulse border border-input">
 								Updating...
 							</span>
 						</Show>
 					</div>
 					<For each={props.results()}>
 						{(file) => (
-							<div class="flex items-center justify-between px-2 py-1 rounded hover:bg-zinc-800/50 group">
+							<div class="flex items-center justify-between px-2 py-1 rounded hover:bg-muted/50 group">
 								<div class="flex flex-col gap-0.5 min-w-0">
-									<span class="text-sm text-zinc-200 truncate font-mono">
+									<span class="text-sm text-foreground truncate font-mono">
 										{file.path.split('/').pop()}
 									</span>
-									<span class="text-xs text-zinc-500 truncate font-mono">
+									<span class="text-xs text-muted-foreground truncate font-mono">
 										{file.path}
 									</span>
 								</div>
 								<div class="flex items-center gap-2">
-									<span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+									<span class="text-[10px] uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-input">
 										{file.kind}
 									</span>
-									<span class="text-[10px] text-zinc-600 font-mono">
+									<span class="text-[10px] text-muted-foreground font-mono">
 										#{file.id}
 									</span>
 								</div>
@@ -90,7 +90,7 @@ export const SearchFiles = (props: Props) => {
 						)}
 					</For>
 					<Show when={props.results()?.length === 0}>
-						<div class="text-zinc-500 text-sm italic py-2">
+						<div class="text-muted-foreground text-sm italic py-2">
 							No files found matching "{props.searchQuery()}"
 						</div>
 					</Show>
