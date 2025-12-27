@@ -82,7 +82,6 @@ export const LineGutters = (props: LineGuttersProps) => {
 									class="editor-gutter-row"
 									style={{
 										transform: `translateY(${virtualRow.start}px)`,
-										'will-change': 'transform',
 										top: 0,
 										height: `${height()}px`,
 									}}
