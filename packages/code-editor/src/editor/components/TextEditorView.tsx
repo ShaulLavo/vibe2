@@ -28,6 +28,7 @@ import type {
 	LineEntry,
 } from '../types'
 import { mapRangeToOldOffsets } from '../utils/highlights'
+import { shiftFoldRanges } from '../utils/foldShift'
 
 const getLineOffsetShift = (
 	lineStart: number,
@@ -100,9 +101,16 @@ export const TextEditorView = (props: EditorProps) => {
 		props.document.applyIncrementalEdit?.(edit)
 	}
 
+	// Apply offset shifts to fold ranges for optimistic updates
+	const shiftedFolds = createMemo(() => {
+		const folds = props.folds?.()
+		const offsets = props.highlightOffset?.()
+		return shiftFoldRanges(folds, offsets)
+	})
+
 	const { foldedStarts, toggleFold } = useFoldedStarts({
 		filePath: () => props.document.filePath(),
-		folds: () => props.folds?.(),
+		folds: shiftedFolds,
 		scrollElement,
 	})
 
@@ -113,7 +121,7 @@ export const TextEditorView = (props: EditorProps) => {
 		filePath: () => props.document.filePath(),
 		tabSize,
 		scrollElement,
-		folds: () => props.folds?.(),
+		folds: shiftedFolds,
 		foldedStarts,
 	})
 
@@ -304,6 +312,9 @@ export const TextEditorView = (props: EditorProps) => {
 		const offsets = showHighlights() ? props.highlightOffset?.() : undefined
 		if (offsets && offsets.length > 0) return undefined
 
+		// Explicitly track line data version to ensure re-computation when any line changes
+		cursor.lines.lineDataVersion()
+
 		const count = cursor.lines.lineCount()
 		if (count === 0) return undefined
 
@@ -384,7 +395,7 @@ export const TextEditorView = (props: EditorProps) => {
 					getLineHighlights={getLineHighlights}
 					highlightRevision={getHighlightsRevision}
 					getCachedRuns={getCachedRuns}
-					folds={props.folds}
+					folds={shiftedFolds}
 					foldedStarts={foldedStarts}
 					onToggleFold={toggleFold}
 					onLineMouseDown={handleLineMouseDown}

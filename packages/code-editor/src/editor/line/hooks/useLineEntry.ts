@@ -15,7 +15,7 @@ export const useLineEntry = (
 ): Accessor<LineEntry | null> => {
 	const cursor = useCursor()
 
-	const entry = createMemo<LineEntry | null>((prev) => {
+	const entry = createMemo<LineEntry | null>(() => {
 		if (!options.isLineValid()) return null
 		const idx = options.lineIndex()
 		const lineId = options.resolvedLineId()
@@ -28,16 +28,6 @@ export const useLineEntry = (
 				? cursor.lines.getLineLengthById(lineId)
 				: cursor.lines.getLineLength(idx)
 		const text = options.lineText()
-		if (
-			prev &&
-			prev.lineId === lineId &&
-			prev.length === length &&
-			prev.text === text
-		) {
-			if (prev.index !== idx) prev.index = idx
-			if (prev.start !== start) prev.start = start
-			return prev
-		}
 		return {
 			lineId,
 			index: idx,

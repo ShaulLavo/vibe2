@@ -154,6 +154,7 @@ export function CursorProvider(props: CursorProviderProps) {
 	const [lineDataById, setLineDataById] = createStore<
 		Record<number, { text: string; length: number }>
 	>({})
+	const [lineDataVersion, setLineDataVersion] = createSignal(0)
 
 	let nextLineId = 1
 	let lineIdIndex = new Map<number, number>()
@@ -184,6 +185,7 @@ export function CursorProvider(props: CursorProviderProps) {
 			text,
 			length,
 		})
+		setLineDataVersion((v) => v + 1)
 	}
 	const buildLineDataFromText = (
 		content: string,
@@ -235,7 +237,10 @@ export function CursorProvider(props: CursorProviderProps) {
 	}) => {
 		const startText = options.startLineText
 		const endText = options.endLineText
-		const startColumn = Math.max(0, Math.min(options.startColumn, startText.length))
+		const startColumn = Math.max(
+			0,
+			Math.min(options.startColumn, startText.length)
+		)
 		const endColumn = Math.max(0, Math.min(options.endColumn, endText.length))
 		const prefix = startText.slice(0, startColumn)
 		const suffix = endText.slice(endColumn)
@@ -281,8 +286,7 @@ export function CursorProvider(props: CursorProviderProps) {
 
 		if (nextSegmentCount === 0) return [...before, ...after]
 
-		const preservedId =
-			options.prevLineIds[safeStart] ?? createLineIds(1)[0]
+		const preservedId = options.prevLineIds[safeStart] ?? createLineIds(1)[0]
 		const extraCount = Math.max(0, nextSegmentCount - 1)
 		const addedIds = extraCount > 0 ? createLineIds(extraCount) : []
 		const nextIds = [...before, preservedId, ...addedIds, ...after]
@@ -463,11 +467,7 @@ export function CursorProvider(props: CursorProviderProps) {
 		for (let i = 0; i < addedIds.length; i += 1) {
 			const lineId = addedIds[i]
 			if (typeof lineId !== 'number') continue
-			setLineData(
-				lineId,
-				nextLineTexts[i + 1] ?? '',
-				lineId === nextLastLineId
-			)
+			setLineData(lineId, nextLineTexts[i + 1] ?? '', lineId === nextLastLineId)
 		}
 
 		if (prevLastLineId !== nextLastLineId && prevLastLineId > 0) {
@@ -649,12 +649,9 @@ export function CursorProvider(props: CursorProviderProps) {
 			getLineText,
 			getLineId,
 			getLineIndex,
-			getLineTextById: (lineId) =>
-				lineDataById[lineId]?.text ?? '',
-			getLineLengthById: (lineId) =>
-				lineDataById[lineId]?.length ?? 0,
-			getLineTextLengthById: (lineId) =>
-				lineDataById[lineId]?.text.length ?? 0,
+			getLineTextById: (lineId) => lineDataById[lineId]?.text ?? '',
+			getLineLengthById: (lineId) => lineDataById[lineId]?.length ?? 0,
+			getLineTextLengthById: (lineId) => lineDataById[lineId]?.text.length ?? 0,
 			getLineStartById: (lineId) => {
 				const index = lineIdIndex.get(lineId)
 				if (typeof index !== 'number') return 0
@@ -688,6 +685,7 @@ export function CursorProvider(props: CursorProviderProps) {
 				})
 			},
 			applyEdit,
+			lineDataVersion,
 		},
 		getTextRange,
 		documentLength,

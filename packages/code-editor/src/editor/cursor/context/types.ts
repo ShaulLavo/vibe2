@@ -72,6 +72,7 @@ export type CursorContextValue = {
 			deletedText: string,
 			insertedText: string
 		) => void
+		lineDataVersion: Accessor<number>
 	}
 	getTextRange: (start: number, end: number) => string
 	documentLength: Accessor<number>
