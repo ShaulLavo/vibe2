@@ -26,6 +26,8 @@ type MakeTreePrefetchOptions = {
 	registerDeferredMetadata: (
 		node: PrefetchDeferredMetadataPayload['node']
 	) => void
+	// Optional caching configuration
+	enableCaching?: boolean
 }
 
 export const makeTreePrefetch = ({
@@ -39,6 +41,7 @@ export const makeTreePrefetch = ({
 	setPrefetchLastDurationMs,
 	setPrefetchAverageDurationMs,
 	registerDeferredMetadata,
+	enableCaching = true, // Default to enabled for persistent tree cache
 }: MakeTreePrefetchOptions) => {
 	const handlePrefetchStatus = (status: PrefetchStatusPayload) => {
 		batch(() => {
@@ -100,6 +103,8 @@ export const makeTreePrefetch = ({
 		onStatus: handlePrefetchStatus,
 		onError: handlePrefetchError,
 		onDeferredMetadata: handleDeferredMetadata,
+	}, {
+		enableCaching, // Pass through caching configuration
 	})
 	const disposeTreePrefetchClient = () => treePrefetchClient.dispose()
 

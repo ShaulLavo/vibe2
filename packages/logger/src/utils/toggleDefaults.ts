@@ -26,12 +26,14 @@ const LOGGER_TOGGLE_TREE = {
 	server: false,
 	web: {
 		$self: false,
+		'cached-prefetch': false,
 		focus: false,
 		fsMutations: false,
 		highlights: false,
 		LocalDirectoryFallback: false,
 		prefetch: false,
 		terminal: false,
+		'tree-cache': false,
 		treeSitter: false
 	}
 } as const satisfies LoggerToggleTree

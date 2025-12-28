@@ -34,8 +34,77 @@ export class CachedPrefetchQueue extends PrefetchQueue {
 
 		this.originalLoadDirectory = originalLoader
 		this.callbacks = options.callbacks
-		this.cacheController = options.cacheController ?? new TreeCacheController()
-		cacheLogger.debug('CachedPrefetchQueue initialized')
+		
+		// Initialize cache controller with error handling
+		try {
+			this.cacheController = options.cacheController ?? new TreeCacheController()
+			cacheLogger.debug('CachedPrefetchQueue initialized with caching enabled')
+		} catch (error) {
+			cacheLogger.warn('Cache initialization failed, continuing in cache-disabled mode', { error })
+			// Create a fallback cache controller that always returns null/does nothing
+			this.cacheController = this.createFallbackCacheController()
+		}
+	}
+
+	/**
+	 * Create a fallback cache controller that does nothing when cache initialization fails
+	 */
+	private createFallbackCacheController(): TreeCacheController {
+		return {
+			getCachedTree: async () => null,
+			setCachedTree: async () => {},
+			getCachedDirectory: async () => null,
+			setCachedDirectory: async () => {},
+			invalidateDirectory: async () => {},
+			invalidateSubtree: async () => {},
+			clearCache: async () => {},
+			isDirectoryFresh: async () => false,
+			markDirectoryStale: async () => {},
+			validateAndCleanupStaleEntries: async () => {},
+			cleanupOldEntries: async () => {},
+			batchSetDirectories: async () => {},
+			getCacheStats: async () => ({
+				totalEntries: 0,
+				totalSizeBytes: 0,
+				hitRate: 0,
+				missRate: 0,
+				averageLoadTime: 0,
+				cacheValidationTime: 0,
+				indexedDBSize: 0,
+				oldestEntry: 0,
+				newestEntry: 0,
+				batchWrites: 0,
+				averageBatchWriteTime: 0,
+			}),
+			performIncrementalUpdate: async () => {},
+			mergeDirectoryUpdate: async () => {},
+			getDirectoriesNeedingUpdate: async () => [],
+			performBatchIncrementalUpdate: async () => {},
+			evictLRUEntries: async () => {},
+			handleCorruptedData: async () => {},
+			updateAccessTime: async (_path: string, _cachedAt: number) => {},
+			// New methods for task 11
+			getCachedDirectoryLazy: async () => null,
+			loadMoreChildren: async () => null,
+			clearCacheWithProgress: async () => {},
+			invalidateSubtreeWithProgress: async () => {},
+			getCacheSize: async () => ({
+				totalEntries: 0,
+				estimatedSizeBytes: 0,
+				oldestEntry: 0,
+				newestEntry: 0
+			}),
+			validateCacheIntegrity: async () => ({
+				validEntries: 0,
+				corruptedEntries: 0,
+				repairedEntries: 0,
+				issues: []
+			}),
+			compactCache: async () => ({
+				removedEntries: 0,
+				spaceSaved: 0
+			}),
+		} as any
 	}
 
 	async seedTree(tree?: FsDirTreeNode) {
@@ -52,8 +121,11 @@ export class CachedPrefetchQueue extends PrefetchQueue {
 				}
 			)
 
-			// Display cached tree immediately
-			super.seedTree(cachedTree)
+			// Display cached tree immediately WITHOUT triggering prefetch processing
+			// This prevents re-indexing and shows the cached data instantly
+			this.callbacks.onDirectoryLoaded({
+				node: cachedTree,
+			})
 
 			// Start background validation of all cached directories
 			this.validateTreeInBackground(tree).catch((error) => {
@@ -133,9 +205,17 @@ export class CachedPrefetchQueue extends PrefetchQueue {
 
 		try {
 			// First, try to get cached data for immediate display
-			const cachedNode = await this.cacheController.getCachedDirectory(
-				target.path
-			)
+			let cachedNode: FsDirTreeNode | null = null
+			
+			try {
+				cachedNode = await this.cacheController.getCachedDirectory(target.path)
+			} catch (error) {
+				cacheLogger.warn('Cache read failed, falling back to filesystem', {
+					path: target.path,
+					error
+				})
+				// Continue with filesystem fallback - don't throw
+			}
 
 			if (cachedNode) {
 				cacheLogger.debug('Displaying cached data immediately', {
@@ -145,7 +225,7 @@ export class CachedPrefetchQueue extends PrefetchQueue {
 
 				// Trigger background validation (don't await) - use setTimeout to ensure it runs asynchronously
 				setTimeout(() => {
-					this.validateInBackground(target, cachedNode).catch((error) => {
+					this.validateInBackground(target, cachedNode!).catch((error) => {
 						cacheLogger.warn('Background validation failed', {
 							path: target.path,
 							error,
@@ -164,11 +244,19 @@ export class CachedPrefetchQueue extends PrefetchQueue {
 				return undefined
 			}
 
-			// Use incremental update to cache the fresh data with proper relationship handling
-			await this.cacheController.performIncrementalUpdate(
-				target.path,
-				freshNode
-			)
+			// Try to cache the fresh data, but don't fail if caching fails
+			try {
+				await this.cacheController.performIncrementalUpdate(
+					target.path,
+					freshNode
+				)
+			} catch (error) {
+				cacheLogger.warn('Failed to cache fresh data, continuing without caching', {
+					path: target.path,
+					error
+				})
+				// Continue without caching - don't throw
+			}
 
 			const loadTime = performance.now() - startTime
 			cacheLogger.debug('Loaded and cached directory (no cache available)', {
@@ -179,11 +267,22 @@ export class CachedPrefetchQueue extends PrefetchQueue {
 
 			return freshNode
 		} catch (error) {
-			cacheLogger.warn('Failed to load directory with cache', {
+			cacheLogger.warn('Failed to load directory with cache, attempting direct filesystem load', {
 				path: target.path,
 				error,
 			})
-			throw error
+			
+			// Final fallback - try direct filesystem load without any caching
+			try {
+				return await this.originalLoadDirectory(target)
+			} catch (fallbackError) {
+				cacheLogger.error('All loading methods failed', {
+					path: target.path,
+					originalError: error,
+					fallbackError
+				})
+				throw fallbackError
+			}
 		}
 	}
 
@@ -388,6 +487,207 @@ export class CachedPrefetchQueue extends PrefetchQueue {
 			}
 		} catch (error) {
 			cacheLogger.warn('Load with incremental update failed', { error })
+			throw error
+		}
+	}
+
+	/**
+	 * Load directory with lazy loading support for large directories
+	 */
+	async loadDirectoryLazy(
+		target: PrefetchTarget, 
+		maxChildrenToLoad: number = 100,
+		onProgress?: (progress: { completed: number; total: number; currentOperation: string }) => void
+	): Promise<FsDirTreeNode | undefined> {
+		const startTime = performance.now()
+
+		try {
+			onProgress?.({ completed: 0, total: 3, currentOperation: 'Checking cache...' })
+			
+			// First, try to get cached data with lazy loading
+			let cachedNode: FsDirTreeNode | null = null
+			
+			try {
+				cachedNode = await this.cacheController.getCachedDirectoryLazy(target.path, maxChildrenToLoad)
+			} catch (error) {
+				cacheLogger.warn('Lazy cache read failed, falling back to filesystem', {
+					path: target.path,
+					error
+				})
+			}
+
+			if (cachedNode) {
+				onProgress?.({ completed: 1, total: 3, currentOperation: 'Displaying cached data...' })
+				
+				cacheLogger.debug('Displaying lazily loaded cached data', {
+					path: target.path,
+					childrenCount: cachedNode.children.length,
+					isFullyLoaded: cachedNode.isLoaded
+				})
+
+				// Trigger background validation (don't await)
+				setTimeout(() => {
+					this.validateInBackground(target, cachedNode!).catch((error) => {
+						cacheLogger.warn('Background validation failed', {
+							path: target.path,
+							error,
+						})
+					})
+				}, 0)
+
+				onProgress?.({ completed: 3, total: 3, currentOperation: 'Lazy loading complete' })
+				return cachedNode
+			}
+
+			onProgress?.({ completed: 1, total: 3, currentOperation: 'Loading from filesystem...' })
+			
+			// No cached data available, perform fresh load
+			const freshNode = await this.originalLoadDirectory(target)
+
+			if (!freshNode) {
+				return undefined
+			}
+
+			onProgress?.({ completed: 2, total: 3, currentOperation: 'Caching fresh data...' })
+
+			// Try to cache the fresh data, but don't fail if caching fails
+			try {
+				await this.cacheController.performIncrementalUpdate(
+					target.path,
+					freshNode
+				)
+			} catch (error) {
+				cacheLogger.warn('Failed to cache fresh data, continuing without caching', {
+					path: target.path,
+					error
+				})
+			}
+
+			const loadTime = performance.now() - startTime
+			cacheLogger.debug('Loaded and cached directory (no cache available)', {
+				path: target.path,
+				childrenCount: freshNode.children.length,
+				loadTime,
+			})
+
+			onProgress?.({ completed: 3, total: 3, currentOperation: 'Loading complete' })
+			return freshNode
+		} catch (error) {
+			cacheLogger.warn('Failed to load directory with lazy loading', {
+				path: target.path,
+				error,
+			})
+			
+			// Final fallback - try direct filesystem load without any caching
+			try {
+				return await this.originalLoadDirectory(target)
+			} catch (fallbackError) {
+				cacheLogger.error('All loading methods failed', {
+					path: target.path,
+					originalError: error,
+					fallbackError
+				})
+				throw fallbackError
+			}
+		}
+	}
+
+	/**
+	 * Load more children for a lazily loaded directory
+	 */
+	async loadMoreChildren(
+		path: string, 
+		currentChildrenCount: number, 
+		batchSize: number = 100,
+		onProgress?: (progress: { completed: number; total: number; currentOperation: string }) => void
+	): Promise<FsDirTreeNode | null> {
+		try {
+			onProgress?.({ completed: 0, total: 2, currentOperation: 'Loading more children...' })
+			
+			const updatedNode = await this.cacheController.loadMoreChildren(path, currentChildrenCount, batchSize)
+			
+			if (updatedNode) {
+				onProgress?.({ completed: 1, total: 2, currentOperation: 'Updating UI...' })
+				
+				// Notify UI of the update
+				this.callbacks.onDirectoryLoaded({
+					node: updatedNode,
+				})
+				
+				cacheLogger.debug('Loaded more children for directory', {
+					path,
+					newChildrenCount: updatedNode.children.length,
+					isFullyLoaded: updatedNode.isLoaded
+				})
+			}
+			
+			onProgress?.({ completed: 2, total: 2, currentOperation: 'Load more complete' })
+			return updatedNode
+		} catch (error) {
+			cacheLogger.warn('Failed to load more children', { path, error })
+			return null
+		}
+	}
+
+	/**
+	 * Perform cache management operations with progress tracking
+	 */
+	async performCacheManagement(
+		operation: 'clear' | 'cleanup' | 'validate' | 'compact',
+		options?: {
+			maxAgeMs?: number
+			onProgress?: (progress: { completed: number; total: number; currentOperation: string; issues?: string[] }) => void
+		}
+	): Promise<any> {
+		const { maxAgeMs = 7 * 24 * 60 * 60 * 1000, onProgress } = options || {}
+		
+		try {
+			switch (operation) {
+				case 'clear':
+					await this.cacheController.clearCacheWithProgress(onProgress)
+					cacheLogger.info('Cache cleared successfully')
+					return { success: true, message: 'Cache cleared successfully' }
+					
+				case 'cleanup':
+					await this.cacheController.cleanupOldEntries(maxAgeMs, onProgress)
+					cacheLogger.info('Cache cleanup completed')
+					return { success: true, message: 'Cache cleanup completed' }
+					
+				case 'validate':
+					const validationResult = await this.cacheController.validateCacheIntegrity(onProgress)
+					cacheLogger.info('Cache validation completed', validationResult)
+					return validationResult
+					
+				case 'compact':
+					const compactionResult = await this.cacheController.compactCache(onProgress)
+					cacheLogger.info('Cache compaction completed', compactionResult)
+					return compactionResult
+					
+				default:
+					throw new Error(`Unknown cache management operation: ${operation}`)
+			}
+		} catch (error) {
+			cacheLogger.warn(`Cache management operation '${operation}' failed`, { error })
+			throw error
+		}
+	}
+
+	/**
+	 * Get detailed cache information including size and performance metrics
+	 */
+	async getCacheInfo(): Promise<{
+		stats: any
+		size: { totalEntries: number; estimatedSizeBytes: number; oldestEntry: number; newestEntry: number }
+	}> {
+		try {
+			const [stats, size] = await Promise.all([
+				this.cacheController.getCacheStats(),
+				this.cacheController.getCacheSize()
+			])
+			
+			return { stats, size }
+		} catch (error) {
+			cacheLogger.warn('Failed to get cache info', { error })
 			throw error
 		}
 	}
