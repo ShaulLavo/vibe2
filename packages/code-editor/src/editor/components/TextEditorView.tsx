@@ -312,8 +312,10 @@ export const TextEditorView = (props: EditorProps) => {
 		const offsets = showHighlights() ? props.highlightOffset?.() : undefined
 		if (offsets && offsets.length > 0) return undefined
 
-		// Explicitly track line data version to ensure re-computation when any line changes
-		cursor.lines.lineDataVersion()
+		// Track line data revision to ensure re-computation when any line changes.
+		// This is needed because store property accesses through nested function calls
+		// aren't reliably tracked by SolidJS.
+		cursor.lines.lineDataRevision()
 
 		const count = cursor.lines.lineCount()
 		if (count === 0) return undefined

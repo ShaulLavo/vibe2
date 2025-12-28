@@ -154,7 +154,9 @@ export function CursorProvider(props: CursorProviderProps) {
 	const [lineDataById, setLineDataById] = createStore<
 		Record<number, { text: string; length: number }>
 	>({})
-	const [lineDataVersion, setLineDataVersion] = createSignal(0)
+	// Revision signal that increments on any line data change.
+	// Used to explicitly invalidate memos that depend on line content.
+	const [lineDataRevision, setLineDataRevision] = createSignal(0)
 
 	let nextLineId = 1
 	let lineIdIndex = new Map<number, number>()
@@ -179,14 +181,6 @@ export function CursorProvider(props: CursorProviderProps) {
 	}
 	const clampLineIndex = (value: number, maxIndex: number) =>
 		Math.max(0, Math.min(value, maxIndex))
-	const setLineData = (lineId: number, text: string, isLastLine: boolean) => {
-		const length = Math.max(0, text.length + (isLastLine ? 0 : 1))
-		setLineDataById(lineId, {
-			text,
-			length,
-		})
-		setLineDataVersion((v) => v + 1)
-	}
 	const buildLineDataFromText = (
 		content: string,
 		ids: number[],
@@ -286,7 +280,7 @@ export function CursorProvider(props: CursorProviderProps) {
 
 		if (nextSegmentCount === 0) return [...before, ...after]
 
-		const preservedId = options.prevLineIds[safeStart] ?? createLineIds(1)[0]
+		const preservedId = options.prevLineIds[safeStart] ?? createLineIds(1)[0]!
 		const extraCount = Math.max(0, nextSegmentCount - 1)
 		const addedIds = extraCount > 0 ? createLineIds(extraCount) : []
 		const nextIds = [...before, preservedId, ...addedIds, ...after]
@@ -456,32 +450,42 @@ export function CursorProvider(props: CursorProviderProps) {
 				? nextLineIds.slice(safeStart + 1, safeStart + 1 + extraCount)
 				: []
 
-		if (nextLineTexts.length > 0) {
-			setLineData(
-				preservedId,
-				nextLineTexts[0] ?? '',
-				preservedId === nextLastLineId
-			)
-		}
-
-		for (let i = 0; i < addedIds.length; i += 1) {
-			const lineId = addedIds[i]
-			if (typeof lineId !== 'number') continue
-			setLineData(lineId, nextLineTexts[i + 1] ?? '', lineId === nextLastLineId)
-		}
-
-		if (prevLastLineId !== nextLastLineId && prevLastLineId > 0) {
-			const prevLast = lineDataById[prevLastLineId]
-			if (prevLast) {
-				setLineData(prevLastLineId, prevLast.text, false)
+		// Batch all line data updates to minimize reactive overhead
+		batch(() => {
+			if (nextLineTexts.length > 0) {
+				const text = nextLineTexts[0] ?? ''
+				const isLast = preservedId === nextLastLineId
+				const length = Math.max(0, text.length + (isLast ? 0 : 1))
+				setLineDataById(preservedId, { text, length })
 			}
-		}
-		if (nextLastLineId > 0) {
-			const nextLast = lineDataById[nextLastLineId]
-			if (nextLast) {
-				setLineData(nextLastLineId, nextLast.text, true)
+
+			for (let i = 0; i < addedIds.length; i += 1) {
+				const lineId = addedIds[i]
+				if (typeof lineId !== 'number') continue
+				const text = nextLineTexts[i + 1] ?? ''
+				const isLast = lineId === nextLastLineId
+				const length = Math.max(0, text.length + (isLast ? 0 : 1))
+				setLineDataById(lineId, { text, length })
 			}
-		}
+
+			if (prevLastLineId !== nextLastLineId && prevLastLineId > 0) {
+				const prevLast = lineDataById[prevLastLineId]
+				if (prevLast) {
+					const length = Math.max(0, prevLast.text.length + 1)
+					setLineDataById(prevLastLineId, { text: prevLast.text, length })
+				}
+			}
+			if (nextLastLineId > 0) {
+				const nextLast = lineDataById[nextLastLineId]
+				if (nextLast) {
+					const length = nextLast.text.length
+					setLineDataById(nextLastLineId, { text: nextLast.text, length })
+				}
+			}
+
+			// Single revision bump for all line data changes
+			setLineDataRevision((v) => v + 1)
+		})
 	}
 
 	const getLineText = (lineIndex: number): string => {
@@ -685,7 +689,7 @@ export function CursorProvider(props: CursorProviderProps) {
 				})
 			},
 			applyEdit,
-			lineDataVersion,
+			lineDataRevision,
 		},
 		getTextRange,
 		documentLength,

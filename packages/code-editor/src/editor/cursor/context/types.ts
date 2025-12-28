@@ -72,7 +72,8 @@ export type CursorContextValue = {
 			deletedText: string,
 			insertedText: string
 		) => void
-		lineDataVersion: Accessor<number>
+		/** Revision signal that increments on any line data change */
+		lineDataRevision: Accessor<number>
 	}
 	getTextRange: (start: number, end: number) => string
 	documentLength: Accessor<number>
