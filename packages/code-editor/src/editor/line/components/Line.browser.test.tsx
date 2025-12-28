@@ -12,6 +12,7 @@ describe('Line', () => {
 					size: 20,
 					columnStart: 8,
 					columnEnd: 4,
+					lineId: 1,
 				}}
 				lineIndex={0}
 				lineText="Hello, world"
@@ -38,6 +39,7 @@ describe('Line', () => {
 					size: 20,
 					columnStart: 0,
 					columnEnd: 12,
+					lineId: 1,
 				}}
 				lineIndex={0}
 				lineText="Hello, world"

@@ -7,6 +7,8 @@ import { create2DVirtualizer } from './create2DVirtualizer'
 // DOM Integration Tests for create2DVirtualizer
 // ============================================================================
 
+const getLineId = (lineIndex: number) => lineIndex + 1
+
 describe('create2DVirtualizer (DOM integration)', () => {
 	let container: HTMLDivElement
 
@@ -41,6 +43,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				charWidth,
 				overscan: 2,
 				getLineLength,
+				getLineId,
 			})
 		)
 
@@ -75,6 +78,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				charWidth,
 				overscan: 2,
 				getLineLength,
+				getLineId,
 			})
 		)
 
@@ -129,6 +133,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				charWidth,
 				overscan: 2,
 				getLineLength,
+				getLineId,
 			})
 		)
 
@@ -177,6 +182,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				charWidth,
 				overscan: 2,
 				getLineLength,
+				getLineId,
 			})
 		)
 
@@ -216,6 +222,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				charWidth,
 				overscan: 2,
 				getLineLength,
+				getLineId,
 			})
 		)
 
@@ -268,6 +275,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				overscan: 2,
 				horizontalOverscan: 10,
 				getLineLength,
+				getLineId,
 			})
 		)
 
@@ -321,6 +329,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				overscan: 2,
 				horizontalOverscan: 10,
 				getLineLength,
+				getLineId,
 			})
 		)
 
@@ -370,6 +379,7 @@ describe('create2DVirtualizer (DOM integration)', () => {
 				charWidth,
 				overscan: 2,
 				getLineLength,
+				getLineId,
 			})
 		)
 

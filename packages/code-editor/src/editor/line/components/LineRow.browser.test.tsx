@@ -19,6 +19,7 @@ describe('LineRow', () => {
 						size: 20,
 						columnStart: 0,
 						columnEnd: 4,
+						lineId: 4,
 					}}
 					lineHeight={() => 20}
 					contentWidth={() => 200}
@@ -52,6 +53,7 @@ describe('LineRow', () => {
 						size: 20,
 						columnStart: 0,
 						columnEnd: 5,
+						lineId: 1,
 					}}
 					lineHeight={() => 20}
 					contentWidth={() => 200}

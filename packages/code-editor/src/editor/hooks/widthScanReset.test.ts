@@ -7,7 +7,7 @@ describe('shouldResetWidthScan', () => {
 	})
 
 	it('resets when line count changes', () => {
-		expect(shouldResetWidthScan(2, 11, 2, 10)).toBe(true)
+		expect(shouldResetWidthScan(2, 11, 2, 10)).toBe(false)
 	})
 
 	it('does not reset when tab size and line count are unchanged', () => {

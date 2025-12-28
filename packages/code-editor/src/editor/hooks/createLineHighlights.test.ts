@@ -4,6 +4,20 @@ import { createRoot, createSignal } from 'solid-js'
 import type { HighlightOffsets } from '../types'
 import { createLineHighlights } from './createLineHighlights'
 
+const makeEntry = (
+	index: number,
+	start: number,
+	length: number,
+	text: string,
+	lineId = index + 1
+) => ({
+	lineId,
+	index,
+	start,
+	length,
+	text,
+})
+
 describe('createLineHighlights', () => {
 	it('invalidates cached line highlights when line text changes', () => {
 		createRoot((dispose) => {
@@ -12,14 +26,14 @@ describe('createLineHighlights', () => {
 			])
 			const { getLineHighlights } = createLineHighlights({ highlights })
 
-			const entryA = { index: 0, start: 0, length: 5, text: 'hello' }
+			const entryA = makeEntry(0, 0, 5, 'hello')
 			const segmentsA = getLineHighlights(entryA)
 			expect(segmentsA.length).toBeGreaterThan(0)
 
 			const segmentsA2 = getLineHighlights(entryA)
 			expect(segmentsA2).toBe(segmentsA)
 
-			const entryB = { index: 0, start: 0, length: 5, text: 'world' }
+			const entryB = makeEntry(0, 0, 5, 'world')
 			const segmentsB = getLineHighlights(entryB)
 			expect(segmentsB.length).toBeGreaterThan(0)
 
@@ -40,8 +54,8 @@ describe('createLineHighlights', () => {
 					{ startIndex: 6, endIndex: 11, scope: 'variable' },
 				])
 				const [lineEntries, setLineEntries] = createSignal([
-					{ index: 0, start: 0, length: 5, text: 'hello' },
-					{ index: 1, start: 6, length: 5, text: 'world' },
+					makeEntry(0, 0, 5, 'hello'),
+					makeEntry(1, 6, 5, 'world'),
 				])
 				const { getLineHighlights } = createLineHighlights({
 					highlights,
@@ -65,8 +79,8 @@ describe('createLineHighlights', () => {
 					},
 				])
 				setLineEntries([
-					{ index: 0, start: 0, length: 6, text: 'xhello' },
-					{ index: 1, start: 7, length: 5, text: 'world' },
+					makeEntry(0, 0, 6, 'xhello'),
+					makeEntry(1, 7, 5, 'world'),
 				])
 
 				const after = getLineHighlights(lineEntries()[1]!)
@@ -99,7 +113,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 6, text: 'abcdef' }
+			const entry = makeEntry(0, 0, 6, 'abcdef')
 			const segments = getLineHighlights(entry)
 			expect(segments[0]?.start).toBe(0)
 
@@ -145,7 +159,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entryBefore = { index: 1, start: 10, length: 4, text: 'abcd' }
+			const entryBefore = makeEntry(1, 10, 4, 'abcd')
 			const segments = getLineHighlights(entryBefore)
 			expect(segments[0]).toMatchObject({ start: 0, end: 2 })
 
@@ -162,7 +176,7 @@ describe('createLineHighlights', () => {
 				},
 			])
 
-			const entryAfter = { index: 1, start: 12, length: 4, text: 'abcd' }
+			const entryAfter = makeEntry(1, 12, 4, 'abcd')
 			const shifted = getLineHighlights(entryAfter)
 			expect(shifted).toBe(segments)
 			expect(shifted[0]).toMatchObject({ start: 0, end: 2 })
@@ -183,7 +197,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entryBefore = { index: 2, start: 10, length: 4, text: 'wxyz' }
+			const entryBefore = makeEntry(2, 10, 4, 'wxyz', 42)
 			const segments = getLineHighlights(entryBefore)
 			expect(segments[0]).toMatchObject({ start: 0, end: 2 })
 
@@ -200,7 +214,7 @@ describe('createLineHighlights', () => {
 				},
 			])
 
-			const entryAfter = { index: 3, start: 11, length: 4, text: 'wxyz' }
+			const entryAfter = makeEntry(3, 11, 4, 'wxyz', 42)
 			const shifted = getLineHighlights(entryAfter)
 			expect(shifted).toBe(segments)
 			expect(shifted[0]).toMatchObject({ start: 0, end: 2 })
@@ -231,7 +245,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 7, text: 'ab12cde' }
+			const entry = makeEntry(0, 0, 7, 'ab12cde')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(2)
@@ -264,7 +278,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 9, text: 'abXYZcdef' }
+			const entry = makeEntry(0, 0, 9, 'abXYZcdef')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(1)
@@ -296,7 +310,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 5, text: 'abefg' }
+			const entry = makeEntry(0, 0, 5, 'abefg')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(1)
@@ -338,7 +352,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 7, text: 'abXYcef' }
+			const entry = makeEntry(0, 0, 7, 'abXYcef')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(2)
@@ -373,7 +387,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 10, length: 4, text: 'abcd' }
+			const entry = makeEntry(0, 10, 4, 'abcd')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(1)
@@ -407,7 +421,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 5, length: 4, text: 'abcd' }
+			const entry = makeEntry(0, 5, 4, 'abcd')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(1)
@@ -439,7 +453,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 4, text: 'abef' }
+			const entry = makeEntry(0, 0, 4, 'abef')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(0)
@@ -470,7 +484,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 4, text: 'abef' }
+			const entry = makeEntry(0, 0, 4, 'abef')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(1)
@@ -502,7 +516,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 4, text: 'cons' }
+			const entry = makeEntry(0, 0, 4, 'cons')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(1)
@@ -534,7 +548,7 @@ describe('createLineHighlights', () => {
 				highlightOffset,
 			})
 
-			const entry = { index: 0, start: 0, length: 5, text: 'abXYe' }
+			const entry = makeEntry(0, 0, 5, 'abXYe')
 			const segments = getLineHighlights(entry)
 
 			expect(segments).toHaveLength(2)
@@ -562,12 +576,7 @@ describe('createLineHighlights', () => {
 
 			// Test a line in the middle
 			// Line corresponds to index 2500 -> start char 25000
-			const entry = {
-				index: 0,
-				start: 25000,
-				length: 100,
-				text: ' '.repeat(100),
-			}
+			const entry = makeEntry(0, 25000, 100, ' '.repeat(100))
 			const segments = getLineHighlights(entry)
 
 			// Should return highlights falling in range [25000, 25100]

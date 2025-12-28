@@ -2,7 +2,12 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { batch, createSignal } from 'solid-js'
 import { render } from 'vitest-browser-solid'
 import { waitForFrames } from '../../benchmarks/utils/performanceMetrics'
-import { createPieceTableSnapshot, type PieceTableSnapshot } from '@repo/utils'
+import {
+	createPieceTableSnapshot,
+	deleteFromPieceTable,
+	insertIntoPieceTable,
+	type PieceTableSnapshot,
+} from '@repo/utils'
 import { getEditCharDelta, getEditLineDelta } from '@repo/utils/highlightShift'
 import { ColorModeProvider } from '@kobalte/core'
 import { ThemeProvider } from '@repo/theme'
@@ -12,7 +17,6 @@ import {
 	disposeTreeSitterWorker,
 	parseBufferWithTreeSitter,
 } from '../../../../../../apps/web/src/treeSitter/workerClient'
-import { consumeLineRowCounters } from './LineRow'
 import type {
 	CursorMode,
 	EditorSyntaxHighlight,
@@ -23,10 +27,6 @@ import type {
 type BuildTextRuns = typeof import('../utils/textRuns').buildTextRuns
 
 const buildTextRunsCalls = vi.hoisted(() => [] as string[])
-const lineRowCounterSnapshots = vi.hoisted(
-	() => [] as Array<{ mounts: number; cleanups: number }>
-)
-
 vi.mock('../utils/textRuns', async () => {
 	const actual =
 		await vi.importActual<typeof import('../utils/textRuns')>(
@@ -53,20 +53,6 @@ vi.mock('../utils/textRuns', async () => {
 	return {
 		...actual,
 		buildTextRuns,
-	}
-})
-
-vi.mock('./LineRow', async () => {
-	const actual = await vi.importActual<typeof import('./LineRow')>('./LineRow')
-	const consumeLineRowCounters = () => {
-		const snapshot = actual.consumeLineRowCounters()
-		lineRowCounterSnapshots.push(snapshot)
-		return snapshot
-	}
-
-	return {
-		...actual,
-		consumeLineRowCounters,
 	}
 })
 
@@ -119,11 +105,6 @@ const getTreeSitterHighlights = async (
 
 	highlightCache.set(path, result.captures)
 	return result.captures
-}
-
-const resetLineRowCounters = () => {
-	consumeLineRowCounters()
-	lineRowCounterSnapshots.length = 0
 }
 
 const collectBuildTextRunsLines = (calls: string[], content: string) => {
@@ -185,6 +166,21 @@ const createHarness = (initialFile: FileState): HarnessHandle => {
 				oldEndIndex: edit.oldEndIndex,
 				newEndIndex: edit.newEndIndex,
 			}
+
+			setPieceTable((prev) => {
+				if (!prev) return prev
+				const deletedLength = edit.oldEndIndex - edit.startIndex
+				const withDeletion =
+					deletedLength > 0
+						? deleteFromPieceTable(prev, edit.startIndex, deletedLength)
+						: prev
+
+				return insertIntoPieceTable(
+					withDeletion,
+					edit.startIndex,
+					edit.insertedText
+				)
+			})
 
 			setHighlightOffsets((prev) => (prev ? [...prev, offset] : [offset]))
 		},
@@ -283,7 +279,6 @@ describe('LineRow highlight offsets', () => {
 		activeHarness?.unmount()
 		activeHarness = null
 		buildTextRunsCalls.length = 0
-		lineRowCounterSnapshots.length = 0
 	})
 
 	// This test verifies minimal recomputation when offsets are applied.
@@ -366,20 +361,21 @@ describe('LineRow highlight offsets', () => {
 		const sqliteHighlights = await sqliteHighlightsPromise
 		activeHarness.setHighlights(sqliteHighlights)
 		await waitForFrames(2)
-		resetLineRowCounters()
-
+		const beforeNodes = Array.from(
+			activeHarness.container.querySelectorAll('.editor-line')
+		)
 		activeHarness.typeAt(0, 0, 'x')
 
 		// Wait for content change to verify the edit was applied
 		await expect.poll(() => activeHarness!.getContent()).toContain('x')
 		await waitForFrames(2)
 
-		// Now consume the counters to create a snapshot
-		consumeLineRowCounters()
-
-		const snapshot = lineRowCounterSnapshots.at(-1)
-		expect(snapshot).toBeDefined()
-		expect(snapshot?.mounts ?? 0).toBeLessThanOrEqual(50)
-		expect(snapshot?.cleanups ?? 0).toBeLessThanOrEqual(50)
+		const afterNodes = Array.from(
+			activeHarness.container.querySelectorAll('.editor-line')
+		)
+		const reused = beforeNodes.filter(
+			(node, index) => afterNodes[index] === node
+		).length
+		expect(reused).toBeGreaterThanOrEqual(50)
 	})
 })
