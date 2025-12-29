@@ -32,10 +32,11 @@ export type CreateLineHighlightsOptions = {
 	errors?: Accessor<EditorError[] | undefined>
 	/** Offset for optimistic updates - applied lazily per-line */
 	highlightOffset?: Accessor<HighlightOffsets | undefined>
-	/** Full line entries for precomputing highlight segments */
-	lineEntries?: Accessor<LineEntry[] | undefined>
-	/** Optional override for computing current line start */
-	getLineStart?: (entry: LineEntry) => number
+
+	lineCount: Accessor<number>
+	getLineStart: (index: number) => number
+	getLineLength: (index: number) => number
+	getLineTextLength: (index: number) => number
 }
 
 export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
@@ -66,11 +67,14 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 
 	const precomputedSegments = createMemo<PrecomputedLineHighlights | undefined>(
 		() => {
-			const lineEntries = options.lineEntries?.()
-			if (!lineEntries?.length) return undefined
+			const count = options.lineCount()
+			if (count === 0) return undefined
 
 			const offsets = options.highlightOffset?.()
-			if (offsets && offsets.length > 0) return undefined
+			if (offsets && offsets.length > 0) {
+				console.log('precomputedSegments: skipped (has offsets)')
+				return undefined
+			}
 
 			const highlights = sortedHighlights()
 			const errors = sortedErrorHighlights()
@@ -78,20 +82,39 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			const hasErrors = errors.length > 0
 			if (!hasHighlights && !hasErrors) return undefined
 
+			console.log(
+				'precomputedSegments: running full computation for',
+				count,
+				'lines'
+			)
+
 			const highlightSegments = hasHighlights
-				? toLineHighlightSegments(lineEntries, highlights)
+				? toLineHighlightSegments(
+						count,
+						options.getLineStart,
+						options.getLineLength,
+						options.getLineTextLength,
+						highlights
+					)
 				: []
 			const errorSegments = hasErrors
-				? toLineHighlightSegments(lineEntries, errors)
+				? toLineHighlightSegments(
+						count,
+						options.getLineStart,
+						options.getLineLength,
+						options.getLineTextLength,
+						errors
+					)
 				: []
 
 			const indexByLineId = new Map<number, number>()
-			for (let i = 0; i < lineEntries.length; i += 1) {
-				const lineId = lineEntries[i]?.lineId ?? -1
-				if (lineId > 0) {
-					indexByLineId.set(lineId, i)
-				}
-			}
+
+			// Note: We don't have lineIds here anymore easily?
+			// precomputedSegments returned indexByLineId to help mapping?
+			// The usage in getLineHighlights used indexByLineId to map cache key (lineId) to index.
+			// But getLineHighlights receives `entry`. `entry` knows its index!
+			// So indexByLineId might not be needed?
+			// Let's check getLineHighlights usage.
 
 			if (!hasErrors) {
 				return { segments: highlightSegments, indexByLineId }
@@ -100,8 +123,8 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 				return { segments: errorSegments, indexByLineId }
 			}
 
-			const merged: LineHighlightSegment[][] = new Array(lineEntries.length)
-			for (let i = 0; i < lineEntries.length; i += 1) {
+			const merged: LineHighlightSegment[][] = new Array(count)
+			for (let i = 0; i < count; i += 1) {
 				const mergedLine = mergeLineSegments(
 					highlightSegments[i],
 					errorSegments[i]
@@ -109,7 +132,8 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 				if (mergedLine.length > 0) merged[i] = mergedLine
 			}
 			return { segments: merged, indexByLineId }
-	})
+		}
+	)
 
 	let precomputedCache = new Map<number, LineHighlightSegment[]>()
 	let lastPrecomputed: PrecomputedLineHighlights | undefined
@@ -273,7 +297,7 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			return segments
 		}
 
-		const lineStart = options.getLineStart ? options.getLineStart(entry) : entry.start
+		const lineStart = options.getLineStart(entry.index)
 		const lineLength = entry.length
 		const lineTextLength = entry.text.length
 		const lineEnd = lineStart + lineLength
@@ -329,7 +353,9 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 		}
 
 		const cacheMap =
-			hasOffsets && hasIntersectingOffsets ? dirtyHighlightCache : highlightCache
+			hasOffsets && hasIntersectingOffsets
+				? dirtyHighlightCache
+				: highlightCache
 		const cached = cacheMap.get(lineKey)
 		if (
 			cached !== undefined &&
@@ -361,7 +387,11 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			let candidates: EditorSyntaxHighlight[] = []
 
 			// Fast path: single bucket, no offsets, no large highlights
-			if (!hasOffsets && largeHighlights.length === 0 && startChunk === endChunk) {
+			if (
+				!hasOffsets &&
+				largeHighlights.length === 0 &&
+				startChunk === endChunk
+			) {
 				const bucket = spatialIndex.get(startChunk)
 				candidates = bucket ?? []
 			} else {
@@ -425,16 +455,18 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			offsetsForSegments
 		)
 
-		const shiftedHighlightSegments = hasOffsets && !shouldApplyOffsets
-			? applyShiftToSegments(
-					highlightSegments,
-					offsetShiftAmount,
-					lineTextLength
-				)
-			: highlightSegments
-		const shiftedErrorSegments = hasOffsets && !shouldApplyOffsets
-			? applyShiftToSegments(errorSegments, offsetShiftAmount, lineTextLength)
-			: errorSegments
+		const shiftedHighlightSegments =
+			hasOffsets && !shouldApplyOffsets
+				? applyShiftToSegments(
+						highlightSegments,
+						offsetShiftAmount,
+						lineTextLength
+					)
+				: highlightSegments
+		const shiftedErrorSegments =
+			hasOffsets && !shouldApplyOffsets
+				? applyShiftToSegments(errorSegments, offsetShiftAmount, lineTextLength)
+				: errorSegments
 
 		const result = mergeLineSegments(
 			shiftedHighlightSegments,

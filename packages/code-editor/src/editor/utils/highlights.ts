@@ -429,32 +429,37 @@ export const toLineHighlightSegmentsForLine = (
 }
 
 const advanceToLineIndex = (
-	lineEntries: LineEntry[],
+	lineCount: number,
+	getLineStart: (index: number) => number,
+	getLineLength: (index: number) => number,
 	currentIndex: number,
 	position: number
 ) => {
 	let index = Math.max(0, currentIndex)
-	while (index < lineEntries.length) {
-		const entry = lineEntries[index]
-		if (!entry) break
-		const lineEnd = entry.start + entry.length
-		if (position < lineEnd || index === lineEntries.length - 1) {
+	while (index < lineCount) {
+		const start = getLineStart(index)
+		const length = getLineLength(index)
+		const lineEnd = start + length
+		if (position < lineEnd || index === lineCount - 1) {
 			return index
 		}
 		index++
 	}
-	return Math.max(0, lineEntries.length - 1)
+	return Math.max(0, lineCount - 1)
 }
 
 export const toLineHighlightSegments = (
-	lineEntries: LineEntry[],
+	lineCount: number,
+	getLineStart: (index: number) => number,
+	getLineLength: (index: number) => number,
+	getLineTextLength: (index: number) => number,
 	highlights: EditorSyntaxHighlight[] | undefined
 ): LineHighlightSegment[][] => {
-	if (!highlights?.length || !lineEntries.length) {
+	if (!highlights?.length || lineCount === 0) {
 		return []
 	}
 
-	const perLine: LineHighlightSegment[][] = new Array(lineEntries.length)
+	const perLine: LineHighlightSegment[][] = new Array(lineCount)
 	let lineIndex = 0
 
 	for (const highlight of highlights) {
@@ -472,18 +477,34 @@ export const toLineHighlightSegments = (
 
 		let start = Math.max(0, highlight.startIndex)
 		const end = Math.max(start, highlight.endIndex)
-		lineIndex = advanceToLineIndex(lineEntries, lineIndex, start)
+		lineIndex = advanceToLineIndex(
+			lineCount,
+			getLineStart,
+			getLineLength,
+			lineIndex,
+			start
+		)
 
 		let cursor = lineIndex
-		while (cursor < lineEntries.length && start < end) {
-			const entry = lineEntries[cursor]
-			if (!entry) break
-			const lineAbsoluteEnd = entry.start + entry.length
+		while (cursor < lineCount && start < end) {
+			const lineStart = getLineStart(cursor)
+			const lineLength = getLineLength(cursor)
+			const lineAbsoluteEnd = lineStart + lineLength
+
 			if (start >= lineAbsoluteEnd) {
 				cursor++
 				continue
 			}
-			const clamped = clampToLine(entry, start, end)
+
+			const lineTextLength = getLineTextLength(cursor)
+			const clamped = clampToLineMeta(
+				lineStart,
+				lineLength,
+				lineTextLength,
+				start,
+				end
+			)
+
 			if (clamped) {
 				const [relativeStart, relativeEnd] = clamped
 				;(perLine[cursor] ??= []).push({

@@ -61,10 +61,16 @@ type HiddenRange = {
  */
 export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
 	const hiddenRanges = createMemo(() => {
+		const memoStart = performance.now()
 		const folds = options.folds()
 		const foldedStarts = options.foldedStarts()
 
 		if (!folds?.length || foldedStarts.size === 0) {
+			console.log(
+				'hiddenRanges memo: no folds',
+				performance.now() - memoStart,
+				'ms'
+			)
 			return []
 		}
 
@@ -74,6 +80,11 @@ export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
 		)
 
 		if (activeFolds.length === 0) {
+			console.log(
+				'hiddenRanges memo: no active folds',
+				performance.now() - memoStart,
+				'ms'
+			)
 			return []
 		}
 
@@ -114,6 +125,15 @@ export function createFoldMapping(options: FoldMappingOptions): FoldMapping {
 			cumulativeHidden += count
 		}
 
+		console.log(
+			'hiddenRanges memo:',
+			folds?.length,
+			'folds,',
+			activeFolds.length,
+			'active,',
+			performance.now() - memoStart,
+			'ms'
+		)
 		return result
 	})
 

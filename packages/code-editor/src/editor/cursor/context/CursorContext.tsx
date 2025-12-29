@@ -106,6 +106,7 @@ export function CursorProvider(props: CursorProviderProps) {
 	 * Returns true if handled, false if general path needed.
 	 */
 	const applySingleNewlineInsert = (startIndex: number): boolean => {
+		const start = performance.now()
 		const prevLineStarts = lineStarts()
 		const prevLineIds = lineIds()
 		const prevLineCount = prevLineStarts.length
@@ -164,11 +165,16 @@ export function CursorProvider(props: CursorProviderProps) {
 			setDocumentLength((prev) => prev + 1)
 			setLineStarts((prev) => insertSingleNewlineToLineStarts(prev, startIndex))
 			setLineIdsWithIndex(nextLineIds)
+			console.log(
+				'CursorContext.applySingleNewlineInsert: lineIds updated',
+				performance.now() - start
+			)
 			syncCursorStateToDocument()
-		})
+			console.log(
+				'CursorContext.applySingleNewlineInsert: cursor synced',
+				performance.now() - start
+			)
 
-		// Update line data
-		batch(() => {
 			// Update current line with prefix (no longer last if it was)
 			const wasLast = startLineId === prevLastLineId
 			const isNowLast = startLineId === nextLastLineId
@@ -198,6 +204,10 @@ export function CursorProvider(props: CursorProviderProps) {
 			setLineDataRevision((v) => v + 1)
 		})
 
+		console.log(
+			'CursorContext.applySingleNewlineInsert: end',
+			performance.now() - start
+		)
 		return true
 	}
 
@@ -207,6 +217,7 @@ export function CursorProvider(props: CursorProviderProps) {
 	 * Returns true if handled, false if general path needed.
 	 */
 	const applySingleCharInsert = (startIndex: number, char: string): boolean => {
+		const start = performance.now()
 		const prevLineStarts = lineStarts()
 		const prevLineIds = lineIds()
 		const prevLineCount = prevLineStarts.length
@@ -255,10 +266,13 @@ export function CursorProvider(props: CursorProviderProps) {
 		batch(() => {
 			setDocumentLength((prev) => prev + 1)
 			setLineStarts(newLineStarts)
+			console.log(
+				'CursorContext.applySingleCharInsert: signals updated',
+				performance.now() - start
+			)
 			syncCursorStateToDocument()
-		})
 
-		batch(() => {
+			// Update line data in the same batch to avoid double reactive propagation
 			setLineDataById(lineId, {
 				text: newText,
 				length: newText.length + (isLastLine ? 0 : 1),
@@ -266,6 +280,10 @@ export function CursorProvider(props: CursorProviderProps) {
 			setLineDataRevision((v) => v + 1)
 		})
 
+		console.log(
+			'CursorContext.applySingleCharInsert: end',
+			performance.now() - start
+		)
 		return true
 	}
 
@@ -630,7 +648,9 @@ export function CursorProvider(props: CursorProviderProps) {
 				const ids = lineIds()
 				const lineId = ids[lineIndex]
 				if (lineId) {
-					return lineDataById[lineId]?.length ?? 0
+					// Use untrack to avoid triggering virtualizer recalc on every keystroke.
+					// Horizontal virtualization doesn't need immediate reactivity for +/- 1 char.
+					return untrack(() => lineDataById[lineId]?.length ?? 0)
 				}
 				return getLineLengthFromStarts(
 					lineIndex,
@@ -642,7 +662,8 @@ export function CursorProvider(props: CursorProviderProps) {
 				const ids = lineIds()
 				const lineId = ids[lineIndex]
 				if (lineId) {
-					return lineDataById[lineId]?.text.length ?? 0
+					// Use untrack to avoid triggering recalc on every keystroke.
+					return untrack(() => lineDataById[lineId]?.text.length ?? 0)
 				}
 				return getLineTextLengthFromStarts(
 					lineIndex,
@@ -654,8 +675,12 @@ export function CursorProvider(props: CursorProviderProps) {
 			getLineId,
 			getLineIndex,
 			getLineTextById: (lineId) => lineDataById[lineId]?.text ?? '',
-			getLineLengthById: (lineId) => lineDataById[lineId]?.length ?? 0,
-			getLineTextLengthById: (lineId) => lineDataById[lineId]?.text.length ?? 0,
+			// Use untrack to avoid triggering line entry memos on every keystroke.
+			// Line components use these for layout, which doesn't need +/- 1 char reactivity.
+			getLineLengthById: (lineId) =>
+				untrack(() => lineDataById[lineId]?.length ?? 0),
+			getLineTextLengthById: (lineId) =>
+				untrack(() => lineDataById[lineId]?.text.length ?? 0),
 			getLineStartById: (lineId) => {
 				const index = lineIdIndex.get(lineId)
 				if (typeof index !== 'number') return 0

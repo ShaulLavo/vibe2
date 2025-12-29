@@ -376,6 +376,7 @@ export function createTextEditorLayout(
 
 	// *Approved*
 	createEffect(() => {
+		const effectStart = performance.now()
 		const tabSize = options.tabSize()
 		const lineCount = cursor.lines.lineCount()
 		const filePath = options.filePath?.()
@@ -390,7 +391,14 @@ export function createTextEditorLayout(
 		lastLineCount = lineCount
 		lastFilePath = filePath
 
-		if (!shouldReset && !shouldResetForPath) return
+		if (!shouldReset && !shouldResetForPath) {
+			console.log(
+				'layout effect 1: no reset needed',
+				performance.now() - effectStart
+			)
+			return
+		}
+		console.log('layout effect 1: resetting', performance.now() - effectStart)
 
 		setMaxColumnsSeen(0)
 		lastWidthScanStart = 0
@@ -410,6 +418,7 @@ export function createTextEditorLayout(
 
 	// *Approved*
 	createEffect(() => {
+		const effectStart = performance.now()
 		const items = virtualItems()
 		options.tabSize()
 
@@ -417,6 +426,10 @@ export function createTextEditorLayout(
 			lastWidthScanStart = 0
 			lastWidthScanEnd = -1
 			activeWidthScan = null
+			console.log(
+				'layout effect 2 (virtualItems): empty',
+				performance.now() - effectStart
+			)
 			return
 		}
 
@@ -440,6 +453,10 @@ export function createTextEditorLayout(
 
 		lastWidthScanStart = startIndex
 		lastWidthScanEnd = endIndex
+		console.log(
+			'layout effect 2 (virtualItems): done',
+			performance.now() - effectStart
+		)
 	})
 
 	onCleanup(() => {

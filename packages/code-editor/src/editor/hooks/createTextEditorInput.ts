@@ -110,6 +110,7 @@ export function createTextEditorInput(
 			mergeMode?: HistoryMergeMode
 		}
 	): boolean => {
+		const perfStart = performance.now()
 		if (!options.isEditable()) return false
 
 		const documentLength = cursor.documentLength()
@@ -136,25 +137,31 @@ export function createTextEditorInput(
 			!!options.onIncrementalEdit || !!options.onIncrementalEditStart
 		const incrementalEdit = shouldDescribeEdit
 			? describeIncrementalEdit(
-				(offset) => {
-					const position = cursor.lines.offsetToPosition(offset)
-					return {
-						row: position.line,
-						column: position.column,
-					}
-				},
-				clampedStart,
-				deletedText,
-				insertedText
-			)
+					(offset) => {
+						const position = cursor.lines.offsetToPosition(offset)
+						return {
+							row: position.line,
+							column: position.column,
+						}
+					},
+					clampedStart,
+					deletedText,
+					insertedText
+				)
 			: undefined
 
 		if (incrementalEdit) {
 			options.onIncrementalEditStart?.(incrementalEdit)
 		}
 
+		console.log('applyTextChange: before batch', performance.now() - perfStart)
+
 		batch(() => {
 			cursor.lines.applyEdit(clampedStart, deletedText, insertedText)
+			console.log(
+				'applyTextChange: after applyEdit',
+				performance.now() - perfStart
+			)
 
 			let nextSnapshot: PieceTableSnapshot | undefined
 			options.updatePieceTable((current) => {
@@ -176,17 +183,31 @@ export function createTextEditorInput(
 				nextSnapshot = snapshot
 				return snapshot
 			})
+			console.log(
+				'applyTextChange: after updatePieceTable',
+				performance.now() - perfStart
+			)
 
 			if (nextSnapshot) {
 				cursor.lines.setPieceTableSnapshot(nextSnapshot, {
 					mode: 'incremental',
 				})
 			}
+			console.log(
+				'applyTextChange: after setPieceTableSnapshot',
+				performance.now() - perfStart
+			)
 
 			if (incrementalEdit) {
 				options.onIncrementalEdit?.(incrementalEdit)
 			}
+			console.log(
+				'applyTextChange: after onIncrementalEdit',
+				performance.now() - perfStart
+			)
 		})
+
+		console.log('applyTextChange: after batch', performance.now() - perfStart)
 
 		const cursorOffsetAfter =
 			typeof changeOptions?.cursorOffsetAfter === 'number'
@@ -196,6 +217,10 @@ export function createTextEditorInput(
 					: clampedStart
 
 		cursor.actions.setCursorOffset(cursorOffsetAfter)
+		console.log(
+			'applyTextChange: after setCursorOffset',
+			performance.now() - perfStart
+		)
 
 		const cursorAfter = snapshotCursorPosition()
 		const selectionAfter = snapshotSelection()
@@ -214,8 +239,16 @@ export function createTextEditorInput(
 				mergeMode: changeOptions?.mergeMode,
 			}
 		)
+		console.log(
+			'applyTextChange: after recordChange',
+			performance.now() - perfStart
+		)
 
 		options.scrollCursorIntoView()
+		console.log(
+			'applyTextChange: after scrollCursorIntoView',
+			performance.now() - perfStart
+		)
 		return true
 	}
 
@@ -301,7 +334,12 @@ export function createTextEditorInput(
 
 		deleteSelection()
 
+		const start = performance.now()
 		applyInsert(value)
+		console.log(
+			'createTextEditorInput.handleInput: applyInsert done',
+			performance.now() - start
+		)
 		target.value = ''
 	}
 

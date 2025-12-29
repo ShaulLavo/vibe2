@@ -203,61 +203,61 @@ export function create2DVirtualizer(
 			})
 		}
 
-	let rafScrollState = 0
-	let scrollTimeoutId: ReturnType<typeof setTimeout>
-	let pendingScrollTop = untrack(scrollTop)
-	let pendingScrollLeft = untrack(scrollLeft)
-	let lastAppliedTop = pendingScrollTop
-	let lastAppliedLeft = pendingScrollLeft
-	let lastQuantizedTop = pendingScrollTop
-	let lastQuantizedLeft = pendingScrollLeft
+		let rafScrollState = 0
+		let scrollTimeoutId: ReturnType<typeof setTimeout>
+		let pendingScrollTop = untrack(scrollTop)
+		let pendingScrollLeft = untrack(scrollLeft)
+		let lastAppliedTop = pendingScrollTop
+		let lastAppliedLeft = pendingScrollLeft
+		let lastQuantizedTop = pendingScrollTop
+		let lastQuantizedLeft = pendingScrollLeft
 
-	const onScroll = () => {
-		pendingScrollTop = normalizeNumber(element.scrollTop)
-		pendingScrollLeft = normalizeNumber(element.scrollLeft)
+		const onScroll = () => {
+			pendingScrollTop = normalizeNumber(element.scrollTop)
+			pendingScrollLeft = normalizeNumber(element.scrollLeft)
 
 			if (!rafScrollState) {
 				rafScrollState = requestAnimationFrame(() => {
 					rafScrollState = 0
 
-				const rowHeight = normalizeRowHeight(options.rowHeight())
-				const charWidth = normalizeCharWidth(options.charWidth())
-				const nextTop = pendingScrollTop
-				const nextLeft = pendingScrollLeft
-				const quantizedTop =
-					rowHeight > 0
-						? Math.floor(nextTop / rowHeight) * rowHeight
-						: nextTop
-				const quantizedLeft =
-					charWidth > 0
-						? Math.floor(nextLeft / charWidth) * charWidth
-						: nextLeft
-				const didChange =
-					nextTop !== lastAppliedTop || nextLeft !== lastAppliedLeft
+					const rowHeight = normalizeRowHeight(options.rowHeight())
+					const charWidth = normalizeCharWidth(options.charWidth())
+					const nextTop = pendingScrollTop
+					const nextLeft = pendingScrollLeft
+					const quantizedTop =
+						rowHeight > 0
+							? Math.floor(nextTop / rowHeight) * rowHeight
+							: nextTop
+					const quantizedLeft =
+						charWidth > 0
+							? Math.floor(nextLeft / charWidth) * charWidth
+							: nextLeft
+					const didChange =
+						nextTop !== lastAppliedTop || nextLeft !== lastAppliedLeft
 
-				if (didChange) {
-					if (
-						quantizedTop !== lastQuantizedTop ||
-						quantizedLeft !== lastQuantizedLeft
-					) {
-						lastQuantizedTop = quantizedTop
-						lastQuantizedLeft = quantizedLeft
-						batch(() => {
-							setScrollTop(nextTop)
-							setScrollLeft(nextLeft)
-						})
-					}
-					if (!untrack(isScrolling)) {
-						setIsScrolling(true)
-					}
-					if (nextTop > lastAppliedTop) setScrollDirection('forward')
-					else if (nextTop < lastAppliedTop) setScrollDirection('backward')
+					if (didChange) {
+						if (
+							quantizedTop !== lastQuantizedTop ||
+							quantizedLeft !== lastQuantizedLeft
+						) {
+							lastQuantizedTop = quantizedTop
+							lastQuantizedLeft = quantizedLeft
+							batch(() => {
+								setScrollTop(nextTop)
+								setScrollLeft(nextLeft)
+							})
+						}
+						if (!untrack(isScrolling)) {
+							setIsScrolling(true)
+						}
+						if (nextTop > lastAppliedTop) setScrollDirection('forward')
+						else if (nextTop < lastAppliedTop) setScrollDirection('backward')
 
-					lastAppliedTop = nextTop
-					lastAppliedLeft = nextLeft
-				}
-			})
-		}
+						lastAppliedTop = nextTop
+						lastAppliedLeft = nextLeft
+					}
+				})
+			}
 
 			clearTimeout(scrollTimeoutId)
 			scrollTimeoutId = setTimeout(() => setIsScrolling(false), 150)
@@ -354,6 +354,7 @@ export function create2DVirtualizer(
 	}
 
 	const virtualItems = createMemo<VirtualItem2D[]>(() => {
+		const perfStart = performance.now()
 		const enabled = options.enabled()
 		const count = normalizeCount(options.count())
 		const rowHeight = normalizeRowHeight(options.rowHeight())
@@ -369,9 +370,10 @@ export function create2DVirtualizer(
 		const getLineLength = options.getLineLength
 		const getLineId = options.getLineId
 
-		return trackMicro(
+		const result = trackMicro(
 			'virtualizer-2d.virtualItems',
 			() => {
+				// ... (content of helper)
 				// Invalidate cache if metrics change
 				if (cachedRowHeight !== rowHeight || cachedCharWidth !== charWidth) {
 					virtualItemCache.clear()
@@ -470,6 +472,8 @@ export function create2DVirtualizer(
 				},
 			}
 		)
+		console.log('virtualItems memo done', performance.now() - perfStart)
+		return result
 	})
 
 	const scrollToBehavior = (

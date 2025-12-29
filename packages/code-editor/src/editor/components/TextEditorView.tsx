@@ -103,9 +103,20 @@ export const TextEditorView = (props: EditorProps) => {
 
 	// Apply offset shifts to fold ranges for optimistic updates
 	const shiftedFolds = createMemo(() => {
+		const memoStart = performance.now()
 		const folds = props.folds?.()
 		const offsets = props.highlightOffset?.()
-		return shiftFoldRanges(folds, offsets)
+		const result = shiftFoldRanges(folds, offsets)
+		console.log(
+			'shiftedFolds memo:',
+			folds?.length ?? 0,
+			'folds,',
+			offsets?.length ?? 0,
+			'offsets,',
+			performance.now() - memoStart,
+			'ms'
+		)
+		return result
 	})
 
 	const { foldedStarts, toggleFold } = useFoldedStarts({
@@ -304,39 +315,20 @@ export const TextEditorView = (props: EditorProps) => {
 		return buildLineEntry(lineIndex)
 	}
 
-	const lineEntries = createMemo<LineEntry[] | undefined>(() => {
-		const highlights = showHighlights() ? props.highlights?.() : undefined
-		const errors = props.errors?.()
-		if (!highlights?.length && !errors?.length) return undefined
-
-		const offsets = showHighlights() ? props.highlightOffset?.() : undefined
-		if (offsets && offsets.length > 0) return undefined
-
-		// Track line data revision to ensure re-computation when any line changes.
-		// This is needed because store property accesses through nested function calls
-		// aren't reliably tracked by SolidJS.
-		cursor.lines.lineDataRevision()
-
-		const count = cursor.lines.lineCount()
-		if (count === 0) return undefined
-
-		const entries: LineEntry[] = new Array(count)
-		for (let i = 0; i < count; i += 1) {
-			entries[i] = buildLineEntry(i)
-		}
-		return entries
-	})
-
+	/*
+	 * Line highlights are precomputed using line accessors instead of
+	 * allocating an array of LineEntry objects. This avoids O(N) allocation
+	 * on every highlight update or offsets change.
+	 */
 	const { getLineHighlights, getHighlightsRevision } = createLineHighlights({
 		highlights: () => (showHighlights() ? props.highlights?.() : undefined),
 		errors: () => props.errors?.(),
 		highlightOffset: () =>
 			showHighlights() ? props.highlightOffset?.() : undefined,
-		lineEntries,
-		getLineStart: (entry) =>
-			entry.lineId > 0
-				? cursor.lines.getLineStartById(entry.lineId)
-				: cursor.lines.getLineStart(entry.index),
+		lineCount: cursor.lines.lineCount,
+		getLineStart: cursor.lines.getLineStart,
+		getLineLength: cursor.lines.getLineLength,
+		getLineTextLength: cursor.lines.getLineTextLength,
 	})
 	// const getLineHighlights = () => undefined
 

@@ -47,5 +47,7 @@
     "apps/*",
     "packages/*"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "@lightningjs/renderer": "^2.20.0"
+  }
 }
