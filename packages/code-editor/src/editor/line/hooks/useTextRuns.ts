@@ -8,23 +8,6 @@ import {
 } from '../utils/textRuns'
 import { getBracketDepthTextClass } from '../../theme/bracketColors'
 
-// Global counter for profiling
-let textRunsHtmlRunCount = 0
-let textRunsHtmlTotalTime = 0
-let lastTextRunsHtmlReportTime = 0
-
-const maybeReportTextRunsHtmlStats = () => {
-	const now = performance.now()
-	if (now - lastTextRunsHtmlReportTime > 100 && textRunsHtmlRunCount > 0) {
-		console.log(
-			`useTextRunsHtml: ${textRunsHtmlRunCount} runs, ${textRunsHtmlTotalTime.toFixed(2)}ms total`
-		)
-		textRunsHtmlRunCount = 0
-		textRunsHtmlTotalTime = 0
-		lastTextRunsHtmlReportTime = now
-	}
-}
-
 export type UseTextRunsOptions = {
 	text: Accessor<string>
 	bracketDepths: Accessor<LineBracketDepthMap | undefined>
@@ -71,7 +54,6 @@ export const useTextRunsHtml = (
 	options: UseTextRunsOptions
 ): Accessor<string> => {
 	const html = createMemo(() => {
-		const memoStart = performance.now()
 		const text = options.text()
 		if (text.length === 0) {
 			return ''
@@ -87,9 +69,6 @@ export const useTextRunsHtml = (
 		const runs = buildTextRuns(text, depthMap, highlights, startIndex, endIndex)
 
 		const result = buildTextRunsHtml(runs, getBracketDepthTextClass)
-		textRunsHtmlRunCount++
-		textRunsHtmlTotalTime += performance.now() - memoStart
-		maybeReportTextRunsHtmlStats()
 		return result
 	})
 

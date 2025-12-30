@@ -9,7 +9,6 @@ import {
 	typeBackspace,
 	collectMetrics,
 	summarizeMetrics,
-	formatMetricsSummary,
 	waitForFrames,
 	type TestEditorHandle,
 } from './utils'
@@ -60,7 +59,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('Heavy Highlights Typing', summary))
 
 			expect(summary.median).toBeLessThan(100)
 			expect(summary.p95).toBeLessThan(200)
@@ -95,7 +93,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('Dense Highlights (600+)', summary))
 
 			expect(summary.median).toBeLessThan(150)
 		})
@@ -124,7 +121,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('Bracket Typing', summary))
 
 			expect(summary.median).toBeLessThan(100)
 		})
@@ -153,7 +149,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('Deep Nesting Typing', summary))
 
 			expect(summary.median).toBeLessThan(100)
 		})
@@ -179,7 +174,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('Large File - Start', summary))
 
 			expect(summary.median).toBeLessThan(100)
 		})
@@ -211,9 +205,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(
-				formatMetricsSummary('Large File - Middle (Virtualized)', summary)
-			)
 
 			expect(summary.median).toBeLessThan(100)
 		})
@@ -234,10 +225,6 @@ describe('Typing Performance Benchmarks', () => {
 
 			const start = performance.now()
 			const latencies = await typeFast(input!, 'abcdefghijklmnopqrstuvwxyz')
-			const totalTime = performance.now() - start
-
-			console.log(`Fast Typing: 26 chars in ${totalTime.toFixed(2)}ms`)
-			console.log(`Average: ${(totalTime / 26).toFixed(2)}ms per char`)
 
 			expect(latencies.length).toBe(26)
 		})
@@ -258,7 +245,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('Newline Insertion', summary))
 
 			expect(summary.median).toBeLessThan(150)
 		})
@@ -280,7 +266,6 @@ describe('Typing Performance Benchmarks', () => {
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('Backspace Deletion', summary))
 
 			expect(summary.median).toBeLessThan(100)
 		})
@@ -313,7 +298,6 @@ function map<T, U>(result: Result<T, unknown>, fn: (value: T) => U): Result<U, u
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('TypeScript Generics', summary))
 
 			expect(summary.median).toBeLessThan(100)
 		})
@@ -347,7 +331,6 @@ function map<T, U>(result: Result<T, unknown>, fn: (value: T) => U): Result<U, u
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('JSON Editing', summary))
 
 			expect(summary.median).toBeLessThan(100)
 		})
@@ -382,7 +365,6 @@ function map<T, U>(result: Result<T, unknown>, fn: (value: T) => U): Result<U, u
 			})
 
 			const summary = summarizeMetrics(metrics.keystrokeLatencies)
-			console.log(formatMetricsSummary('HTML Editing', summary))
 
 			expect(summary.median).toBeLessThan(100)
 		})

@@ -354,7 +354,6 @@ export function create2DVirtualizer(
 	}
 
 	const virtualItems = createMemo<VirtualItem2D[]>(() => {
-		const perfStart = performance.now()
 		const enabled = options.enabled()
 		const count = normalizeCount(options.count())
 		const rowHeight = normalizeRowHeight(options.rowHeight())
@@ -472,7 +471,6 @@ export function create2DVirtualizer(
 				},
 			}
 		)
-		console.log('virtualItems memo done', performance.now() - perfStart)
 		return result
 	})
 

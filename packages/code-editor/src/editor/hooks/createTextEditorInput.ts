@@ -23,11 +23,8 @@ import type { DocumentIncrementalEdit } from '../types'
 import { useCursor, getSelectionBounds, hasSelection } from '../cursor'
 import { useHistory, type HistoryMergeMode } from '../history'
 import { clipboard } from '../utils/clipboard'
-import { createKeyRepeat } from './createKeyRepeat'
+import { createUnifiedKeyRepeat } from './createCharKeyRepeat'
 import { describeIncrementalEdit } from '../utils'
-
-type ArrowKey = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown'
-type RepeatableDeleteKey = 'Backspace'
 
 type VisibleLineRange = {
 	start: number
@@ -110,7 +107,6 @@ export function createTextEditorInput(
 			mergeMode?: HistoryMergeMode
 		}
 	): boolean => {
-		const perfStart = performance.now()
 		if (!options.isEditable()) return false
 
 		const documentLength = cursor.documentLength()
@@ -154,16 +150,9 @@ export function createTextEditorInput(
 			options.onIncrementalEditStart?.(incrementalEdit)
 		}
 
-		console.log('applyTextChange: before batch', performance.now() - perfStart)
-
 		batch(() => {
 			cursor.lines.applyEdit(clampedStart, deletedText, insertedText)
-			console.log(
-				'applyTextChange: after applyEdit',
-				performance.now() - perfStart
-			)
 
-			let nextSnapshot: PieceTableSnapshot | undefined
 			options.updatePieceTable((current) => {
 				const baseSnapshot =
 					current ??
@@ -180,34 +169,13 @@ export function createTextEditorInput(
 					snapshot = insertIntoPieceTable(snapshot, clampedStart, insertedText)
 				}
 
-				nextSnapshot = snapshot
 				return snapshot
 			})
-			console.log(
-				'applyTextChange: after updatePieceTable',
-				performance.now() - perfStart
-			)
-
-			if (nextSnapshot) {
-				cursor.lines.setPieceTableSnapshot(nextSnapshot, {
-					mode: 'incremental',
-				})
-			}
-			console.log(
-				'applyTextChange: after setPieceTableSnapshot',
-				performance.now() - perfStart
-			)
 
 			if (incrementalEdit) {
 				options.onIncrementalEdit?.(incrementalEdit)
 			}
-			console.log(
-				'applyTextChange: after onIncrementalEdit',
-				performance.now() - perfStart
-			)
 		})
-
-		console.log('applyTextChange: after batch', performance.now() - perfStart)
 
 		const cursorOffsetAfter =
 			typeof changeOptions?.cursorOffsetAfter === 'number'
@@ -217,10 +185,6 @@ export function createTextEditorInput(
 					: clampedStart
 
 		cursor.actions.setCursorOffset(cursorOffsetAfter)
-		console.log(
-			'applyTextChange: after setCursorOffset',
-			performance.now() - perfStart
-		)
 
 		const cursorAfter = snapshotCursorPosition()
 		const selectionAfter = snapshotSelection()
@@ -239,16 +203,8 @@ export function createTextEditorInput(
 				mergeMode: changeOptions?.mergeMode,
 			}
 		)
-		console.log(
-			'applyTextChange: after recordChange',
-			performance.now() - perfStart
-		)
 
 		options.scrollCursorIntoView()
-		console.log(
-			'applyTextChange: after scrollCursorIntoView',
-			performance.now() - perfStart
-		)
 		return true
 	}
 
@@ -318,6 +274,7 @@ export function createTextEditorInput(
 			return
 		}
 
+		deleteSelection()
 		// Start end-to-end trace from keystroke to render
 		startGlobalTrace(
 			'keystroke',
@@ -332,14 +289,7 @@ export function createTextEditorInput(
 						: event.inputType
 		)
 
-		deleteSelection()
-
-		const start = performance.now()
 		applyInsert(value)
-		console.log(
-			'createTextEditorInput.handleInput: applyInsert done',
-			performance.now() - start
-		)
 		target.value = ''
 	}
 
@@ -564,81 +514,75 @@ export function createTextEditorInput(
 		KEYMAP_SCOPE_NAVIGATION
 	)
 
-	const deleteKeyRepeat = createKeyRepeat<RepeatableDeleteKey>(
-		(key, ctrlOrMeta) => {
-			performDelete(key, ctrlOrMeta)
+	const unifiedKeyRepeat = createUnifiedKeyRepeat(
+		(key, ctrlOrMeta, shiftKey) => {
+			const editable = options.isEditable()
+
+			// Handle delete keys
+			if (key === 'Backspace' || key === 'Delete') {
+				if (!editable) return
+				performDelete(key as 'Backspace' | 'Delete', ctrlOrMeta)
+				return
+			}
+
+			// Handle arrow keys
+			switch (key) {
+				case 'ArrowLeft':
+					cursor.actions.moveCursor('left', ctrlOrMeta, shiftKey)
+					options.scrollCursorIntoView()
+					return
+				case 'ArrowRight':
+					cursor.actions.moveCursor('right', ctrlOrMeta, shiftKey)
+					options.scrollCursorIntoView()
+					return
+				case 'ArrowUp':
+					cursor.actions.moveCursor('up', false, shiftKey)
+					options.scrollCursorIntoView()
+					return
+				case 'ArrowDown':
+					cursor.actions.moveCursor('down', false, shiftKey)
+					options.scrollCursorIntoView()
+					return
+			}
+
+			// Handle character input (single printable character, no ctrl/meta)
+			if (key.length === 1 && !ctrlOrMeta && editable) {
+				deleteSelection()
+				startGlobalTrace('keystroke', key === ' ' ? '␣' : `"${key}"`)
+				applyInsert(key)
+			}
 		}
 	)
-
-	const keyRepeat = createKeyRepeat<ArrowKey>((key, ctrlOrMeta, shiftKey) => {
-		switch (key) {
-			case 'ArrowLeft':
-				cursor.actions.moveCursor('left', ctrlOrMeta, shiftKey)
-				break
-			case 'ArrowRight':
-				cursor.actions.moveCursor('right', ctrlOrMeta, shiftKey)
-				break
-			case 'ArrowUp':
-				cursor.actions.moveCursor('up', false, shiftKey)
-				break
-			case 'ArrowDown':
-				cursor.actions.moveCursor('down', false, shiftKey)
-				break
-		}
-		options.scrollCursorIntoView()
-	})
 
 	const handleKeyDown = (event: KeyboardEvent) => {
 		// Trace all keydowns that might trigger an action
 		startGlobalTrace('keystroke', formatShortcut(fromEvent(event)))
 
-		const ctrlOrMeta = event.ctrlKey || event.metaKey
-		const shiftKey = event.shiftKey
-		const editable = options.isEditable()
-
-		if (event.key === 'Backspace') {
-			if (!editable) return
-			event.preventDefault()
-
-			if (!event.repeat && !deleteKeyRepeat.isActive('Backspace')) {
-				deleteKeyRepeat.start('Backspace', ctrlOrMeta, shiftKey)
-			}
-			return
-		}
-
-		if (
-			event.key === 'ArrowLeft' ||
-			event.key === 'ArrowRight' ||
-			event.key === 'ArrowUp' ||
-			event.key === 'ArrowDown'
-		) {
-			event.preventDefault()
-			if (!event.repeat && !keyRepeat.isActive(event.key as ArrowKey)) {
-				keyRepeat.start(event.key as ArrowKey, ctrlOrMeta, shiftKey)
-			}
-			return
-		}
-
+		// Let keymap handle shortcuts first
 		if (keymap.handleKeydown(event)) {
 			return
 		}
+
+		// Prevent default for keys we handle
+		const key = event.key
+		if (
+			key === 'Backspace' ||
+			key === 'Delete' ||
+			key === 'ArrowLeft' ||
+			key === 'ArrowRight' ||
+			key === 'ArrowUp' ||
+			key === 'ArrowDown' ||
+			(key.length === 1 && !event.ctrlKey && !event.metaKey)
+		) {
+			event.preventDefault()
+		}
+
+		// Use unified key repeat for everything
+		unifiedKeyRepeat.handleKeyDown(event)
 	}
 
 	const handleKeyUp = (event: KeyboardEvent) => {
-		if (event.key === 'Backspace' && deleteKeyRepeat.isActive('Backspace')) {
-			deleteKeyRepeat.stop()
-		}
-
-		if (
-			event.key === 'ArrowLeft' ||
-			event.key === 'ArrowRight' ||
-			event.key === 'ArrowUp' ||
-			event.key === 'ArrowDown'
-		) {
-			if (keyRepeat.isActive(event.key as ArrowKey)) {
-				keyRepeat.stop()
-			}
-		}
+		unifiedKeyRepeat.handleKeyUp(event)
 	}
 
 	const handleRowClick = (lineIndex: number) => {

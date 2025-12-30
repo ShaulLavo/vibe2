@@ -176,7 +176,6 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 
 		// --- PHASE 1: SCROLL DOWN ---
 		if (phasesToRun.has('down')) {
-			console.log('📊 Benchmark: Phase 1 - Scroll Down')
 			const start = performance.now()
 			let currentY = 0
 			let frames = 0
@@ -195,7 +194,6 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 
 		// --- PHASE 2: SCROLL UP ---
 		if (phasesToRun.has('up')) {
-			console.log('📊 Benchmark: Phase 2 - Scroll Up')
 			const start = performance.now()
 			let currentY = el.scrollTop // Start from current pos (usually bottom if down ran)
 			if (!phasesToRun.has('down')) currentY = maxScrollY // If down didn't run, assume start at bottom? Or ensure we are at bottom?
@@ -220,7 +218,6 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 
 		// --- PHASE 3: RANDOM VERTICAL JUMPS ---
 		if (phasesToRun.has('jumpV')) {
-			console.log('📊 Benchmark: Phase 3 - Random Vertical Jumps')
 			const start = performance.now()
 			let frames = 0
 
@@ -238,20 +235,9 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 
 		// --- HORIZONTAL CHECKS ---
 		const hasHorizontal = maxScrollX > 0
-		if (
-			!hasHorizontal &&
-			(phasesToRun.has('right') ||
-				phasesToRun.has('left') ||
-				phasesToRun.has('jumpH'))
-		) {
-			console.log(
-				'⚠️ Benchmark: Skipping horizontal phases (no horizontal scroll available on element)'
-			)
-		}
 
 		// --- PHASE 4: SCROLL RIGHT ---
 		if (phasesToRun.has('right') && hasHorizontal) {
-			console.log('📊 Benchmark: Phase 4 - Scroll Right')
 			el.scrollLeft = 0 // Ensure start at left
 			const start = performance.now()
 			let currentX = 0
@@ -271,7 +257,6 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 
 		// --- PHASE 5: SCROLL LEFT ---
 		if (phasesToRun.has('left') && hasHorizontal) {
-			console.log('📊 Benchmark: Phase 5 - Scroll Left')
 			if (!phasesToRun.has('right')) el.scrollLeft = maxScrollX // Force start at right if needed
 			const start = performance.now()
 			let currentX = el.scrollLeft
@@ -291,7 +276,6 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 
 		// --- PHASE 6: RANDOM HORIZONTAL JUMPS ---
 		if (phasesToRun.has('jumpH') && hasHorizontal) {
-			console.log('📊 Benchmark: Phase 6 - Random Horizontal Jumps')
 			const start = performance.now()
 			let frames = 0
 
@@ -308,7 +292,7 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 		}
 
 		// --- REPORT ---
-		console.log('📊 Benchmark Results:')
+		// --- REPORT ---
 
 		const reportData: Record<
 			string,
@@ -328,7 +312,8 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 		if (phasesToRun.has('jumpH'))
 			reportData['Random Jump (H)'] = fmtStats(stats.jumpH)
 
-		console.table(reportData)
+		if (phasesToRun.has('jumpH'))
+			reportData['Random Jump (H)'] = fmtStats(stats.jumpH)
 
 		// Reset
 		el.scrollTop = 0

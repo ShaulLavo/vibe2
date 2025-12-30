@@ -3,23 +3,6 @@ import { createMemo, type Accessor } from 'solid-js'
 import { useCursor } from '../../cursor'
 import type { LineEntry } from '../../types'
 
-// Global counter for profiling
-let lineEntryRunCount = 0
-let lineEntryTotalTime = 0
-let lastReportTime = 0
-
-const maybeReportLineEntryStats = () => {
-	const now = performance.now()
-	if (now - lastReportTime > 100 && lineEntryRunCount > 0) {
-		console.log(
-			`useLineEntry: ${lineEntryRunCount} runs, ${lineEntryTotalTime.toFixed(2)}ms total`
-		)
-		lineEntryRunCount = 0
-		lineEntryTotalTime = 0
-		lastReportTime = now
-	}
-}
-
 export type UseLineEntryOptions = {
 	resolvedLineId: Accessor<number>
 	lineIndex: Accessor<number>
@@ -33,7 +16,6 @@ export const useLineEntry = (
 	const cursor = useCursor()
 
 	const entry = createMemo<LineEntry | null>((prev) => {
-		const memoStart = performance.now()
 		if (!options.isLineValid()) return null
 		const idx = options.lineIndex()
 		const lineId = options.resolvedLineId()
@@ -66,9 +48,6 @@ export const useLineEntry = (
 				text,
 			}
 		}
-		lineEntryRunCount++
-		lineEntryTotalTime += performance.now() - memoStart
-		maybeReportLineEntryStats()
 		return result
 	})
 	return entry

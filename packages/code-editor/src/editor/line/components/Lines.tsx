@@ -1,5 +1,5 @@
 import { For, createEffect } from 'solid-js'
-import { endGlobalTrace, hasGlobalTrace } from '@repo/perf'
+import { hasGlobalTrace, endGlobalTrace } from '@repo/perf'
 import { useCursor } from '../../cursor'
 import type { LinesProps } from '../../types'
 import { LineRow } from './LineRow'
@@ -11,12 +11,9 @@ export const Lines = (props: LinesProps) => {
 		// Track cursor position to trigger on text changes
 		void cursor.state.position.offset
 		void cursor.lines.lineCount()
-
-		queueMicrotask(() => {
-			if (hasGlobalTrace('keystroke')) {
-				endGlobalTrace('keystroke', 'render')
-			}
-		})
+		if (hasGlobalTrace('keystroke')) {
+			endGlobalTrace('keystroke')
+		}
 	})
 
 	return (

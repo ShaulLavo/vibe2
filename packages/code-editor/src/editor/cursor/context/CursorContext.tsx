@@ -106,7 +106,6 @@ export function CursorProvider(props: CursorProviderProps) {
 	 * Returns true if handled, false if general path needed.
 	 */
 	const applySingleNewlineInsert = (startIndex: number): boolean => {
-		const start = performance.now()
 		const prevLineStarts = lineStarts()
 		const prevLineIds = lineIds()
 		const prevLineCount = prevLineStarts.length
@@ -165,15 +164,6 @@ export function CursorProvider(props: CursorProviderProps) {
 			setDocumentLength((prev) => prev + 1)
 			setLineStarts((prev) => insertSingleNewlineToLineStarts(prev, startIndex))
 			setLineIdsWithIndex(nextLineIds)
-			console.log(
-				'CursorContext.applySingleNewlineInsert: lineIds updated',
-				performance.now() - start
-			)
-			syncCursorStateToDocument()
-			console.log(
-				'CursorContext.applySingleNewlineInsert: cursor synced',
-				performance.now() - start
-			)
 
 			// Update current line with prefix (no longer last if it was)
 			const wasLast = startLineId === prevLastLineId
@@ -204,10 +194,6 @@ export function CursorProvider(props: CursorProviderProps) {
 			setLineDataRevision((v) => v + 1)
 		})
 
-		console.log(
-			'CursorContext.applySingleNewlineInsert: end',
-			performance.now() - start
-		)
 		return true
 	}
 
@@ -217,7 +203,6 @@ export function CursorProvider(props: CursorProviderProps) {
 	 * Returns true if handled, false if general path needed.
 	 */
 	const applySingleCharInsert = (startIndex: number, char: string): boolean => {
-		const start = performance.now()
 		const prevLineStarts = lineStarts()
 		const prevLineIds = lineIds()
 		const prevLineCount = prevLineStarts.length
@@ -266,10 +251,6 @@ export function CursorProvider(props: CursorProviderProps) {
 		batch(() => {
 			setDocumentLength((prev) => prev + 1)
 			setLineStarts(newLineStarts)
-			console.log(
-				'CursorContext.applySingleCharInsert: signals updated',
-				performance.now() - start
-			)
 			syncCursorStateToDocument()
 
 			// Update line data in the same batch to avoid double reactive propagation
@@ -280,10 +261,6 @@ export function CursorProvider(props: CursorProviderProps) {
 			setLineDataRevision((v) => v + 1)
 		})
 
-		console.log(
-			'CursorContext.applySingleCharInsert: end',
-			performance.now() - start
-		)
 		return true
 	}
 
