@@ -3,14 +3,10 @@ import { shouldResetWidthScan } from './createTextEditorLayout'
 
 describe('shouldResetWidthScan', () => {
 	it('resets when tab size changes', () => {
-		expect(shouldResetWidthScan(4, 10, 2, 10)).toBe(true)
+		expect(shouldResetWidthScan(4, 2)).toBe(true)
 	})
 
-	it('resets when line count changes', () => {
-		expect(shouldResetWidthScan(2, 11, 2, 10)).toBe(false)
-	})
-
-	it('does not reset when tab size and line count are unchanged', () => {
-		expect(shouldResetWidthScan(2, 10, 2, 10)).toBe(false)
+	it('does not reset when tab size is unchanged', () => {
+		expect(shouldResetWidthScan(2, 2)).toBe(false)
 	})
 })

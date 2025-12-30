@@ -142,9 +142,7 @@ export const scanLineWidthSlice = (options: {
 
 export const shouldResetWidthScan = (
 	nextTabSize: number,
-	_nextLineCount: number,
-	prevTabSize: number,
-	_prevLineCount: number
+	prevTabSize: number
 ) => nextTabSize !== prevTabSize
 
 export function createTextEditorLayout(
@@ -371,24 +369,16 @@ export function createTextEditorLayout(
 	}
 
 	let lastTabSize = options.tabSize()
-	let lastLineCount = cursor.lines.lineCount()
 	let lastFilePath = options.filePath?.()
 
 	// *Approved*
 	createEffect(() => {
 		const effectStart = performance.now()
 		const tabSize = options.tabSize()
-		const lineCount = cursor.lines.lineCount()
 		const filePath = options.filePath?.()
-		const shouldReset = shouldResetWidthScan(
-			tabSize,
-			lineCount,
-			lastTabSize,
-			lastLineCount
-		)
+		const shouldReset = shouldResetWidthScan(tabSize, lastTabSize)
 		const shouldResetForPath = filePath !== lastFilePath
 		lastTabSize = tabSize
-		lastLineCount = lineCount
 		lastFilePath = filePath
 
 		if (!shouldReset && !shouldResetForPath) {

@@ -3,23 +3,6 @@ import { createMemo, type Accessor } from 'solid-js'
 import { useCursor } from '../../cursor'
 import type { VirtualItem2D } from '../../types'
 
-// Global counter for profiling
-let lineTextRunCount = 0
-let lineTextTotalTime = 0
-let lastLineTextReportTime = 0
-
-const maybeReportLineTextStats = () => {
-	const now = performance.now()
-	if (now - lastLineTextReportTime > 100 && lineTextRunCount > 0) {
-		console.log(
-			`lineText memo: ${lineTextRunCount} runs, ${lineTextTotalTime.toFixed(2)}ms total`
-		)
-		lineTextRunCount = 0
-		lineTextTotalTime = 0
-		lastLineTextReportTime = now
-	}
-}
-
 export type UseLineResolutionOptions = {
 	virtualRow: Accessor<VirtualItem2D>
 	displayToLine: Accessor<((displayIndex: number) => number) | undefined>
@@ -71,20 +54,14 @@ export const useLineResolution = (
 	})
 
 	const lineText = createMemo(() => {
-		const memoStart = performance.now()
 		const lineId = resolvedLineId()
-		let result: string
 		if (lineId > 0) {
-			result = cursor.lines.getLineTextById(lineId)
+			return cursor.lines.getLineTextById(lineId)
 		} else if (!isLineValid()) {
-			result = ''
+			return ''
 		} else {
-			result = cursor.lines.getLineText(lineIndex())
+			return cursor.lines.getLineText(lineIndex())
 		}
-		lineTextRunCount++
-		lineTextTotalTime += performance.now() - memoStart
-		maybeReportLineTextStats()
-		return result
 	})
 
 	return {

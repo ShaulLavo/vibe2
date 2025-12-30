@@ -9,6 +9,7 @@ import {
 
 import { DEFAULT_TAB_SIZE } from '../consts'
 import { useCursor } from '../cursor'
+import { loggers } from '@repo/logger'
 import {
 	createCursorScrollSync,
 	createMouseSelection,
@@ -70,6 +71,7 @@ const getLineOffsetShift = (
 }
 
 export const TextEditorView = (props: EditorProps) => {
+	const log = loggers.codeEditor.withTag('trace')
 	const cursor = useCursor()
 
 	const tabSize = () => props.tabSize?.() ?? DEFAULT_TAB_SIZE
@@ -87,12 +89,136 @@ export const TextEditorView = (props: EditorProps) => {
 		inputElement = element
 	}
 
-	const isEditable = () => props.document.isEditable()
+	const MAX_LINES_TO_PRECOMPUTE_BEFORE_EDIT = 4000
+	const [precomputeSettled, setPrecomputeSettled] = createSignal(false)
+	let precomputeReleased = false
+
+	/*
+	 * Line highlights are precomputed using line accessors instead of
+	 * allocating an array of LineEntry objects. This avoids O(N) allocation
+	 * on every highlight update or offsets change.
+	 */
+	const {
+		getLineHighlights,
+		getHighlightsRevision,
+		isPrecomputedReady,
+		enablePrecomputedSegments,
+		releasePrecomputedSegments,
+	} = createLineHighlights({
+			highlights: () => (showHighlights() ? props.highlights?.() : undefined),
+			errors: () => props.errors?.(),
+			highlightOffset: () =>
+				showHighlights() ? props.highlightOffset?.() : undefined,
+			lineCount: cursor.lines.lineCount,
+			getLineStart: cursor.lines.getLineStart,
+			getLineLength: cursor.lines.getLineLength,
+			getLineTextLength: cursor.lines.getLineTextLength,
+		})
+
+	createEffect(() => {
+		props.document.filePath()
+		precomputeReleased = false
+		enablePrecomputedSegments()
+	})
+
+	const shouldGateEditsForPrecompute = createMemo(() => {
+		if (!props.isFileSelected()) return false
+		if (!showHighlights()) return false
+		if (props.document.isEditable() !== true) return false
+
+		const hasOffsets = (props.highlightOffset?.()?.length ?? 0) > 0
+		if (hasOffsets) return false
+
+		const lineCount = cursor.lines.lineCount()
+		if (lineCount <= MAX_LINES_TO_PRECOMPUTE_BEFORE_EDIT) return false
+
+		const highlightCount = props.highlights?.()?.length ?? 0
+		const errorCount = props.errors?.()?.length ?? 0
+		if (highlightCount === 0 && errorCount === 0) return false
+
+		return true
+	})
+
+	const shouldBlockEditingForPrecompute = createMemo(
+		() => shouldGateEditsForPrecompute() && !precomputeSettled()
+	)
+
+	let settleScheduled = false
+	createEffect(() => {
+		if (!shouldGateEditsForPrecompute()) {
+			settleScheduled = false
+			precomputeReleased = false
+			if (!precomputeSettled()) setPrecomputeSettled(true)
+			return
+		}
+
+		if (!isPrecomputedReady()) {
+			settleScheduled = false
+			precomputeReleased = false
+			if (precomputeSettled()) setPrecomputeSettled(false)
+			return
+		}
+
+		if (precomputeSettled() || settleScheduled) {
+			return
+		}
+		settleScheduled = true
+
+		// Give the browser a chance to do follow-up work (including GC) before edits.
+		// `requestIdleCallback` is the most reliable signal that "expensive stuff" has settled.
+		let timeoutId: ReturnType<typeof setTimeout> | undefined
+		let idleId: number | undefined
+		const rafId =
+			typeof requestAnimationFrame === 'function'
+				? requestAnimationFrame(() => {
+						if (!precomputeReleased) {
+							precomputeReleased = true
+							releasePrecomputedSegments()
+						}
+
+						const commit = () => {
+							setPrecomputeSettled(true)
+							log.debug('precomputeSettled: ready for edits')
+						}
+
+						// Prefer waiting for idle. If not available, add a small delay to
+						// reduce the chance we un-block right before a GC pause.
+						if (typeof requestIdleCallback === 'function') {
+							idleId = requestIdleCallback(
+								() => {
+									commit()
+								},
+								{ timeout: 200 }
+							)
+						} else {
+							timeoutId = setTimeout(commit, 50)
+						}
+					})
+				: undefined
+
+		onCleanup(() => {
+			if (
+				typeof rafId === 'number' &&
+				typeof cancelAnimationFrame === 'function'
+			) {
+				cancelAnimationFrame(rafId)
+			}
+			if (typeof idleId === 'number' && typeof cancelIdleCallback === 'function') {
+				cancelIdleCallback(idleId)
+			}
+			if (timeoutId) clearTimeout(timeoutId)
+			settleScheduled = false
+		})
+	})
+
+	const isEditable = () =>
+		props.document.isEditable() && !shouldBlockEditingForPrecompute()
 
 	const handleIncrementalEditStart = (edit: DocumentIncrementalEdit) => {
 		if (!props.isFileSelected()) {
 			return
 		}
+		releasePrecomputedSegments()
 	}
 
 	const handleIncrementalEdit = (edit: DocumentIncrementalEdit) => {
@@ -109,19 +235,11 @@ export const TextEditorView = (props: EditorProps) => {
 	let cachedResult: FoldRange[] | undefined
 
 	const shiftedFolds = createMemo(() => {
-		const memoStart = performance.now()
 		const folds = props.folds?.()
 		const offsets = props.highlightOffset?.()
 
 		// Fast path: no offsets means no shift needed
 		if (!offsets?.length) {
-			console.log(
-				'shiftedFolds memo:',
-				folds?.length ?? 0,
-				'folds, 0 offsets,',
-				performance.now() - memoStart,
-				'ms'
-			)
 			return folds
 		}
 
@@ -139,15 +257,6 @@ export const TextEditorView = (props: EditorProps) => {
 			lineChangingCount === cachedLineChangingCount &&
 			cachedResult !== undefined
 		) {
-			console.log(
-				'shiftedFolds memo: CACHED,',
-				folds?.length ?? 0,
-				'folds,',
-				offsets.length,
-				'offsets,',
-				performance.now() - memoStart,
-				'ms'
-			)
 			return cachedResult
 		}
 
@@ -159,15 +268,6 @@ export const TextEditorView = (props: EditorProps) => {
 		cachedLineChangingCount = lineChangingCount
 		cachedResult = result
 
-		console.log(
-			'shiftedFolds memo:',
-			folds?.length ?? 0,
-			'folds,',
-			offsets.length,
-			'offsets,',
-			performance.now() - memoStart,
-			'ms'
-		)
 		return result
 	})
 
@@ -282,26 +382,9 @@ export const TextEditorView = (props: EditorProps) => {
 		})
 	})
 
-	// Profiling counter for bracket depths
-	let bracketDepthCallCount = 0
-	let bracketDepthTotalTime = 0
-	let lastBracketDepthReport = 0
-
 	const getLineBracketDepths = (entry: LineEntry) => {
-		const fnStart = performance.now()
 		const brackets = props.brackets?.()
 		if (!brackets || brackets.length === 0) {
-			bracketDepthCallCount++
-			bracketDepthTotalTime += performance.now() - fnStart
-			const now = performance.now()
-			if (now - lastBracketDepthReport > 100 && bracketDepthCallCount > 0) {
-				console.log(
-					`getLineBracketDepths: ${bracketDepthCallCount} calls, ${bracketDepthTotalTime.toFixed(2)}ms total`
-				)
-				bracketDepthCallCount = 0
-				bracketDepthTotalTime = 0
-				lastBracketDepthReport = now
-			}
 			return undefined
 		}
 
@@ -351,19 +434,6 @@ export const TextEditorView = (props: EditorProps) => {
 			map[relativeIndex] = b.depth
 			found = true
 		}
-
-		bracketDepthCallCount++
-		bracketDepthTotalTime += performance.now() - fnStart
-		const now = performance.now()
-		if (now - lastBracketDepthReport > 100 && bracketDepthCallCount > 0) {
-			console.log(
-				`getLineBracketDepths: ${bracketDepthCallCount} calls, ${bracketDepthTotalTime.toFixed(2)}ms total`
-			)
-			bracketDepthCallCount = 0
-			bracketDepthTotalTime = 0
-			lastBracketDepthReport = now
-		}
-
 		return found ? map : undefined
 	}
 
@@ -398,23 +468,6 @@ export const TextEditorView = (props: EditorProps) => {
 		}
 		return buildLineEntry(lineIndex)
 	}
-
-	/*
-	 * Line highlights are precomputed using line accessors instead of
-	 * allocating an array of LineEntry objects. This avoids O(N) allocation
-	 * on every highlight update or offsets change.
-	 */
-	const { getLineHighlights, getHighlightsRevision } = createLineHighlights({
-		highlights: () => (showHighlights() ? props.highlights?.() : undefined),
-		errors: () => props.errors?.(),
-		highlightOffset: () =>
-			showHighlights() ? props.highlightOffset?.() : undefined,
-		lineCount: cursor.lines.lineCount,
-		getLineStart: cursor.lines.getLineStart,
-		getLineLength: cursor.lines.getLineLength,
-		getLineTextLength: cursor.lines.getLineTextLength,
-	})
-	// const getLineHighlights = () => undefined
 
 	const { markLiveContentAvailable, getCachedRuns } = useVisibleContentCache({
 		filePath: () => props.document.filePath(),
@@ -492,6 +545,13 @@ export const TextEditorView = (props: EditorProps) => {
 					scrollElement={scrollElement}
 					class="absolute bottom-0 left-0 right-[14px] z-50"
 				/>
+				<Show when={shouldBlockEditingForPrecompute()}>
+					<div class="absolute inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+						<div class="rounded-md bg-zinc-950/80 px-3 py-2 text-sm text-zinc-200 shadow">
+							Warming up highlights…
+						</div>
+					</div>
+				</Show>
 			</div>
 		</Show>
 	)
