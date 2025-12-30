@@ -1,4 +1,5 @@
 import { createMemo, createSignal, untrack, type Accessor } from 'solid-js'
+import { unwrap } from 'solid-js/store'
 
 import { loggers } from '@repo/logger'
 
@@ -55,8 +56,10 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 
 	const sortedHighlights = createMemo(
 		(prev: EditorSyntaxHighlight[] | undefined) => {
-			const highlights = options.highlights?.()
-			if (!highlights?.length) return EMPTY_HIGHLIGHTS
+			const highlightsProp = options.highlights?.()
+			if (!highlightsProp?.length) return EMPTY_HIGHLIGHTS
+
+			const highlights = unwrap(highlightsProp)
 
 			// If length matches previous, assume same (optimization for perf)
 			// A safer check would be shallow comparison, but highlights tend to be immutable
@@ -83,8 +86,10 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 	)
 
 	const sortedErrorHighlights = createMemo<ErrorHighlight[]>(() => {
-		const errors = options.errors?.()
-		if (!errors?.length) return EMPTY_ERRORS
+		const errorsProp = options.errors?.()
+		if (!errorsProp?.length) return EMPTY_ERRORS
+
+		const errors = unwrap(errorsProp)
 
 		return errors
 			.map((error) => ({
@@ -165,7 +170,9 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			}
 
 			const start = performance.now()
-			log.debug(`precomputedSegments: running full computation for ${count} lines`)
+			log.debug(
+				`precomputedSegments: running full computation for ${count} lines`
+			)
 
 			const highlightSegments = hasHighlights
 				? toLineHighlightSegments(
@@ -229,7 +236,7 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 
 	const getValidatedOffsets = (): HighlightOffsets => {
 		const offsets = options.highlightOffset
-			? (untrack(options.highlightOffset) ?? EMPTY_OFFSETS)
+			? (unwrap(untrack(options.highlightOffset)) ?? EMPTY_OFFSETS)
 			: EMPTY_OFFSETS
 
 		if (offsets === lastOffsetsRef) {
@@ -385,11 +392,11 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			hasOffsets && (hasIntersectingOffsets || offsetShiftAmount !== 0)
 		const offsetsForSegments = shouldApplyOffsets ? offsets : undefined
 
-			if (hasOffsets && !hasIntersectingOffsets) {
-				const cachedPrecomputed = precomputedCache.get(lineKey)
-				if (cachedPrecomputed) {
-					return cachedPrecomputed
-				}
+		if (hasOffsets && !hasIntersectingOffsets) {
+			const cachedPrecomputed = precomputedCache.get(lineKey)
+			if (cachedPrecomputed) {
+				return cachedPrecomputed
+			}
 
 			const precomputedState = lastPrecomputed
 			if (precomputedState) {
@@ -514,22 +521,26 @@ export const createLineHighlights = (options: CreateLineHighlightsOptions) => {
 			for (let i = 0; i < result.length; i++) {
 				const r = result[i]!
 				const c = cached.segments[i]!
-				if (r.start !== c.start || r.end !== c.end || r.className !== c.className) {
+				if (
+					r.start !== c.start ||
+					r.end !== c.end ||
+					r.className !== c.className
+				) {
 					match = false
 					break
 				}
 			}
-				if (match) {
-					cacheLineHighlights(
-						cacheMap,
-						lineKey,
-						entry,
-						cached.segments,
-						offsetShiftAmount
-					)
-					return cached.segments
-				}
+			if (match) {
+				cacheLineHighlights(
+					cacheMap,
+					lineKey,
+					entry,
+					cached.segments,
+					offsetShiftAmount
+				)
+				return cached.segments
 			}
+		}
 
 		cacheLineHighlights(cacheMap, lineKey, entry, result, offsetShiftAmount)
 		return result

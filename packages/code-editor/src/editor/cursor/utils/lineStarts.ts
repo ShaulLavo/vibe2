@@ -96,13 +96,19 @@ export const applyEditToLineStarts = (
 	lineStarts: number[],
 	startIndex: number,
 	deletedText: string,
-	insertedText: string
+	insertedText: string,
+	startLineHint?: number,
+	endLineHint?: number
 ): number[] => {
 	const len = lineStarts.length
 	if (len === 0) return lineStarts
 
-	// Fast path for single newline insertion (Enter key)
-	if (insertedText === '\n' && deletedText.length === 0) {
+	// Fast path for single newline insertion (Enter key) - only if no hints provided
+	if (
+		startLineHint === undefined &&
+		insertedText === '\n' &&
+		deletedText.length === 0
+	) {
 		return insertSingleNewlineToLineStarts(lineStarts, startIndex)
 	}
 
@@ -111,31 +117,39 @@ export const applyEditToLineStarts = (
 	const delta = insertedLength - deletedLength
 	const oldEnd = startIndex + deletedLength
 
-	// Binary search for startLineIndex (last line starting at or before startIndex)
-	let low = 0
-	let high = len - 1
 	let startLineIndex = 0
-	while (low <= high) {
-		const mid = (low + high) >> 1
-		if ((lineStarts[mid] ?? 0) <= startIndex) {
-			startLineIndex = mid
-			low = mid + 1
-		} else {
-			high = mid - 1
+	if (startLineHint !== undefined) {
+		startLineIndex = startLineHint
+	} else {
+		// Binary search for startLineIndex (last line starting at or before startIndex)
+		let low = 0
+		let high = len - 1
+		while (low <= high) {
+			const mid = (low + high) >> 1
+			if ((lineStarts[mid] ?? 0) <= startIndex) {
+				startLineIndex = mid
+				low = mid + 1
+			} else {
+				high = mid - 1
+			}
 		}
 	}
 
-	// Binary search for firstAfterDeletion (first line starting after oldEnd)
-	low = 0
-	high = len
 	let firstAfterDeletion = len
-	while (low < high) {
-		const mid = (low + high) >> 1
-		if ((lineStarts[mid] ?? 0) > oldEnd) {
-			firstAfterDeletion = mid
-			high = mid
-		} else {
-			low = mid + 1
+	if (endLineHint !== undefined) {
+		firstAfterDeletion = endLineHint + 1
+	} else {
+		// Binary search for firstAfterDeletion (first line starting after oldEnd)
+		let low = 0
+		let high = len
+		while (low < high) {
+			const mid = (low + high) >> 1
+			if ((lineStarts[mid] ?? 0) > oldEnd) {
+				firstAfterDeletion = mid
+				high = mid
+			} else {
+				low = mid + 1
+			}
 		}
 	}
 

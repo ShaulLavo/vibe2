@@ -83,6 +83,53 @@ export const createHighlightState = () => {
 		}
 
 		const existing = highlightOffsets[path]
+
+		// Attempt to merge back-to-back single char edits to keep the stack small
+		if (existing && existing.length > 0) {
+			const last = existing[existing.length - 1]!
+
+			// Case 1: Sequential backspace (delete at 100, then delete at 99)
+			const isBackspacing =
+				last.lineDelta === 0 &&
+				incoming.lineDelta === 0 &&
+				last.charDelta < 0 &&
+				incoming.charDelta === -1 &&
+				incoming.fromCharIndex === last.fromCharIndex - 1
+
+			if (isBackspacing) {
+				const merged: HighlightTransform = {
+					...last,
+					fromCharIndex: incoming.fromCharIndex,
+					charDelta: last.charDelta + incoming.charDelta,
+					oldEndIndex: last.oldEndIndex,
+					newEndIndex: incoming.newEndIndex,
+				}
+				const nextOffsets = [...existing]
+				nextOffsets[existing.length - 1] = merged
+				setHighlightOffsets(path, nextOffsets)
+				return
+			}
+
+			// Case 2: Sequential typing (insert at 100, then insert at 101)
+			const isTyping =
+				last.lineDelta === 0 &&
+				incoming.lineDelta === 0 &&
+				incoming.charDelta > 0 &&
+				incoming.fromCharIndex === last.fromCharIndex + last.charDelta
+
+			if (isTyping) {
+				const merged: HighlightTransform = {
+					...last,
+					charDelta: last.charDelta + incoming.charDelta,
+					newEndIndex: incoming.newEndIndex,
+				}
+				const nextOffsets = [...existing]
+				nextOffsets[existing.length - 1] = merged
+				setHighlightOffsets(path, nextOffsets)
+				return
+			}
+		}
+
 		const nextOffsets = existing ? [...existing, incoming] : [incoming]
 		setHighlightOffsets(path, nextOffsets)
 	}

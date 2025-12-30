@@ -264,6 +264,77 @@ export function CursorProvider(props: CursorProviderProps) {
 		return true
 	}
 
+	/*
+	 * Fast-path for deleting a single non-newline character with no insertion.
+	 * Common case: pressing backspace within a line.
+	 * Returns true if handled, false if general path needed.
+	 */
+	const applySingleCharDelete = (startIndex: number): boolean => {
+		const prevLineStarts = lineStarts()
+		const prevLineIds = lineIds()
+		const prevLineCount = prevLineStarts.length
+
+		if (prevLineIds.length !== prevLineCount || prevLineCount === 0) {
+			return false
+		}
+
+		// Find the line containing startIndex
+		let lineIdx = 0
+		let lo = 0
+		let hi = prevLineCount - 1
+		while (lo <= hi) {
+			const mid = (lo + hi) >> 1
+			if ((prevLineStarts[mid] ?? 0) <= startIndex) {
+				lineIdx = mid
+				lo = mid + 1
+			} else {
+				hi = mid - 1
+			}
+		}
+
+		const lineId = prevLineIds[lineIdx]
+		if (typeof lineId !== 'number' || lineId < 0) {
+			return false
+		}
+
+		const lineStart = prevLineStarts[lineIdx] ?? 0
+		const currentText = lineDataById[lineId]?.text ?? ''
+		const column = startIndex - lineStart
+		const isLastLine = lineIdx === prevLineCount - 1
+
+		// Can't delete if column is beyond text length
+		if (column < 0 || column >= currentText.length) {
+			return false
+		}
+
+		// Delete character from text
+		const newText = currentText.slice(0, column) + currentText.slice(column + 1)
+
+		// Update lineStarts: shift all lines after this one by -1
+		const newLineStarts = new Array<number>(prevLineCount)
+		for (let i = 0; i <= lineIdx; i++) {
+			newLineStarts[i] = prevLineStarts[i]!
+		}
+		for (let i = lineIdx + 1; i < prevLineCount; i++) {
+			newLineStarts[i] = prevLineStarts[i]! - 1
+		}
+
+		batch(() => {
+			setDocumentLength((prev) => prev - 1)
+			setLineStarts(newLineStarts)
+			syncCursorStateToDocument()
+
+			// Update line data in the same batch to avoid double reactive propagation
+			setLineDataById(lineId, {
+				text: newText,
+				length: newText.length + (isLastLine ? 0 : 1),
+			})
+			setLineDataRevision((v) => v + 1)
+		})
+
+		return true
+	}
+
 	const computeNextLineIds = (meta: EditMetadata): number[] => {
 		if (!meta.shouldUpdateLineIds) return meta.prevLineIds
 		if (meta.expectedLineCount === 0) return []
@@ -293,7 +364,14 @@ export function CursorProvider(props: CursorProviderProps) {
 				Math.max(0, prev + insertedText.length - deletedText.length)
 			)
 			setLineStarts((prev) =>
-				applyEditToLineStarts(prev, startIndex, deletedText, insertedText)
+				applyEditToLineStarts(
+					prev,
+					startIndex,
+					deletedText,
+					insertedText,
+					meta.startLine,
+					meta.endLine
+				)
 			)
 			if (meta.shouldUpdateLineIds) {
 				setLineIdsWithIndex(nextLineIds)
@@ -471,6 +549,14 @@ export function CursorProvider(props: CursorProviderProps) {
 		) {
 			if (applySingleCharInsert(startIndex, insertedText)) return
 		}
+		// Fast path for single non-newline character deletion (backspace within a line)
+		if (
+			deletedText.length === 1 &&
+			deletedText !== '\n' &&
+			insertedText.length === 0
+		) {
+			if (applySingleCharDelete(startIndex)) return
+		}
 
 		// General path
 		const meta = computeEditMetadata(startIndex, deletedText, insertedText, {
@@ -479,8 +565,11 @@ export function CursorProvider(props: CursorProviderProps) {
 			documentLength: documentLength(),
 		})
 		const nextLineIds = computeNextLineIds(meta)
-		applyEditSignals(startIndex, deletedText, insertedText, meta, nextLineIds)
-		updateLineDataForEdit(startIndex, insertedText, meta, nextLineIds)
+
+		batch(() => {
+			applyEditSignals(startIndex, deletedText, insertedText, meta, nextLineIds)
+			updateLineDataForEdit(startIndex, insertedText, meta, nextLineIds)
+		})
 	}
 
 	const getLineText = (lineIndex: number): string => {
