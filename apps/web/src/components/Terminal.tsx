@@ -56,16 +56,14 @@ export const Terminal: Component = () => {
 
 			controller = await createTerminalController(containerRef, {
 				getPrompt: () => createPrompt(cwd(), state.activeSource),
-				commandContext: {
-					shell: {
-						state,
-						actions,
-						getCwd: () => cwd(),
-						setCwd: (path) => setCwd(() => normalizeCwd(path)),
-						getVfsContext: async () => {
-							const source = state.activeSource ?? 'memory'
-							return ensureFs(source)
-						},
+				shellContext: {
+					state,
+					actions,
+					getCwd: () => cwd(),
+					setCwd: (path) => setCwd(() => normalizeCwd(path)),
+					getVfsContext: async () => {
+						const source = state.activeSource ?? 'memory'
+						return ensureFs(source)
 					},
 				},
 				theme: theme,

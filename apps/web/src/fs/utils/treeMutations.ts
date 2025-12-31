@@ -6,6 +6,7 @@ import {
 	sortChildrenInPlace,
 	findParentNode,
 	updateDescendantPathsInPlace,
+	findNodeInTree,
 } from './treeHelpers'
 
 export const addNodeToTree = (parentPath: string, node: FsTreeNode) =>
@@ -35,22 +36,7 @@ export const relocateNode = (oldPath: string, newPath: string) =>
 	produce((tree: FsDirTreeNode) => {
 		if (oldPath === newPath) return
 
-		const node =
-			findParentNode(tree, oldPath) ??
-			(tree.children.find((c) => c.path === oldPath) as FsTreeNode | undefined)
-
-		const findNode = (t: FsDirTreeNode, p: string): FsTreeNode | undefined => {
-			if (t.path === p) return t
-			for (const child of t.children) {
-				if (child.path === p) return child
-				if (child.kind === 'dir' && p.startsWith(`${child.path}/`)) {
-					return findNode(child, p)
-				}
-			}
-			return undefined
-		}
-
-		const nodeToMove = findNode(tree, oldPath)
+		const nodeToMove = findNodeInTree(tree, oldPath)
 		if (!nodeToMove) return
 
 		const oldParentPath = getParentPath(oldPath)

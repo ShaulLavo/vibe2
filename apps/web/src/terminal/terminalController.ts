@@ -6,7 +6,8 @@ import {
 	type CanvasRenderer,
 } from 'ghostty-web'
 import { LocalEchoController } from './localEcho'
-import { handleCommand, type CommandContext } from './commands'
+import { createJustBashAdapter } from './justBashAdapter'
+import type { ShellContext } from './commands'
 import type { TerminalPrompt } from './prompt'
 import type { ThemePalette } from '@repo/theme'
 
@@ -16,7 +17,8 @@ export type TerminalController = Awaited<
 
 type TerminalControllerOptions = {
 	getPrompt: () => TerminalPrompt
-	commandContext: Omit<CommandContext, 'localEcho' | 'term'>
+	/** Shell context for future VFS integration. Currently unused with just-bash. */
+	shellContext?: ShellContext
 	theme: ThemePalette
 	/** Whether to focus the terminal on mount. Default: true */
 	focusOnMount?: boolean
@@ -56,16 +58,24 @@ export const createTerminalController = async (
 		renderer?.remeasureFont()
 	}
 
+	// Create bash adapter with VFS if shell context is available
+	const bashAdapter = await (async () => {
+		if (options.shellContext) {
+			const fsContext = await options.shellContext.getVfsContext()
+			const tree = options.shellContext.state.tree ?? undefined
+			return createJustBashAdapter(fsContext, tree)
+		}
+		return createJustBashAdapter()
+	})()
+
 	const startPromptLoop = async () => {
 		while (!disposed) {
 			const { label, continuation } = options.getPrompt()
 			try {
 				const input = await echoAddon.read(label, continuation)
-				await handleCommand(input, {
-					localEcho: echoAddon,
-					term,
-					...options.commandContext,
-				})
+				const result = await bashAdapter.exec(input)
+				if (result.stdout) echoAddon.print(result.stdout)
+				if (result.stderr) echoAddon.print(result.stderr)
 			} catch {
 				break
 			}
@@ -101,7 +111,7 @@ export const createTerminalController = async (
 		term.focus()
 	}
 
-	echoAddon.println('Welcome to vibe shell')
+	echoAddon.println('Welcome to vibe shell (powered by just-bash)')
 	echoAddon.println('Type `help` to see available commands.')
 	window.addEventListener('resize', handleResize)
 	viewport?.addEventListener('resize', handleViewportResize)
@@ -122,6 +132,7 @@ export const createTerminalController = async (
 			viewport?.removeEventListener('resize', handleViewportResize)
 			echoAddon.abortRead('terminal disposed')
 			echoAddon.dispose()
+			bashAdapter.dispose()
 			term.dispose()
 		},
 	}
