@@ -189,6 +189,19 @@ export class GrepCoordinator {
 		for (const searchPath of searchPaths) {
 			if (reachedLimit) break
 
+			// 1. Try to treat as explicit file first
+			try {
+				if (searchPath && searchPath !== '.' && searchPath !== '/') {
+					await this.#fs.getFileHandleForRelative(searchPath, false)
+					filesFound++
+					const task = processFile(searchPath)
+					pendingTasks.push(task)
+					continue
+				}
+			} catch {
+				// Not a file, proceed to directory walk
+			}
+
 			const rootDir = this.#fs.dir(searchPath)
 
 			try {
@@ -249,6 +262,47 @@ export class GrepCoordinator {
 		const patternBytes = textEncoder.encode(options.pattern)
 
 		for (const searchPath of searchPaths) {
+			// 1. Try to treat as explicit file first
+			try {
+				if (searchPath && searchPath !== '.' && searchPath !== '/') {
+					const handle = await this.#fs.getFileHandleForRelative(
+						searchPath,
+						false
+					)
+
+					const task: GrepFileTask = {
+						fileHandle: handle,
+						path: searchPath,
+						patternBytes,
+						chunkSize,
+						options: effectiveOptions,
+					}
+
+					const worker = this.#workerPool[0]!.proxy
+					const result = await worker.grepFile(task)
+
+					if (!result.error) {
+						if (options.filesWithMatches) {
+							if (result.matchCount && result.matchCount > 0) {
+								yield { ...result, matches: [] }
+							}
+						} else if (options.filesWithoutMatch) {
+							if (!result.matchCount || result.matchCount === 0) {
+								yield { ...result, matches: [] }
+							}
+						} else if (
+							result.matches.length > 0 ||
+							(options.count && result.matchCount)
+						) {
+							yield result
+						}
+					}
+					continue
+				}
+			} catch {
+				// Not a file, proceed to directory walk
+			}
+
 			const rootDir = this.#fs.dir(searchPath)
 
 			try {
