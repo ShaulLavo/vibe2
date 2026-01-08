@@ -74,10 +74,13 @@ export const createTerminalController = async (
 			const prompt = bashAdapter.getPrompt()
 			try {
 				const input = await echoAddon.read(prompt)
+				bashAdapter.setOutputCallback((text) => echoAddon.print(text))
 				const result = await bashAdapter.exec(input)
+				bashAdapter.setOutputCallback(null)
 				if (result.stdout) echoAddon.print(result.stdout)
 				if (result.stderr) echoAddon.print(result.stderr)
 			} catch {
+				bashAdapter.setOutputCallback(null)
 				break
 			}
 		}

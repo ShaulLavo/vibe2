@@ -1,3 +1,28 @@
+/**
+ * ============================================================================
+ * LEGACY CODE - NOT CURRENTLY IN USE
+ * ============================================================================
+ *
+ * This file contains the original custom command handler implementation that was
+ * used before migrating to just-bash.
+ *
+ * The terminal now uses:
+ * - terminalController.ts → creates justBashAdapter
+ * - justBashAdapter.ts → wraps the just-bash Bash class
+ * - VfsBashAdapter.ts → bridges @repo/fs VFS to just-bash's IFileSystem
+ *
+ * The `handleCommand` function and all individual command handlers in this file
+ * are NOT imported anywhere and serve only as reference/backup code.
+ *
+ * Kept for reference in case we need to:
+ * - Restore any custom command logic
+ * - Compare implementations
+ * - Migrate specific features back
+ *
+ * To fully remove: delete this file and grep/grepCommand.ts (also unused).
+ * ============================================================================
+ */
+
 import type { FsDirTreeNode, FsTreeNode, FsContext } from '@repo/fs'
 import {
 	createMinimalBinaryParseResult,

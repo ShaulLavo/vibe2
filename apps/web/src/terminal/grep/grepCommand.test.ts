@@ -9,12 +9,25 @@ import {
 } from './grepCommand'
 import type { GrepMatch, GrepProgress } from '@repo/fs'
 
+// Helper to match parseGrepArgs quote stripping behavior
+function stripQuotes(s: string | null): string | null {
+	if (!s) return s
+	if (
+		s.length >= 2 &&
+		((s.startsWith('"') && s.endsWith('"')) ||
+			(s.startsWith("'") && s.endsWith("'")))
+	) {
+		return s.slice(1, -1)
+	}
+	return s
+}
+
 describe('parseGrepArgs', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 1: Grep argument parsing preserves all inputs**
 	 * **Validates: Requirements 1.1, 1.2, 3.1, 4.1**
-	 * 
-	 * For any valid argument array containing a pattern, optional path, -n value, 
+	 *
+	 * For any valid argument array containing a pattern, optional path, -n value,
 	 * and --exclude patterns, parsing should correctly extract all components.
 	 */
 	it('property: parsing preserves all inputs', () => {
@@ -24,8 +37,12 @@ describe('parseGrepArgs', () => {
 				fc.record({
 					pattern: fc.string({ minLength: 1 }),
 					path: fc.option(fc.string({ minLength: 1 }), { nil: null }),
-					maxResults: fc.option(fc.integer({ min: 1, max: 10000 }), { nil: null }),
-					excludePatterns: fc.array(fc.string({ minLength: 1 }), { maxLength: 5 }),
+					maxResults: fc.option(fc.integer({ min: 1, max: 10000 }), {
+						nil: null,
+					}),
+					excludePatterns: fc.array(fc.string({ minLength: 1 }), {
+						maxLength: 5,
+					}),
 					showHelp: fc.boolean(),
 				}),
 				(input) => {
@@ -56,10 +73,10 @@ describe('parseGrepArgs', () => {
 					// Parse the args
 					const result = parseGrepArgs(args)
 
-					// Verify all inputs are preserved
+					// Verify all inputs are preserved (accounting for quote stripping)
 					expect(result.showHelp).toBe(input.showHelp)
-					expect(result.pattern).toBe(input.pattern)
-					expect(result.path).toBe(input.path)
+					expect(result.pattern).toBe(stripQuotes(input.pattern))
+					expect(result.path).toBe(stripQuotes(input.path))
 					expect(result.maxResults).toBe(input.maxResults)
 					expect(result.excludePatterns).toEqual(input.excludePatterns)
 				}
@@ -251,8 +268,8 @@ describe('formatGrepMatch', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 2: Match formatting contains required components**
 	 * **Validates: Requirements 1.3, 5.1**
-	 * 
-	 * For any GrepMatch object with path, lineNumber, and lineContent, 
+	 *
+	 * For any GrepMatch object with path, lineNumber, and lineContent,
 	 * the formatted output string should contain all three components in the correct order.
 	 */
 	it('property: formatted output contains all required components', () => {
@@ -290,8 +307,8 @@ describe('formatGrepMatch', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 3: Color codes are present in formatted output**
 	 * **Validates: Requirements 5.2**
-	 * 
-	 * For any GrepMatch object, the formatted output should contain ANSI escape sequences 
+	 *
+	 * For any GrepMatch object, the formatted output should contain ANSI escape sequences
 	 * for cyan (path), yellow (line number), and reset codes.
 	 */
 	it('property: formatted output contains ANSI color codes', () => {
@@ -335,8 +352,8 @@ describe('formatGrepMatch', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 4: Long lines are truncated with indicator**
 	 * **Validates: Requirements 5.3**
-	 * 
-	 * For any GrepMatch with lineContent exceeding the maximum length threshold, 
+	 *
+	 * For any GrepMatch with lineContent exceeding the maximum length threshold,
 	 * the formatted output should be truncated and end with a truncation indicator.
 	 */
 	it('property: long lines are truncated with indicator', () => {
@@ -352,10 +369,10 @@ describe('formatGrepMatch', () => {
 				}),
 				(match: GrepMatch) => {
 					const maxLineLength = 200
-					
+
 					// Pre-condition: ensure line content is actually longer than max
 					fc.pre(match.lineContent.length > maxLineLength)
-					
+
 					const formatted = formatGrepMatch(match, maxLineLength)
 
 					// The truncation indicator
@@ -415,8 +432,8 @@ describe('formatProgress', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 5: Progress updates contain required metrics**
 	 * **Validates: Requirements 2.1**
-	 * 
-	 * For any GrepProgress object, the formatted progress string should contain 
+	 *
+	 * For any GrepProgress object, the formatted progress string should contain
 	 * both filesScanned and matchesFound values.
 	 */
 	it('property: progress formatting contains required metrics', () => {
@@ -545,8 +562,8 @@ describe('handleGrep integration', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 6: Max results option limits output**
 	 * **Validates: Requirements 3.1**
-	 * 
-	 * For any maxResults value N and grep results array, 
+	 *
+	 * For any maxResults value N and grep results array,
 	 * the displayed results should contain at most N matches.
 	 */
 	it('property: max results option limits output', () => {
@@ -586,8 +603,8 @@ describe('handleGrep integration', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 7: Default exclusions are applied when none specified**
 	 * **Validates: Requirements 4.2**
-	 * 
-	 * For any grep command without explicit --exclude options, 
+	 *
+	 * For any grep command without explicit --exclude options,
 	 * the grep should be called with the default exclusion patterns.
 	 */
 	it('property: default exclusions are applied when none specified', () => {
@@ -597,7 +614,9 @@ describe('handleGrep integration', () => {
 				fc.record({
 					pattern: fc.string({ minLength: 1 }),
 					path: fc.option(fc.string({ minLength: 1 }), { nil: null }),
-					maxResults: fc.option(fc.integer({ min: 1, max: 1000 }), { nil: null }),
+					maxResults: fc.option(fc.integer({ min: 1, max: 1000 }), {
+						nil: null,
+					}),
 				}),
 				(input) => {
 					// Build args without --exclude
@@ -623,7 +642,7 @@ describe('handleGrep integration', () => {
 					// This property verifies that when no exclusions are specified,
 					// the parsed result has an empty excludePatterns array,
 					// which signals that defaults should be applied.
-					
+
 					// The default exclusions include:
 					// node_modules, .git, .hg, .svn, .vite, dist, build, .cache
 					// These would be combined with gitignore patterns in handleGrep
@@ -636,7 +655,7 @@ describe('handleGrep integration', () => {
 	/**
 	 * **Feature: terminal-grep-command, Property 8: No-exclude flag disables default exclusions**
 	 * **Validates: Requirements 4.2**
-	 * 
+	 *
 	 * For any grep command with --no-exclude flag,
 	 * the default exclusions should not be applied.
 	 */
@@ -658,8 +677,8 @@ describe('handleGrep integration', () => {
 
 					// Should have noExclude flag set
 					expect(parsed.noExclude).toBe(true)
-					expect(parsed.pattern).toBe(input.pattern)
-					expect(parsed.path).toBe(input.path)
+					expect(parsed.pattern).toBe(stripQuotes(input.pattern))
+					expect(parsed.path).toBe(stripQuotes(input.path))
 				}
 			),
 			{ numRuns: 100 }
