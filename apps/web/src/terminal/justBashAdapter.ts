@@ -363,14 +363,21 @@ export function createJustBashAdapter(
 		name: 'code',
 	})
 
+	const resolveInitialCwd = () => {
+		const raw = shellContext?.getCwd?.() ?? ''
+		if (!raw || raw === '/') return '/'
+		return raw.startsWith('/') ? raw : `/${raw}`
+	}
+	const initialCwd = resolveInitialCwd()
+
 	const bash = new Bash({
 		fs: vfsAdapter,
-		cwd: '/',
+		cwd: initialCwd,
 		customCommands,
 	})
 
 	// Maintain persistent state since Bash class is stateless
-	let currentCwd = '/'
+	let currentCwd = initialCwd
 	let currentEnv: Record<string, string> = {
 		PS1: '\\w $ ',
 	}
@@ -389,6 +396,11 @@ export function createJustBashAdapter(
 				currentEnv = result.env
 				if (result.env.PWD) {
 					currentCwd = result.env.PWD
+					if (shellContext?.setCwd) {
+						const normalized =
+							currentCwd === '/' ? '' : currentCwd.replace(/^\/+/, '')
+						shellContext.setCwd(normalized)
+					}
 				}
 			}
 

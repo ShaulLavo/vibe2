@@ -1,19 +1,35 @@
-// import { FitAddon } from '@xterm/addon-fit'
+import { FitAddon as XtermFitAddon } from '@xterm/addon-fit'
+import { Terminal as XtermTerminal } from '@xterm/xterm'
 import {
-	Terminal as Ghostty,
+	Terminal as GhosttyTerminal,
 	init,
-	FitAddon,
+	FitAddon as GhosttyFitAddon,
 	type CanvasRenderer,
 } from 'ghostty-web'
 import { LocalEchoController } from './localEcho'
 import { createJustBashAdapter } from './justBashAdapter'
 import type { ShellContext } from './commands'
 import type { TerminalPrompt } from './prompt'
+import type { TerminalAddonLike, TerminalLike } from './localEcho/types'
 import type { ThemePalette } from '@repo/theme'
+
+export type TerminalBackend = 'ghostty' | 'xterm'
 
 export type TerminalController = Awaited<
 	ReturnType<typeof createTerminalController>
 >
+
+type FitAddonLike = TerminalAddonLike & {
+	fit: () => void
+	observeResize?: () => void
+}
+
+type TerminalRuntime = {
+	term: TerminalLike
+	fitAddon: FitAddonLike
+	setTheme: (theme: ThemePalette) => void
+	remeasureRendererFont?: () => void
+}
 
 type TerminalControllerOptions = {
 	getPrompt: () => TerminalPrompt
@@ -22,7 +38,11 @@ type TerminalControllerOptions = {
 	theme: ThemePalette
 	/** Whether to focus the terminal on mount. Default: true */
 	focusOnMount?: boolean
+	backend?: TerminalBackend
 }
+
+const FONT_FAMILY = 'JetBrains Mono Variable, monospace'
+const FONT_SIZE = 14
 
 export const createTerminalController = async (
 	container: HTMLDivElement,
@@ -31,33 +51,17 @@ export const createTerminalController = async (
 	let disposed = false
 	let initialFitRaf: number | null = null
 
-	try {
-		await init()
-	} catch (error) {
-		console.error('Failed to initialize terminal', error)
-		throw new Error('terminal initialization failed', { cause: error })
-	}
-	const term = new Ghostty({
-		scrollback: 0,
-		convertEol: true,
-		cursorBlink: true,
-		fontSize: 14,
-		fontFamily: 'JetBrains Mono Variable, monospace',
-		theme: {
-			...mapTheme(options.theme),
-		},
-	})
+	const backend = options.backend ?? 'ghostty'
+	const runtime =
+		backend === 'xterm'
+			? createXtermRuntime(options.theme)
+			: await createGhosttyRuntime(options.theme)
 
-	const fitAddon = new FitAddon()
+	const { term, fitAddon, remeasureRendererFont, setTheme } = runtime
 	const echoAddon = new LocalEchoController()
 
 	term.loadAddon(fitAddon)
 	term.loadAddon(echoAddon)
-
-	const remeasureRendererFont = () => {
-		const renderer = term.renderer as CanvasRenderer | undefined
-		renderer?.remeasureFont()
-	}
 
 	// Create bash adapter with VFS if shell context is available
 	const bashAdapter = await (async () => {
@@ -90,7 +94,7 @@ export const createTerminalController = async (
 		if (!disposed) fitAddon.fit()
 	}
 	const handleResize = () => {
-		remeasureRendererFont()
+		remeasureRendererFont?.()
 		fit()
 	}
 
@@ -98,11 +102,9 @@ export const createTerminalController = async (
 	const handleViewportResize = () => handleResize()
 
 	term.open(container)
-	remeasureRendererFont()
+	remeasureRendererFont?.()
+	fitAddon.observeResize?.()
 	{
-		const observeResize = fitAddon.observeResize
-		observeResize.call(fitAddon)
-
 		initialFitRaf = requestAnimationFrame(() => {
 			fit()
 			initialFitRaf = requestAnimationFrame(() => {
@@ -124,7 +126,7 @@ export const createTerminalController = async (
 	return {
 		fit,
 		setTheme: (theme: ThemePalette) => {
-			term.options.theme = mapTheme(theme)
+			setTheme(theme)
 		},
 		dispose: () => {
 			disposed = true
@@ -136,8 +138,64 @@ export const createTerminalController = async (
 			viewport?.removeEventListener('resize', handleViewportResize)
 			echoAddon.abortRead('terminal disposed')
 			echoAddon.dispose()
+			fitAddon.dispose()
 			bashAdapter.dispose()
 			term.dispose()
+		},
+	}
+}
+
+const createGhosttyRuntime = async (
+	theme: ThemePalette
+): Promise<TerminalRuntime> => {
+	try {
+		await init()
+	} catch (error) {
+		console.error('Failed to initialize terminal', error)
+		throw new Error('terminal initialization failed', { cause: error })
+	}
+
+	const term = new GhosttyTerminal({
+		scrollback: 0,
+		convertEol: true,
+		cursorBlink: true,
+		fontSize: FONT_SIZE,
+		fontFamily: FONT_FAMILY,
+		theme: {
+			...mapTheme(theme),
+		},
+	})
+
+	return {
+		term,
+		fitAddon: new GhosttyFitAddon(),
+		setTheme: (next) => {
+			term.options.theme = mapTheme(next)
+		},
+		remeasureRendererFont: () => {
+			const renderer = term.renderer as CanvasRenderer | undefined
+			renderer?.remeasureFont()
+		},
+	}
+}
+
+const createXtermRuntime = (theme: ThemePalette): TerminalRuntime => {
+	const term = new XtermTerminal({
+		scrollback: 0,
+		convertEol: true,
+		cursorBlink: true,
+		fontSize: FONT_SIZE,
+		fontFamily: FONT_FAMILY,
+		theme: {
+			...mapTheme(theme),
+		},
+	})
+
+	return {
+		term,
+		fitAddon: new XtermFitAddon(),
+		setTheme: (next) => {
+			term.options.theme = mapTheme(next)
 		},
 	}
 }

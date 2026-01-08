@@ -1,4 +1,23 @@
-import type { Terminal, ITerminalAddon, IDisposable } from 'ghostty-web'
+export interface Disposable {
+	dispose(): void
+}
+
+export interface TerminalAddonLike {
+	activate(term: TerminalLike): void
+	dispose(): void
+}
+
+export interface TerminalLike {
+	cols: number
+	rows: number
+	write(data: string): void
+	open(container: HTMLElement): void
+	focus(): void
+	onData(callback: (data: string) => void): Disposable
+	onResize(callback: (size: TerminalSize) => void): Disposable
+	loadAddon(addon: TerminalAddonLike): void
+	dispose(): void
+}
 
 /** Terminal size dimensions */
 export interface TerminalSize {
@@ -47,7 +66,7 @@ export interface LocalEchoOptions {
 }
 
 /** Public interface for LocalEchoController */
-export interface ILocalEchoController extends ITerminalAddon {
+export interface ILocalEchoController extends TerminalAddonLike {
 	/** Print a message with newline */
 	println(message: string): void
 
@@ -78,12 +97,9 @@ export interface ILocalEchoController extends ITerminalAddon {
 	/** Detach from a terminal */
 	detach(): void
 
-	/** Activate addon (xterm-compatible API from ghostty-web) */
-	activate(term: Terminal): void
+	/** Activate addon (xterm-compatible API) */
+	activate(term: TerminalLike): void
 
-	/** Dispose addon (xterm-compatible API from ghostty-web) */
+	/** Dispose addon (xterm-compatible API) */
 	dispose(): void
 }
-
-/** Disposable subscription */
-export type Disposable = IDisposable

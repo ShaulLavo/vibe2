@@ -1,4 +1,3 @@
-import type { Terminal } from 'ghostty-web'
 import { HistoryController } from './historyController'
 import {
 	closestLeftBoundary,
@@ -19,6 +18,7 @@ import type {
 	ILocalEchoController,
 	LocalEchoOptions,
 	PromptConfig,
+	TerminalLike,
 	TerminalSize,
 } from './types'
 
@@ -60,6 +60,31 @@ const ESCAPE_SEQ = {
 const ANSI_COLOR_REGEX = /\u001B\[[0-9;]*m/g
 const stripAnsi = (value: string): string => value.replace(ANSI_COLOR_REGEX, '')
 
+// Drop control bytes that crash Ghostty; ANSI color can be re-enabled if needed.
+const ALLOWED_CONTROL_CODES = new Set([0x09, 0x0a, 0x0d])
+
+function sanitizeOutput(value: string): string {
+	let sanitized = ''
+	let changed = false
+
+	for (let i = 0; i < value.length; i++) {
+		const code = value.charCodeAt(i)
+		const isAsciiControl = code < 0x20 || code === 0x7f
+		const isC1Control = code >= 0x80 && code <= 0x9f
+		const isBlocked =
+			(isAsciiControl && !ALLOWED_CONTROL_CODES.has(code)) || isC1Control
+
+		if (isBlocked) {
+			changed = true
+			continue
+		}
+
+		sanitized += value[i]
+	}
+
+	return changed ? sanitized : value
+}
+
 /**
  * Local terminal controller for displaying messages and handling local echo.
  *
@@ -72,7 +97,7 @@ const stripAnsi = (value: string): string => value.replace(ANSI_COLOR_REGEX, '')
  * - Command history navigation
  */
 export class LocalEchoController implements ILocalEchoController {
-	private term: Terminal | null = null
+	private term: TerminalLike | null = null
 	private history: HistoryController
 	private maxAutocompleteEntries: number
 
@@ -93,7 +118,7 @@ export class LocalEchoController implements ILocalEchoController {
 		this.maxAutocompleteEntries = options.maxAutocompleteEntries ?? 100
 	}
 
-	activate(term: Terminal): void {
+	activate(term: TerminalLike): void {
 		this.term = term
 		this.attach()
 	}
@@ -191,7 +216,7 @@ export class LocalEchoController implements ILocalEchoController {
 
 	/** Print a message, converting newlines properly */
 	print(message: string): void {
-		const normalized = message.replace(/[\r\n]+/g, '\n')
+		const normalized = sanitizeOutput(message).replace(/[\r\n]+/g, '\n')
 		this.term?.write(normalized.replace(/\n/g, ANSI.NEWLINE))
 	}
 

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@xterm/xterm/css/xterm.css';
 @import '../../../packages/ui/src/styles.css';
 @import 'tw-animate-css';
 @config '../../../packages/ui/tailwind.config.ts';
