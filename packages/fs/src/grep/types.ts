@@ -24,14 +24,67 @@ export interface GrepOptions {
 	/** Glob patterns to exclude (e.g., ['node_modules', '*.min.js']) */
 	excludePatterns?: string[]
 
+	/** Glob patterns to include (e.g., ['*.ts']) */
+	includePatterns?: string[]
+
 	/** Chunk size for streaming reads (default: 512KB) */
 	chunkSize?: number
 
 	/** Number of workers (default: min(cores - 1, 6)) */
 	workerCount?: number
 
-	/** Case-insensitive search (default: false) - FUTURE */
-	// caseSensitive?: boolean
+	// --- Ripgrep-compatible flags ---
+
+	/** Case-insensitive search (-i/--ignore-case) */
+	caseInsensitive?: boolean
+
+	/** Smart case: case-insensitive unless pattern has uppercase (-S/--smart-case) */
+	smartCase?: boolean
+
+	/** Treat pattern as literal string (default: true) (-F/--fixed-strings) */
+	fixedStrings?: boolean
+
+	/** Match whole words only (-w/--word-regexp) */
+	wordRegexp?: boolean
+
+	/** Invert match: select non-matching lines (-v/--invert-match) */
+	invertMatch?: boolean
+
+	/** Count matches only (-c/--count) */
+	count?: boolean
+
+	/** List files with matches only (-l/--files-with-matches) */
+	filesWithMatches?: boolean
+
+	/** List files without matches only (--files-without-match) */
+	filesWithoutMatch?: boolean
+
+	/** Lines of context before match (-B/--before-context) */
+	contextBefore?: number
+
+	/** Lines of context after match (-A/--after-context) */
+	contextAfter?: number
+
+	/** Lines of context before and after match (-C/--context) */
+	context?: number
+
+	/** Max columns per line preview (-M/--max-columns) */
+	maxColumnsPreview?: number
+
+	/** Only print matched text (-o/--only-matching) */
+	onlyMatching?: boolean
+
+	/** Allow pattern to span multiple lines (-U/--multiline) NOT IMPLEMENTED */
+	// multiline?: boolean
+
+	/** Follow symlinks (-L/--follow) */
+	followSymlinks?: boolean
+
+	/** Filter by file type (-t/--type) e.g. 'ts' */
+	type?: string
+
+	/** Exclude file type (-T/--type-not) */
+	typeNot?: string
 }
 
 // ============================================================================
@@ -51,6 +104,12 @@ export interface GrepMatch {
 
 	/** 0-indexed column offset of match within line */
 	matchStart: number
+
+	/** Context lines (if requested) */
+	context?: {
+		before: { lineNumber: number; content: string }[]
+		after: { lineNumber: number; content: string }[]
+	}
 }
 
 /** Aggregated result from searching a single file */
@@ -60,6 +119,9 @@ export interface GrepFileResult {
 
 	/** All matches found in this file */
 	matches: GrepMatch[]
+
+	/** Total number of matches (useful for count-only mode) */
+	matchCount?: number
 
 	/** Total bytes scanned */
 	bytesScanned: number
@@ -85,6 +147,21 @@ export interface GrepFileTask {
 
 	/** Chunk size for streaming */
 	chunkSize: number
+
+	/** Search options */
+	options: {
+		caseInsensitive?: boolean
+		wordRegexp?: boolean
+		invertMatch?: boolean
+		count?: boolean
+		filesWithMatches?: boolean
+		filesWithoutMatch?: boolean
+		maxColumnsPreview?: number
+		onlyMatching?: boolean
+		contextBefore?: number
+		contextAfter?: number
+		context?: number
+	}
 }
 
 /** Batch of tasks for a worker */

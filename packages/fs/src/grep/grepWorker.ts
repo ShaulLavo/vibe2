@@ -1,36 +1,32 @@
-/**
- * Grep Worker
- *
- * Runs in a Web Worker to perform streaming grep on files
- * without blocking the main thread.
- */
-
 import { expose } from 'comlink'
-import { findPatternInChunk, countByte } from './byteSearch'
+import {
+	findPatternInChunk,
+	findPatternInChunkCaseInsensitive,
+	countByte,
+	findByteForward,
+	findByteBackward,
+} from './byteSearch'
 import { streamChunksWithOverlap } from './chunkReader'
 import { extractLine, isBinaryChunk } from './lineExtractor'
 import type { GrepFileTask, GrepFileResult, GrepMatch } from './types'
 
 const NEWLINE = 0x0a
 
-/**
- * Grep a single file using streaming byte search.
- *
- * @param task - File task containing handle, path, and pattern
- * @returns Result with matches and stats
- */
 async function grepFile(task: GrepFileTask): Promise<GrepFileResult> {
-	const { fileHandle, path, patternBytes, chunkSize } = task
+	const { fileHandle, path, patternBytes, chunkSize, options } = task
 	const matches: GrepMatch[] = []
+	let matchCount = 0
 	let bytesScanned = 0
 
 	try {
 		const file = await fileHandle.getFile()
-
-		// Skip empty files
 		if (file.size === 0) {
-			return { path, matches, bytesScanned: 0 }
+			return { path, matches, bytesScanned: 0, matchCount: 0 }
 		}
+
+		const searchFn = options.caseInsensitive
+			? findPatternInChunkCaseInsensitive
+			: findPatternInChunk
 
 		const stream = file.stream()
 		const overlapSize = Math.max(0, patternBytes.length - 1)
@@ -39,45 +35,145 @@ async function grepFile(task: GrepFileTask): Promise<GrepFileResult> {
 		let isFirstChunk = true
 		let prevChunkLineCount = 0
 
-		for await (const {
-			chunk,
-			// absoluteOffset is available if needed for future features
-			isLast,
-		} of streamChunksWithOverlap(stream, effectiveChunkSize, overlapSize)) {
-			// Optional: Skip binary files (check first chunk only)
+		for await (const { chunk, isLast } of streamChunksWithOverlap(
+			stream,
+			effectiveChunkSize,
+			overlapSize
+		)) {
 			if (isFirstChunk && isBinaryChunk(chunk)) {
-				return { path, matches, bytesScanned: chunk.length, error: 'binary' }
+				return {
+					path,
+					matches: [],
+					bytesScanned: chunk.length,
+					error: 'binary',
+				}
 			}
+
 			const bytesToAdd = isFirstChunk
 				? chunk.length
 				: Math.max(0, chunk.length - overlapSize)
 			bytesScanned += bytesToAdd
-			isFirstChunk = false
 
-			// Find all pattern occurrences in this chunk
-			const offsets = findPatternInChunk(chunk, patternBytes)
+			const offsets = searchFn(chunk, patternBytes)
+			const validOffsets: number[] = []
 
-			// Extract line info for each match
 			for (const offset of offsets) {
-				const lineInfo = extractLine(chunk, offset, prevChunkLineCount)
+				if (!isFirstChunk && offset + patternBytes.length <= overlapSize) {
+					continue
+				}
 
-				matches.push({
-					path,
-					lineNumber: lineInfo.lineNumber,
-					lineContent: lineInfo.lineContent.trim(),
-					matchStart: lineInfo.columnOffset,
-				})
+				if (options.wordRegexp) {
+					if (offset > 0 && isWordByte(chunk[offset - 1]!)) continue
+					const afterIdx = offset + patternBytes.length
+					if (afterIdx < chunk.length && isWordByte(chunk[afterIdx]!)) continue
+				}
+
+				validOffsets.push(offset)
 			}
 
-			// Update line count for next chunk
-			// For overlapping chunks, we need to count lines in the non-overlapping portion
+			if (options.invertMatch) {
+				let lineStart = 0
+				let currentLineNum = prevChunkLineCount
+				while (lineStart < chunk.length) {
+					const lineEnd = findByteForward(chunk, NEWLINE, lineStart)
+					if (lineEnd === chunk.length && !isLast) break
+
+					// Check if this line has any match
+					let hasMatch = false
+					for (const off of validOffsets) {
+						if (off >= lineStart && off < lineEnd) {
+							hasMatch = true
+							break
+						}
+					}
+
+					if (!hasMatch) {
+						if (options.count) {
+							matchCount++
+						} else {
+							const contentBytes = chunk.slice(lineStart, lineEnd)
+							const lineContent = new TextDecoder().decode(contentBytes)
+							matches.push({
+								path,
+								lineNumber: currentLineNum + 1,
+								lineContent: options.maxColumnsPreview
+									? truncateLine(lineContent, options.maxColumnsPreview)
+									: lineContent.trim(),
+								matchStart: 0,
+							})
+						}
+					}
+
+					lineStart = lineEnd + 1
+					currentLineNum++
+				}
+			} else {
+				for (const offset of validOffsets) {
+					if (options.count) {
+						matchCount++
+						continue
+					}
+
+					if (options.filesWithMatches && matches.length > 0) break
+
+					const lineInfo = extractLine(chunk, offset, prevChunkLineCount)
+
+					// Context extraction
+					let context = undefined
+					if (
+						options.context ||
+						options.contextBefore ||
+						options.contextAfter
+					) {
+						const before = options.context ?? options.contextBefore ?? 0
+						const after = options.context ?? options.contextAfter ?? 0
+						context = extractContext(
+							chunk,
+							lineInfo.lineNumber,
+							offset,
+							before,
+							after
+						)
+					}
+
+					let content = lineInfo.lineContent.trim()
+					if (
+						options.maxColumnsPreview &&
+						content.length > options.maxColumnsPreview
+					) {
+						content = truncateLine(content, options.maxColumnsPreview)
+					}
+
+					if (options.onlyMatching) {
+						content = new TextDecoder().decode(
+							chunk.slice(offset, offset + patternBytes.length)
+						)
+					}
+
+					matches.push({
+						path,
+						lineNumber: lineInfo.lineNumber,
+						lineContent: content,
+						matchStart: lineInfo.columnOffset,
+						context,
+					})
+				}
+			}
+
 			if (!isLast) {
 				const countEnd = chunk.length - overlapSize
 				prevChunkLineCount += countByte(chunk, NEWLINE, 0, countEnd)
 			}
+
+			isFirstChunk = false
 		}
 
-		return { path, matches, bytesScanned }
+		return {
+			path,
+			matches,
+			matchCount: options.count ? matchCount : matches.length,
+			bytesScanned,
+		}
 	} catch (error) {
 		return {
 			path,
@@ -88,13 +184,62 @@ async function grepFile(task: GrepFileTask): Promise<GrepFileResult> {
 	}
 }
 
-/**
- * Grep a batch of files.
- * Workers receive batches to reduce message overhead.
- *
- * @param tasks - Array of file tasks
- * @returns Array of results
- */
+function isWordByte(byte: number): boolean {
+	return (
+		(byte >= 48 && byte <= 57) ||
+		(byte >= 65 && byte <= 90) ||
+		(byte >= 97 && byte <= 122) ||
+		byte === 95
+	)
+}
+
+function extractContext(
+	chunk: Uint8Array,
+	matchLineNum: number,
+	matchOffset: number,
+	before: number,
+	after: number
+) {
+	const beforeLines: { lineNumber: number; content: string }[] = []
+	const afterLines: { lineNumber: number; content: string }[] = []
+	const decoder = new TextDecoder()
+
+	if (before > 0) {
+		let curr = matchOffset
+		for (let i = 0; i < before; i++) {
+			const prevNl = findByteBackward(chunk, NEWLINE, curr - 1)
+			if (prevNl === -1) break
+			const lineStart = findByteBackward(chunk, NEWLINE, prevNl - 1) + 1
+			const lineEnd = prevNl
+			const content = decoder.decode(chunk.slice(lineStart, lineEnd)).trim()
+			beforeLines.unshift({ lineNumber: matchLineNum - 1 - i, content })
+			curr = lineStart
+			if (lineStart === 0) break
+		}
+	}
+
+	if (after > 0) {
+		let curr = findByteForward(chunk, NEWLINE, matchOffset)
+		if (curr < chunk.length) {
+			curr++
+			for (let i = 0; i < after; i++) {
+				if (curr >= chunk.length) break
+				const lineEnd = findByteForward(chunk, NEWLINE, curr)
+				const content = decoder.decode(chunk.slice(curr, lineEnd)).trim()
+				afterLines.push({ lineNumber: matchLineNum + 1 + i, content })
+				curr = lineEnd + 1
+			}
+		}
+	}
+
+	return { before: beforeLines, after: afterLines }
+}
+
+function truncateLine(line: string, max: number): string {
+	if (line.length <= max) return line
+	return line.slice(0, max) + '...'
+}
+
 async function grepBatch(tasks: GrepFileTask[]): Promise<GrepFileResult[]> {
 	const results: GrepFileResult[] = []
 
@@ -106,17 +251,12 @@ async function grepBatch(tasks: GrepFileTask[]): Promise<GrepFileResult[]> {
 	return results
 }
 
-/**
- * Grep files in parallel within the worker.
- * Use when files are small and parallelism helps.
- */
 async function grepBatchParallel(
 	tasks: GrepFileTask[]
 ): Promise<GrepFileResult[]> {
 	return Promise.all(tasks.map(grepFile))
 }
 
-// Worker API exposed via Comlink
 export const workerApi = {
 	grepFile,
 	grepBatch,

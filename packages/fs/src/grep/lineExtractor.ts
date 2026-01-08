@@ -8,9 +8,8 @@
 import { countByte, findByteBackward, findByteForward } from './byteSearch'
 import type { LineInfo } from './types'
 
-const NEWLINE = 0x0a // \n
+const NEWLINE = 0x0a
 
-// Shared decoder instance (reusable, handles invalid UTF-8 gracefully)
 const decoder = new TextDecoder('utf-8', { fatal: false })
 
 /**
@@ -26,22 +25,17 @@ export function extractLine(
 	matchOffset: number,
 	linesBeforeChunk: number = 0
 ): LineInfo {
-	// Find line start (scan backward for \n, or start of chunk)
 	const prevNewline = findByteBackward(chunk, NEWLINE, matchOffset - 1)
 	const lineStart = prevNewline === -1 ? 0 : prevNewline + 1
 
-	// Find line end (scan forward for \n, or end of chunk)
 	const lineEnd = findByteForward(chunk, NEWLINE, matchOffset)
 
-	// Count newlines from start of chunk to match position
 	const newlinesBeforeMatch = countByte(chunk, NEWLINE, 0, matchOffset)
-	const lineNumber = linesBeforeChunk + newlinesBeforeMatch + 1 // 1-indexed
+	const lineNumber = linesBeforeChunk + newlinesBeforeMatch + 1
 
-	// Decode only the line slice
 	const lineBytes = chunk.slice(lineStart, lineEnd)
 	const lineContent = decoder.decode(lineBytes)
 
-	// Column offset is relative to line start
 	const columnOffset = matchOffset - lineStart
 
 	return {
@@ -50,12 +44,6 @@ export function extractLine(
 		columnOffset,
 	}
 }
-
-/**
- * Extract multiple lines for context (e.g., -A, -B, -C flags in grep).
- * FUTURE: Implement when context lines are needed.
- */
-// export function extractLinesWithContext(...)
 
 /**
  * Check if a chunk likely contains binary content.
@@ -72,7 +60,6 @@ export function isBinaryChunk(
 	const checkLength = Math.min(chunk.length, sampleSize)
 
 	for (let i = 0; i < checkLength; i++) {
-		// Null byte is a strong indicator of binary content
 		if (chunk[i] === 0x00) return true
 	}
 
@@ -84,6 +71,5 @@ export function isBinaryChunk(
  * Handles common whitespace: space, tab, CR, LF.
  */
 export function trimLine(line: string): string {
-	// Use native trim which handles all Unicode whitespace
 	return line.trim()
 }

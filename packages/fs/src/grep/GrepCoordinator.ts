@@ -29,16 +29,21 @@ const log = logger.withTag('fs:grep')
 // Configuration
 // ============================================================================
 
-const DEFAULT_WORKER_COUNT = Math.min(
-	typeof navigator !== 'undefined' ? navigator.hardwareConcurrency - 1 : 4,
-	6
-)
-const textEncoder = new TextEncoder()
-const MAX_CONCURRENT_TASKS = 50 // Max tasks in flight at once
+const FILE_TYPES: Record<string, string[]> = {
+	ts: ['*.ts', '*.tsx'],
+	js: ['*.js', '*.jsx', '*.mjs', '*.cjs'],
+	css: ['*.css', '*.scss', '*.less'],
+	json: ['*.json'],
+	html: ['*.html'],
+	md: ['*.md', '*.markdown'],
+	txt: ['*.txt'],
+}
 
-// ============================================================================
-// Coordinator
-// ============================================================================
+const concurrency =
+	typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4
+const DEFAULT_WORKER_COUNT = Math.min(concurrency - 1 || 3, 6)
+const MAX_CONCURRENT_TASKS = 24
+const textEncoder = new TextEncoder()
 
 export class GrepCoordinator {
 	readonly #fs: FsContext
@@ -68,14 +73,16 @@ export class GrepCoordinator {
 		const workerCount = options.workerCount ?? DEFAULT_WORKER_COUNT
 		await this.#ensureWorkerPool(workerCount)
 
-		const patternBytes = textEncoder.encode(options.pattern)
+		// Pre-process options
 		const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE
-		const excludePatterns = options.excludePatterns ?? []
 		const searchPaths = options.paths ?? ['']
+		const effectiveOptions = this.#resolveOptions(options)
+		const patternBytes = textEncoder.encode(options.pattern)
 
 		const allMatches: GrepMatch[] = []
 		let filesFound = 0
 		let filesScanned = 0
+		let matchesFoundTotal = 0
 		let reachedLimit = false
 		let nextWorkerIndex = 0
 
@@ -118,6 +125,7 @@ export class GrepCoordinator {
 					path,
 					patternBytes,
 					chunkSize,
+					options: effectiveOptions,
 				}
 
 				// Round-robin worker selection
@@ -128,18 +136,46 @@ export class GrepCoordinator {
 				const result = await worker.grepFile(task)
 
 				if (!result.error) {
-					allMatches.push(...result.matches)
+					// Handle files-with-matches / files-without-match logic
+					if (options.filesWithMatches) {
+						if (result.matchCount && result.matchCount > 0) {
+							// Return a dummy match with just the path
+							allMatches.push({
+								path,
+								lineNumber: 0,
+								lineContent: '',
+								matchStart: 0,
+							})
+						}
+					} else if (options.filesWithoutMatch) {
+						if (!result.matchCount || result.matchCount === 0) {
+							allMatches.push({
+								path,
+								lineNumber: 0,
+								lineContent: '',
+								matchStart: 0,
+							})
+						}
+					} else {
+						// Normal results
+						allMatches.push(...result.matches)
+					}
+
+					matchesFoundTotal += result.matchCount ?? result.matches.length
 				}
 
 				filesScanned++
 				onProgress?.({
 					filesScanned,
 					filesTotal: filesFound,
-					matchesFound: allMatches.length,
+					matchesFound: matchesFoundTotal, // Report actual match count
 					currentFile: result.path,
 				})
 
-				if (options.maxResults !== undefined && allMatches.length >= options.maxResults) {
+				if (
+					options.maxResults !== undefined &&
+					allMatches.length >= options.maxResults
+				) {
 					reachedLimit = true
 				}
 			} catch {
@@ -159,15 +195,7 @@ export class GrepCoordinator {
 				for await (const entry of rootDir.walk({
 					includeFiles: true,
 					includeDirs: true,
-					filter: (entry) => {
-						if (!options.includeHidden && entry.name.startsWith('.')) {
-							return false
-						}
-						if (this.#matchesExcludePattern(entry.name, excludePatterns)) {
-							return false
-						}
-						return true
-					},
+					filter: (entry) => this.#shouldIncludeEntry(entry, options),
 				})) {
 					if (reachedLimit) break
 
@@ -190,7 +218,7 @@ export class GrepCoordinator {
 		onProgress?.({
 			filesScanned,
 			filesTotal: filesFound,
-			matchesFound: allMatches.length,
+			matchesFound: matchesFoundTotal,
 			currentFile: '',
 		})
 
@@ -215,10 +243,10 @@ export class GrepCoordinator {
 		const workerCount = options.workerCount ?? DEFAULT_WORKER_COUNT
 		await this.#ensureWorkerPool(workerCount)
 
-		const patternBytes = textEncoder.encode(options.pattern)
 		const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE
-		const excludePatterns = options.excludePatterns ?? []
 		const searchPaths = options.paths ?? ['']
+		const effectiveOptions = this.#resolveOptions(options)
+		const patternBytes = textEncoder.encode(options.pattern)
 
 		for (const searchPath of searchPaths) {
 			const rootDir = this.#fs.dir(searchPath)
@@ -227,31 +255,40 @@ export class GrepCoordinator {
 				for await (const entry of rootDir.walk({
 					includeFiles: true,
 					includeDirs: true,
-					filter: (entry) => {
-						if (!options.includeHidden && entry.name.startsWith('.')) {
-							return false
-						}
-						if (this.#matchesExcludePattern(entry.name, excludePatterns)) {
-							return false
-						}
-						return true
-					},
+					filter: (entry) => this.#shouldIncludeEntry(entry, options),
 				})) {
 					if (entry.kind === 'file') {
 						try {
-							const handle = await this.#fs.getFileHandleForRelative(entry.path, false)
+							const handle = await this.#fs.getFileHandleForRelative(
+								entry.path,
+								false
+							)
 							const task: GrepFileTask = {
 								fileHandle: handle,
 								path: entry.path,
 								patternBytes,
 								chunkSize,
+								options: effectiveOptions,
 							}
 
 							const worker = this.#workerPool[0]!.proxy
 							const result = await worker.grepFile(task)
 
-							if (!result.error && result.matches.length > 0) {
-								yield result
+							if (!result.error) {
+								if (options.filesWithMatches) {
+									if (result.matchCount && result.matchCount > 0) {
+										yield { ...result, matches: [] } // Empty matches, just path matters
+									}
+								} else if (options.filesWithoutMatch) {
+									if (!result.matchCount || result.matchCount === 0) {
+										yield { ...result, matches: [] }
+									}
+								} else if (
+									result.matches.length > 0 ||
+									(options.count && result.matchCount)
+								) {
+									yield result
+								}
 							}
 						} catch {
 							// Skip files we can't access
@@ -264,11 +301,85 @@ export class GrepCoordinator {
 		}
 	}
 
+	#resolveOptions(options: GrepOptions): GrepFileTask['options'] {
+		// Smart case: enable case-insensitive if smartCase is on AND pattern has no uppercase
+		let caseInsensitive = options.caseInsensitive ?? false
+		if (options.smartCase && !options.caseInsensitive) {
+			const hasUppercase = options.pattern !== options.pattern.toLowerCase()
+			if (!hasUppercase) {
+				caseInsensitive = true
+			}
+		}
+
+		return {
+			caseInsensitive,
+			wordRegexp: options.wordRegexp,
+			invertMatch: options.invertMatch,
+			count: options.count,
+			filesWithMatches: options.filesWithMatches,
+			filesWithoutMatch: options.filesWithoutMatch,
+			maxColumnsPreview: options.maxColumnsPreview,
+			onlyMatching: options.onlyMatching,
+			contextBefore: options.contextBefore,
+			contextAfter: options.contextAfter,
+			context: options.context,
+		}
+	}
+
+	#shouldIncludeEntry(
+		entry: { name: string; kind: string },
+		options: GrepOptions
+	): boolean {
+		if (!options.includeHidden && entry.name.startsWith('.')) {
+			return false
+		}
+
+		if (entry.kind === 'directory') return true // Recurse into all dirs unless hidden
+
+		const name = entry.name
+
+		// 1. Check exclude patterns
+		if (
+			options.excludePatterns &&
+			this.#matchesPattern(name, options.excludePatterns)
+		) {
+			return false
+		}
+
+		// 2. Check type exclusions
+		if (options.typeNot) {
+			const typePatterns = FILE_TYPES[options.typeNot]
+			if (typePatterns && this.#matchesPattern(name, typePatterns)) {
+				return false
+			}
+		}
+
+		// 3. Check include patterns (whitelisting)
+		// If includePatterns are present, file must match at least one
+		let matchedInclude = true
+		if (options.includePatterns && options.includePatterns.length > 0) {
+			matchedInclude = this.#matchesPattern(name, options.includePatterns)
+		}
+		if (!matchedInclude) return false
+
+		// 4. Check type inclusions
+		if (options.type) {
+			const typePatterns = FILE_TYPES[options.type]
+			if (typePatterns) {
+				if (!this.#matchesPattern(name, typePatterns)) {
+					return false
+				}
+			}
+		}
+
+		return true
+	}
+
 	/**
-	 * Check if a path segment matches any exclude pattern.
-	 * Supports simple glob patterns like "*.test.ts" or exact matches like "node_modules".
+	 * Check if a path segment matches any pattern in the list.
+	 * Supports simple glob patterns like "*.test.ts".
 	 */
-	#matchesExcludePattern(name: string, patterns: string[]): boolean {
+	#matchesPattern(name: string, patterns: string[]): boolean {
 		for (const pattern of patterns) {
 			if (name === pattern) {
 				return true

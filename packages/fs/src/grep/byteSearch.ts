@@ -31,16 +31,10 @@ export function findPatternInChunk(
 ): number[] {
 	const matches: number[] = []
 
-	// Edge cases
-	if (pattern.length === 0) return matches
-	if (chunk.length < pattern.length) return matches
-	if (startOffset >= chunk.length) return matches
-
 	const firstByte = pattern[0]!
 	const patternLen = pattern.length
 	const searchEnd = chunk.length - patternLen + 1
 
-	// Single-byte pattern fast path
 	if (patternLen === 1) {
 		for (let i = startOffset; i < chunk.length; i++) {
 			if (chunk[i] === firstByte) {
@@ -50,15 +44,56 @@ export function findPatternInChunk(
 		return matches
 	}
 
-	// Multi-byte pattern: first-byte check + verify
 	for (let i = startOffset; i < searchEnd; i++) {
-		// Fast path: check first byte
 		if (chunk[i] !== firstByte) continue
 
-		// Verify remaining bytes
 		let match = true
 		for (let j = 1; j < patternLen; j++) {
 			if (chunk[i + j] !== pattern[j]) {
+				match = false
+				break
+			}
+		}
+
+		if (match) {
+			matches.push(i)
+		}
+	}
+
+	return matches
+}
+
+/**
+ * Find all occurrences of a byte pattern in a chunk (Case Insensitive).
+ * Performs ASCII case-folding for A-Z/a-z.
+ */
+export function findPatternInChunkCaseInsensitive(
+	chunk: Uint8Array,
+	pattern: Uint8Array,
+	startOffset: number = 0
+): number[] {
+	const matches: number[] = []
+
+	// Edge cases
+	if (pattern.length === 0) return matches
+	if (chunk.length < pattern.length) return matches
+	if (startOffset >= chunk.length) return matches
+
+	const patternLen = pattern.length
+	const searchEnd = chunk.length - patternLen + 1
+
+	const lowerPattern = new Uint8Array(patternLen)
+	for (let i = 0; i < patternLen; i++) {
+		lowerPattern[i] = toLowerAscii(pattern[i]!)
+	}
+	const firstByte = lowerPattern[0]!
+
+	for (let i = startOffset; i < searchEnd; i++) {
+		if (toLowerAscii(chunk[i]!) !== firstByte) continue
+
+		let match = true
+		for (let j = 1; j < patternLen; j++) {
+			if (toLowerAscii(chunk[i + j]!) !== lowerPattern[j]) {
 				match = false
 				break
 			}
@@ -104,6 +139,51 @@ export function hasPattern(
 	}
 
 	return false
+}
+
+/**
+ * Check if pattern exists in chunk (Case Insensitive).
+ */
+export function hasPatternCaseInsensitive(
+	chunk: Uint8Array,
+	pattern: Uint8Array,
+	startOffset: number = 0
+): boolean {
+	if (pattern.length === 0) return false
+	if (chunk.length < pattern.length) return false
+	if (startOffset >= chunk.length) return false
+
+	const patternLen = pattern.length
+	const searchEnd = chunk.length - patternLen + 1
+
+	const lowerPattern = new Uint8Array(patternLen)
+	for (let i = 0; i < patternLen; i++) {
+		lowerPattern[i] = toLowerAscii(pattern[i]!)
+	}
+	const firstByte = lowerPattern[0]!
+
+	for (let i = startOffset; i < searchEnd; i++) {
+		if (toLowerAscii(chunk[i]!) !== firstByte) continue
+
+		let match = true
+		for (let j = 1; j < patternLen; j++) {
+			if (toLowerAscii(chunk[i + j]!) !== lowerPattern[j]) {
+				match = false
+				break
+			}
+		}
+
+		if (match) return true
+	}
+
+	return false
+}
+
+function toLowerAscii(byte: number): number {
+	if (byte >= 65 && byte <= 90) {
+		return byte + 32
+	}
+	return byte
 }
 
 /**

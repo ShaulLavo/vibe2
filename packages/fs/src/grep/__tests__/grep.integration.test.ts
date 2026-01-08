@@ -1,17 +1,3 @@
-/**
- * Grep Integration Tests
- *
- * Tests the full grep flow using:
- * - Memory File System (simulating OPFS)
- * - Mocked Web Worker (using direct logic execution)
- * - GrepCoordinator
- *
- * TODO: Add true E2E integration test using Vitest Browser Mode to verify:
- * - Real Worker instantiation and message passing (serialization checks)
- * - Terminal + Grep integration in a real browser environment
- * - True parallel execution
- */
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { GrepCoordinator } from '../GrepCoordinator'
@@ -20,7 +6,6 @@ import { getMemoryRoot } from '../../getRoot'
 import { createFs } from '../../vfs'
 import { workerApi } from '../grepWorker'
 
-// Mock Worker class since we're in Node/Vitest environment
 // Mock Worker class since we're in Node/Vitest environment
 class MockWorker {
 	postMessage() {}
@@ -158,5 +143,116 @@ describe('Grep Integration', () => {
 
 		expect(matches.length).toBe(1)
 		expect(matches[0]?.path).toBe('huge.txt')
+	})
+
+	it('supports case-insensitive search', async () => {
+		await fs.write('case.txt', 'Hello World\nhello world\nHELLO WORLD')
+
+		const matches = await coordinator.grep({
+			pattern: 'hello',
+			caseInsensitive: true,
+		})
+
+		expect(matches.length).toBe(3)
+		expect(matches[0]?.lineContent).toBe('Hello World')
+		expect(matches[1]?.lineContent).toBe('hello world')
+		expect(matches[2]?.lineContent).toBe('HELLO WORLD')
+	})
+
+	it('supports smart-case search', async () => {
+		await fs.write('smart.txt', 'foo\nFoo\nFOO')
+
+		// Lowercase pattern -> case insensitive
+		const matches1 = await coordinator.grep({
+			pattern: 'foo',
+			smartCase: true,
+		})
+		expect(matches1.length).toBe(3)
+
+		// Uppercase pattern -> case sensitive
+		const matches2 = await coordinator.grep({
+			pattern: 'Foo',
+			smartCase: true,
+		})
+		expect(matches2.length).toBe(1)
+		expect(matches2[0]?.lineContent).toBe('Foo')
+	})
+
+	it('supports word boundary search', async () => {
+		await fs.write('word.txt', 'word\nsubword\nword_suffix\nprefix_word')
+
+		const matches = await coordinator.grep({
+			pattern: 'word',
+			wordRegexp: true,
+		})
+
+		expect(matches.length).toBe(1)
+		expect(matches[0]?.lineContent).toBe('word')
+	})
+
+	it('supports invert match', async () => {
+		await fs.write('invert.txt', 'line 1\nmatch this\nline 3')
+
+		const matches = await coordinator.grep({
+			pattern: 'match',
+			invertMatch: true,
+		})
+
+		expect(matches.length).toBe(2)
+		expect(matches[0]?.lineContent).toBe('line 1')
+		expect(matches[1]?.lineContent).toBe('line 3')
+	})
+
+	it('supports count mode', async () => {
+		await fs.write('count1.txt', 'foo\nfoo')
+		await fs.write('count2.txt', 'foo')
+
+		const results: GrepFileResult[] = []
+		for await (const result of coordinator.grepStream({
+			pattern: 'foo',
+			count: true,
+		})) {
+			results.push(result)
+		}
+
+		expect(results.length).toBe(2)
+		const count1 = results.find((r) => r.path === 'count1.txt')
+		const count2 = results.find((r) => r.path === 'count2.txt')
+
+		expect(count1?.matchCount).toBe(2)
+		expect(count2?.matchCount).toBe(1)
+	})
+
+	it('supports files-with-matches', async () => {
+		await fs.write('yes.txt', 'found')
+		await fs.write('no.txt', 'missing')
+
+		const matches = await coordinator.grep({
+			pattern: 'found',
+			filesWithMatches: true,
+		})
+
+		expect(matches.length).toBe(1)
+		expect(matches[0]?.path).toBe('yes.txt')
+		// Content should be empty or ignored
+		expect(matches[0]?.lineContent).toBe('')
+	})
+
+	it('supports context lines', async () => {
+		await fs.write('context.txt', 'line 1\nline 2\nmatch\nline 4\nline 5')
+
+		const matches = await coordinator.grep({
+			pattern: 'match',
+			context: 1,
+		})
+
+		expect(matches.length).toBe(1)
+		const m = matches[0]!
+		expect(m.lineContent).toBe('match')
+		expect(m.context).toBeDefined()
+		expect(m.context?.before.length).toBe(1)
+		expect(m.context?.before[0]?.content).toBe('line 2')
+		expect(m.context?.after.length).toBe(1)
+		expect(m.context?.after[0]?.content).toBe('line 4')
 	})
 })

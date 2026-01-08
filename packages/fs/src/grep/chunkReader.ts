@@ -38,21 +38,17 @@ export async function* streamChunksWithOverlap(
 	chunkSize: number,
 	overlapSize: number
 ): AsyncGenerator<ChunkData> {
-	// Guard: Ensure overlapSize is valid to prevent infinite loops.
-	// We clamp it to be at most chunkSize - 1 so that 'advance' is always positive.
 	overlapSize = Math.max(0, Math.min(overlapSize, chunkSize - 1))
 
 	const reader = stream.getReader()
 	let buffer: Uint8Array<ArrayBufferLike> = new Uint8Array(0)
 	let absoluteOffset = 0
-	let isFirstChunk = true
 
 	try {
 		while (true) {
 			const { done, value } = await reader.read()
 
 			if (done) {
-				// Yield remaining buffer as final chunk
 				if (buffer.length > 0) {
 					yield {
 						chunk: buffer,
@@ -66,7 +62,6 @@ export async function* streamChunksWithOverlap(
 			// Append new data to buffer
 			buffer = concatUint8Arrays(buffer, value)
 
-			// Yield full chunks while we have enough data
 			while (buffer.length >= chunkSize) {
 				const chunk = buffer.slice(0, chunkSize)
 
@@ -76,12 +71,9 @@ export async function* streamChunksWithOverlap(
 					isLast: false,
 				}
 
-				// Advance offset (accounting for overlap)
-				// First chunk: no overlap needed at start
-				const advance = isFirstChunk ? chunkSize : chunkSize - overlapSize
+				const advance = chunkSize - overlapSize
 				absoluteOffset += advance
 				buffer = buffer.slice(advance)
-				isFirstChunk = false
 			}
 		}
 	} finally {
@@ -112,7 +104,6 @@ export async function readFullStream(
 		reader.releaseLock()
 	}
 
-	// Concatenate all chunks
 	const totalLength = chunks.reduce((sum, c) => sum + c.length, 0)
 	const result = new Uint8Array(totalLength)
 	let offset = 0
