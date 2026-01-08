@@ -68,6 +68,7 @@
         "@solid-primitives/bounds": "^0.1.3",
         "@solid-primitives/deep": "^0.3.3",
         "@solid-primitives/event-listener": "^2.4.3",
+        "@solid-primitives/jsx-tokenizer": "^1.1.2",
         "@solid-primitives/resize-observer": "^2.1.3",
         "@solid-primitives/set": "^0.7.2",
         "@solid-primitives/storage": "^4.3.3",
@@ -842,6 +843,8 @@
     "@solid-primitives/deep": ["@solid-primitives/deep@0.3.3", "", { "dependencies": { "@solid-primitives/memo": "^1.4.3" }, "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-YnCV2OFbBlNYlww0lSD7oDpk9zN20KQWr699s6euwd6+oRE1nbI+vqrfYuqC7E0WPDfk0DIG+ylY1xvY31ZlTg=="],
 
     "@solid-primitives/event-listener": ["@solid-primitives/event-listener@2.4.3", "", { "dependencies": { "@solid-primitives/utils": "^6.3.2" }, "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-h4VqkYFv6Gf+L7SQj+Y6puigL/5DIi7x5q07VZET7AWcS+9/G3WfIE9WheniHWJs51OEkRB43w6lDys5YeFceg=="],
+
+    "@solid-primitives/jsx-tokenizer": ["@solid-primitives/jsx-tokenizer@1.1.2", "", { "dependencies": { "@solid-primitives/utils": "^6.3.2" }, "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-fIoyiQgLbVMLcxCIjjYLV6kgbC26u3cRBo/3iOOYwwMyaegs3SIZ6rphgXtrYD1sUtHYnYnKSyYR8UP+AMEaJw=="],
 
     "@solid-primitives/keyboard": ["@solid-primitives/keyboard@1.3.3", "", { "dependencies": { "@solid-primitives/event-listener": "^2.4.3", "@solid-primitives/rootless": "^1.5.2", "@solid-primitives/utils": "^6.3.2" }, "peerDependencies": { "solid-js": "^1.6.12" } }, "sha512-9dQHTTgLBqyAI7aavtO+HnpTVJgWQA1ghBSrmLtMu1SMxLPDuLfuNr+Tk5udb4AL4Ojg7h9JrKOGEEDqsJXWJA=="],
 
