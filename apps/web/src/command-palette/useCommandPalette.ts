@@ -1,4 +1,10 @@
-import { createSignal, createMemo, batch } from 'solid-js'
+import {
+	createSignal,
+	createMemo,
+	createResource,
+	useTransition,
+	batch,
+} from 'solid-js'
 import { searchService } from '../search/SearchService'
 import { getCommandPaletteRegistry } from './registry'
 import { useFs } from '../fs/context/FsContext'
@@ -21,8 +27,7 @@ export interface PaletteState {
 	mode: PaletteMode
 	query: string
 	selectedIndex: number
-	results: PaletteResult[]
-	loading: boolean
+	pending: boolean
 }
 
 export interface PaletteActions {
@@ -62,16 +67,44 @@ function commandToResult(cmd: CommandDescriptor): PaletteResult {
 	}
 }
 
-export function useCommandPalette(): [() => PaletteState, PaletteActions] {
+// Search function extracted for use with createResource
+async function performSearch(searchQuery: string): Promise<PaletteResult[]> {
+	if (!searchQuery.trim()) {
+		return []
+	}
+
+	try {
+		const currentMode = detectModeFromQuery(searchQuery)
+
+		if (currentMode === 'command') {
+			// Remove the '>' prefix for command search
+			const commandQuery = searchQuery.slice(1).trim()
+			const registry = getCommandPaletteRegistry()
+			const commands = registry.search(commandQuery)
+			return commands.map(commandToResult)
+		} else {
+			// File mode search
+			const files = await searchService.search(searchQuery)
+			return files.map(fileToResult)
+		}
+	} catch (error) {
+		console.error('Search failed:', error)
+		return []
+	}
+}
+
+export function useCommandPalette(): [
+	state: () => PaletteState,
+	actions: PaletteActions,
+	results: () => PaletteResult[],
+] {
 	// Get FS actions for file opening
 	const [, fsActions] = useFs()
 
 	// State signals
 	const [isOpen, setIsOpen] = createSignal(false)
-	const [query, setQuery] = createSignal('')
+	const [query, setQuerySignal] = createSignal('')
 	const [selectedIndex, setSelectedIndex] = createSignal(0)
-	const [results, setResults] = createSignal<PaletteResult[]>([])
-	const [loading, setLoading] = createSignal(false)
 
 	// Focus manager for focus restoration
 	// const focusManager = useFocusManager() // TODO: Will be used in later tasks
@@ -80,50 +113,32 @@ export function useCommandPalette(): [() => PaletteState, PaletteActions] {
 	// Computed mode based on query
 	const mode = createMemo(() => detectModeFromQuery(query()))
 
-	// Computed state object
+	// Use transition for smooth updates - keeps old results visible while loading new ones
+	const [pending, start] = useTransition()
+
+	// Resource-based search - automatically refetches when query changes
+	const [searchResults] = createResource(
+		// Only fetch when palette is open and query exists
+		() => (isOpen() ? query() : null),
+		async (searchQuery) => {
+			if (!searchQuery) return []
+			return performSearch(searchQuery)
+		}
+	)
+
+	// Memoized results accessor that handles loading state
+	const results = createMemo(() => searchResults() ?? [])
+
+	// Computed state object (no longer includes results or loading - those are separate)
 	const state = createMemo(
 		(): PaletteState => ({
 			isOpen: isOpen(),
 			mode: mode(),
 			query: query(),
 			selectedIndex: selectedIndex(),
-			results: results(),
-			loading: loading(),
+			pending: pending(),
 		})
 	)
-
-	// Search function that handles both file and command modes
-	const performSearch = async (searchQuery: string) => {
-		if (!searchQuery.trim()) {
-			setResults([])
-			return
-		}
-
-		setLoading(true)
-
-		try {
-			const currentMode = detectModeFromQuery(searchQuery)
-
-			if (currentMode === 'command') {
-				// Remove the '>' prefix for command search
-				const commandQuery = searchQuery.slice(1).trim()
-				const registry = getCommandPaletteRegistry()
-				const commands = registry.search(commandQuery)
-				const commandResults = commands.map(commandToResult)
-				setResults(commandResults)
-			} else {
-				// File mode search
-				const files = await searchService.search(searchQuery)
-				const fileResults = files.map(fileToResult)
-				setResults(fileResults)
-			}
-		} catch (error) {
-			console.error('Search failed:', error)
-			setResults([])
-		} finally {
-			setLoading(false)
-		}
-	}
 
 	// Actions
 	const actions: PaletteActions = {
@@ -138,23 +153,18 @@ export function useCommandPalette(): [() => PaletteState, PaletteActions] {
 				setSelectedIndex(0)
 
 				if (openMode === 'command') {
-					setQuery('>')
+					setQuerySignal('>')
 				} else {
-					setQuery('')
+					setQuerySignal('')
 				}
-
-				// Clear results when opening
-				setResults([])
 			})
 		},
 
 		close() {
 			batch(() => {
 				setIsOpen(false)
-				setQuery('')
-				setResults([])
+				setQuerySignal('')
 				setSelectedIndex(0)
-				setLoading(false)
 			})
 
 			// Restore focus to previous element
@@ -165,13 +175,12 @@ export function useCommandPalette(): [() => PaletteState, PaletteActions] {
 		},
 
 		setQuery(newQuery: string) {
-			batch(() => {
-				setQuery(newQuery)
+			// Wrap query update in transition - this keeps old results visible
+			// while new search results are loading
+			start(() => {
+				setQuerySignal(newQuery)
 				setSelectedIndex(0) // Reset selection when query changes
 			})
-
-			// Perform search with debouncing would be ideal, but for now search immediately
-			void performSearch(newQuery)
 		},
 
 		selectNext() {
@@ -283,5 +292,5 @@ export function useCommandPalette(): [() => PaletteState, PaletteActions] {
 		},
 	}
 
-	return [state, actions]
+	return [state, actions, results]
 }

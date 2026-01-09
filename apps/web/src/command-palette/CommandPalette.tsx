@@ -1,5 +1,5 @@
 import { Dialog } from '@kobalte/core/dialog'
-import { For, Show, createEffect, createSignal } from 'solid-js'
+import { For, Show, Suspense, createEffect, createSignal } from 'solid-js'
 import { useCommandPaletteContext } from './CommandPaletteProvider'
 import type { PaletteResult } from './useCommandPalette'
 
@@ -21,10 +21,8 @@ function ResultItem(props: ResultItemProps) {
 			aria-selected={props.isSelected}
 			class={`flex cursor-pointer items-center justify-between px-3 py-2 text-sm ${
 				props.isUsingKeyboard ? '' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-			} ${
-				props.isSelected ? 'bg-gray-100 dark:bg-gray-700' : ''
-			}`}
-			onClick={props.onClick}
+			} ${props.isSelected ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+			onClick={() => props.onClick()}
 			onMouseEnter={() => {
 				// Update keyboard selection to match mouse hover
 				props.onMouseEnter?.()
@@ -35,7 +33,7 @@ function ResultItem(props: ResultItemProps) {
 			}}
 		>
 			<div class="flex-1 min-w-0 flex items-center space-x-2">
-				<Show 
+				<Show
 					when={props.result.kind === 'file'}
 					fallback={
 						<>
@@ -69,8 +67,61 @@ function ResultItem(props: ResultItemProps) {
 	)
 }
 
+// Loading fallback for Suspense
+function SearchingFallback() {
+	return (
+		<div class="px-3 py-8 text-center">
+			<div class="flex items-center justify-center space-x-2">
+				<div class="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+				<p class="text-sm text-gray-500">Searching...</p>
+			</div>
+		</div>
+	)
+}
+
+// Results list component - uses the results resource
+function ResultsList(props: {
+	results: () => PaletteResult[]
+	selectedIndex: number
+	isUsingKeyboard: boolean
+	onItemClick: (index: number) => void
+	onMouseEnter: (index: number) => void
+	onMouseMove: () => void
+	resultsContainerRef: HTMLDivElement | undefined
+}) {
+	return (
+		<Show
+			when={props.results().length > 0}
+			fallback={
+				<div class="px-3 py-8 text-center">
+					<p class="text-sm text-gray-500">No results found</p>
+				</div>
+			}
+		>
+			<For each={props.results()}>
+				{(result, index) => (
+					<ResultItem
+						result={result}
+						isSelected={index() === props.selectedIndex}
+						resultIndex={index()}
+						onClick={() => props.onItemClick(index())}
+						onMouseEnter={() => {
+							// Only update selection if not using keyboard
+							if (!props.isUsingKeyboard) {
+								props.onMouseEnter(index())
+							}
+						}}
+						onMouseMove={props.onMouseMove}
+						isUsingKeyboard={props.isUsingKeyboard}
+					/>
+				)}
+			</For>
+		</Show>
+	)
+}
+
 export function CommandPalette() {
-	const { state, actions } = useCommandPaletteContext()
+	const { state, actions, results } = useCommandPaletteContext()
 	let inputRef: HTMLInputElement | undefined
 	let resultsContainerRef: HTMLDivElement | undefined
 	const [isUsingKeyboard, setIsUsingKeyboard] = createSignal(false)
@@ -78,12 +129,14 @@ export function CommandPalette() {
 	// Scroll selected item into view
 	const scrollToSelected = () => {
 		if (!resultsContainerRef) return
-		
-		const selectedElement = resultsContainerRef.querySelector(`#result-${state().selectedIndex}`)
+
+		const selectedElement = resultsContainerRef.querySelector(
+			`#result-${state().selectedIndex}`
+		)
 		if (selectedElement) {
 			selectedElement.scrollIntoView({
 				behavior: 'auto',
-				block: 'nearest'
+				block: 'nearest',
 			})
 		}
 	}
@@ -124,18 +177,21 @@ export function CommandPalette() {
 	})
 
 	return (
-		<Dialog open={state().isOpen} onOpenChange={(open) => {
-			if (!open) {
-				actions.close()
-			}
-		}}>
+		<Dialog
+			open={state().isOpen}
+			onOpenChange={(open) => {
+				if (!open) {
+					actions.close()
+				}
+			}}
+		>
 			<Dialog.Portal>
-				<Dialog.Overlay 
-					class="fixed inset-0 z-50" 
-					style="backdrop-filter: blur(1px);"
-					onClick={() => actions.close()} 
+				<Dialog.Overlay
+					class="fixed inset-0 z-50"
+					style={{ 'backdrop-filter': 'blur(1px)' }}
+					onClick={() => actions.close()}
 				/>
-				<Dialog.Content 
+				<Dialog.Content
 					class="fixed left-1/2 top-[30%] z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 transform rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
 					aria-label="Command Palette"
 				>
@@ -144,73 +200,56 @@ export function CommandPalette() {
 						<input
 							ref={inputRef}
 							type="text"
-							placeholder={state().mode === 'command' ? 'Type a command...' : 'Search files...'}
+							placeholder={
+								state().mode === 'command'
+									? 'Type a command...'
+									: 'Search files...'
+							}
 							value={state().query}
 							onInput={(e) => actions.setQuery(e.currentTarget.value)}
 							onKeyDown={handleKeyDown}
 							class="w-full bg-transparent text-sm outline-none placeholder:text-gray-500"
-							aria-label={state().mode === 'command' ? 'Search commands' : 'Search files'}
-							aria-expanded={state().results.length > 0}
-							aria-activedescendant={state().results.length > 0 ? `result-${state().selectedIndex}` : undefined}
+							aria-label={
+								state().mode === 'command' ? 'Search commands' : 'Search files'
+							}
+							aria-expanded={results().length > 0}
+							aria-activedescendant={
+								results().length > 0
+									? `result-${state().selectedIndex}`
+									: undefined
+							}
 							role="combobox"
 							aria-autocomplete="list"
 							autofocus
 						/>
 					</div>
-					
-					{/* Results List */}
-					<div 
+
+					{/* Results List - wrapped in Suspense with pending state for smooth transitions */}
+					<div
 						ref={resultsContainerRef}
-						class="max-h-80 overflow-y-auto" 
-						role="listbox" 
+						class="max-h-80 overflow-y-auto transition-opacity duration-150"
+						classList={{ 'opacity-60': state().pending }}
+						role="listbox"
 						aria-label="Search results"
 					>
-						<Show
-							when={!state().loading}
-							fallback={
-								<div class="px-3 py-8 text-center">
-									<div class="flex items-center justify-center space-x-2">
-										<div class="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-										<p class="text-sm text-gray-500">Searching...</p>
-									</div>
-								</div>
-							}
-						>
-							<Show
-								when={state().results.length > 0}
-								fallback={
-									<div class="px-3 py-8 text-center">
-										<p class="text-sm text-gray-500">No results found</p>
-									</div>
-								}
-							>
-								<For each={state().results}>
-									{(result, index) => (
-										<ResultItem
-											result={result}
-											isSelected={index() === state().selectedIndex}
-											resultIndex={index()}
-											onClick={() => {
-												// Set the selected index to the clicked item and then activate it
-												actions.setSelectedIndex(index())
-												actions.activateSelected()
-											}}
-											onMouseEnter={() => {
-												// Only update selection if not using keyboard
-												if (!isUsingKeyboard()) {
-													actions.setSelectedIndex(index())
-												}
-											}}
-											onMouseMove={() => {
-												// Reset keyboard mode on mouse movement
-												setIsUsingKeyboard(false)
-											}}
-											isUsingKeyboard={isUsingKeyboard()}
-										/>
-									)}
-								</For>
-							</Show>
-						</Show>
+						<Suspense fallback={<SearchingFallback />}>
+							<ResultsList
+								results={results}
+								selectedIndex={state().selectedIndex}
+								isUsingKeyboard={isUsingKeyboard()}
+								onItemClick={(index) => {
+									actions.setSelectedIndex(index)
+									actions.activateSelected()
+								}}
+								onMouseEnter={(index) => {
+									actions.setSelectedIndex(index)
+								}}
+								onMouseMove={() => {
+									setIsUsingKeyboard(false)
+								}}
+								resultsContainerRef={resultsContainerRef}
+							/>
+						</Suspense>
 					</div>
 				</Dialog.Content>
 			</Dialog.Portal>
