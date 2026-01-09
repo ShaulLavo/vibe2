@@ -9,6 +9,7 @@ import {
 import { WebglAddon } from '@xterm/addon-webgl'
 import { CanvasAddon } from '@xterm/addon-canvas'
 import { LocalEchoController } from './localEcho'
+import { typeEffect } from './effects'
 import { createJustBashAdapter } from './justBashAdapter'
 import { getSharedBuffer } from './sharedBuffer'
 import type { BufferEntry } from './sharedBuffer'
@@ -265,8 +266,9 @@ export const createTerminalController = async (
 
 	const replayBuffer = async () => {
 		if (sharedBuffer.entries.length === 0) {
-			recordingPrintln('Welcome to vibe shell (powered by just-bash)')
-			recordingPrintln('Type `help` to see available commands.')
+			// Type out the welcome message with a realistic typing effect
+			await typeEffect(term, 'Welcome to vibe shell (powered by just-bash)', 15)
+			await typeEffect(term, 'Type `help` to see available commands.', 15)
 			return
 		}
 
@@ -398,7 +400,7 @@ const createXtermRuntime = (
 
 	if (rendererType === 'webgl') {
 		const webglAddon = new WebglAddon()
-		
+
 		// Track disposal to prevent double disposal
 		const originalDispose = webglAddon.dispose.bind(webglAddon)
 		webglAddon.dispose = () => {
@@ -409,9 +411,12 @@ const createXtermRuntime = (
 				// The error occurs when trying to access _isDisposed on undefined objects
 				originalDispose()
 			} catch (error) {
-				terminalLogger.warn('WebGL addon disposal error (likely already disposed)', {
-					error: error instanceof Error ? error.message : String(error)
-				})
+				terminalLogger.warn(
+					'WebGL addon disposal error (likely already disposed)',
+					{
+						error: error instanceof Error ? error.message : String(error),
+					}
+				)
 			}
 		}
 
@@ -419,7 +424,7 @@ const createXtermRuntime = (
 			terminalLogger.debug('WebGL context lost, disposing addon')
 			webglAddon.dispose()
 		})
-		
+
 		term.loadAddon(webglAddon)
 		addon = webglAddon
 	} else if (rendererType === 'canvas') {
