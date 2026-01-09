@@ -9,7 +9,9 @@ import { createCommandPaletteRegistry } from './registry'
 import { useCommandPalette } from './useCommandPalette'
 import { registerBuiltinCommands } from './builtinCommands'
 import { registerCommandPaletteShortcuts } from './shortcuts'
+import { registerSettingsShortcuts } from '../settings/shortcuts/settingsShortcuts'
 import { useKeymap } from '../keymap/KeymapContext'
+import { useFs } from '../fs/context/FsContext'
 import type { CommandPaletteRegistry } from './types'
 import type {
 	PaletteState,
@@ -46,6 +48,9 @@ export const CommandPaletteProvider: ParentComponent = (props) => {
 	// Get keymap controller for registering shortcuts
 	const keymapController = useKeymap()
 
+	// Get fs actions for settings shortcuts
+	const [, fsActions] = useFs()
+
 	// Initialize built-in commands and shortcuts on mount
 	onMount(() => {
 		// Register built-in commands
@@ -58,10 +63,17 @@ export const CommandPaletteProvider: ParentComponent = (props) => {
 			() => state().isOpen
 		)
 
+		// Register settings shortcuts
+		const unregisterSettingsShortcuts = registerSettingsShortcuts(
+			keymapController,
+			() => fsActions.selectPath('/.system/settings.json')
+		)
+
 		// Cleanup on unmount
 		onCleanup(() => {
 			unregisterBuiltinCommands()
 			unregisterShortcuts()
+			unregisterSettingsShortcuts()
 		})
 	})
 

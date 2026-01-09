@@ -2,7 +2,7 @@ import type { CommandDescriptor, CommandPaletteRegistry } from './types'
 
 /**
  * Registers all built-in commands with the command palette registry.
- * This includes theme commands, file tree commands, focus commands, and save commands.
+ * This includes theme commands, file tree commands, focus commands, save commands, and settings commands.
  * 
  * Note: This function should be called within a SolidJS component context
  * where hooks like useTheme, useFs, and useFocusManager are available.
@@ -21,6 +21,9 @@ export function registerBuiltinCommands(registry: CommandPaletteRegistry): () =>
 
 	// Save command
 	unregisterFunctions.push(registerSaveCommand(registry))
+
+	// Settings commands
+	unregisterFunctions.push(registerSettingsCommands(registry))
 
 	// Return function to unregister all commands
 	return () => {
@@ -165,4 +168,43 @@ function registerSaveCommand(registry: CommandPaletteRegistry): () => void {
 	}
 
 	return registry.register(saveFileCommand)
+}
+
+/**
+ * Registers settings-related commands
+ */
+function registerSettingsCommands(registry: CommandPaletteRegistry): () => void {
+	const unregisterFunctions: Array<() => void> = []
+
+	const openSettingsCommand: CommandDescriptor = {
+		id: 'settings.open',
+		label: 'Open Settings',
+		category: 'View',
+		shortcut: '⌘,',
+		handler: async () => {
+			// Dynamic import to avoid issues in test environment
+			const { useSettingsIntegration } = await import('../settings/hooks/useSettingsIntegration')
+			const { openSettings } = useSettingsIntegration()
+			await openSettings()
+		}
+	}
+
+	const openSettingsJSONCommand: CommandDescriptor = {
+		id: 'settings.openJSON',
+		label: 'Open Settings (JSON)',
+		category: 'View',
+		handler: async () => {
+			// Dynamic import to avoid issues in test environment
+			const { useSettingsIntegration } = await import('../settings/hooks/useSettingsIntegration')
+			const { openJSONView } = useSettingsIntegration()
+			await openJSONView()
+		}
+	}
+
+	unregisterFunctions.push(registry.register(openSettingsCommand))
+	unregisterFunctions.push(registry.register(openSettingsJSONCommand))
+
+	return () => {
+		unregisterFunctions.forEach(fn => fn())
+	}
 }
