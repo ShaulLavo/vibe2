@@ -76,7 +76,7 @@
     "just-bash": "workspace:*",
     "localforage": "^1.10.0",
     "nanoid": "^5.1.6",
-    "nuqs-solid": "^0.1.0",
+    "nuqs-solid": "file:../../packages/nuqs-solid/packages/nuqs",
     "safe-regex": "^2.1.1",
     "shell-quote": "^1.8.2",
     "solid-js": "^1.9.5",

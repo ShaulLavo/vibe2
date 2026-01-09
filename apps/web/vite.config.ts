@@ -30,6 +30,10 @@ export default defineConfig(({ mode }) => {
 					__dirname,
 					'../../packages/theme/src/index.ts'
 				),
+				'nuqs-solid': path.resolve(
+					__dirname,
+					'../../packages/nuqs-solid/packages/nuqs/src'
+				),
 			},
 		},
 		server: {
@@ -53,7 +57,7 @@ export default defineConfig(({ mode }) => {
 				'@tree-sitter-grammars/tree-sitter-markdown',
 				'minimatch',
 			],
-			exclude: [],
+			exclude: ['nuqs-solid'],
 		},
 		test: {
 			projects: [
