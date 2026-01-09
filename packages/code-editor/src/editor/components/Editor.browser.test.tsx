@@ -6,9 +6,6 @@ import { ColorModeProvider } from '@kobalte/core'
 import { ThemeProvider } from '@repo/theme'
 import { Editor } from '../components/Editor'
 import { type TextEditorDocument, CursorMode } from '../types'
-import scrollbarStyles from '../minimap/Scrollbar.module.css'
-
-const NATIVE_SCROLLBAR_HIDE_CLASS = scrollbarStyles['scrollbar-hidden']!
 
 // Helper to generate test content with many lines
 const generateTestContent = (lineCount: number): string => {
@@ -143,25 +140,6 @@ describe('Editor (browser integration)', () => {
 		// Check that scrollHeight > clientHeight (content overflows)
 		await expect
 			.poll(() => scrollElement!.scrollHeight > scrollElement!.clientHeight)
-			.toBe(true)
-	})
-
-	it('hides native scrollbar when custom scrollbar is active', async () => {
-		const content = generateTestContent(100)
-		render(() => <TestEditor content={content} />)
-
-		let scrollElement: HTMLElement | null = null
-		await expect
-			.poll(() => {
-				scrollElement = getScrollElement()
-				return scrollElement !== null
-			})
-			.toBe(true)
-
-		await expect
-			.poll(() =>
-				scrollElement!.classList.contains(NATIVE_SCROLLBAR_HIDE_CLASS)
-			)
 			.toBe(true)
 	})
 

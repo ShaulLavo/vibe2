@@ -547,6 +547,8 @@ export const TextEditorView = (props: EditorProps) => {
 				</Show>
 				<HorizontalScrollbar
 					scrollElement={scrollElement}
+					contentWidth={layout.contentWidth}
+					gutterWidth={layout.gutterWidth}
 					class="absolute bottom-0 left-0 right-[14px] z-50"
 				/>
 			</div>
