@@ -1,10 +1,6 @@
 import { Accessor, createMemo, For, Show, onCleanup, onMount } from 'solid-js'
 import type { FsDirTreeNode } from '@repo/fs'
-import {
-	Accordion,
-	AccordionItem,
-	AccordionContent,
-} from '@repo/ui/accordion'
+import { Accordion, AccordionItem, AccordionContent } from '@repo/ui/accordion'
 import * as AccordionPrimitive from '@kobalte/core/accordion'
 import { VsChevronDown } from '@repo/icons/vs/VsChevronDown'
 import { useFocusManager } from '~/focus/focusManager'
@@ -45,72 +41,88 @@ export const TreeView = (props: TreeViewProps) => {
 	})
 
 	return (
-		<div ref={containerRef} class="h-full flex flex-col overflow-auto">
-			<Accordion multiple defaultValue={['system', 'explorer']} class="flex flex-col min-h-0">
+		<div ref={containerRef} class="h-full flex flex-col overflow-hidden">
+			<Accordion
+				multiple
+				defaultValue={['system', 'explorer']}
+				class="flex flex-col h-full overflow-hidden"
+			>
 				{/* System Section */}
-				<AccordionItem value="system" class="flex-shrink-0">
-					<div class="sticky top-0 bg-muted/60 z-10 flex items-center">
-						<AccordionPrimitive.Header class="flex-1">
-							<AccordionPrimitive.Trigger class="flex items-center gap-1 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground [&[data-expanded]>svg]:rotate-180">
-								<VsChevronDown size={16} class="shrink-0 transition-transform duration-200 -rotate-90" />
-								System
-							</AccordionPrimitive.Trigger>
-						</AccordionPrimitive.Header>
-					</div>
-					<AccordionContent>
-						<SystemFilesSection />
+				<AccordionItem
+					value="system"
+					class="shrink-0 flex flex-col max-h-[30%] border-b border-border/50"
+				>
+					<AccordionPrimitive.Header class="flex items-center w-full shrink-0 bg-background">
+						<AccordionPrimitive.Trigger class="flex w-full items-center gap-1 py-1 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground focus:outline-none [&:not([data-expanded])>svg]:-rotate-90">
+							<VsChevronDown
+								size={16}
+								class="shrink-0 transition-transform duration-200"
+							/>
+							System
+						</AccordionPrimitive.Trigger>
+					</AccordionPrimitive.Header>
+					<AccordionContent class="min-h-0 flex-1">
+						<div class="overflow-auto max-h-full">
+							<SystemFilesSection />
+						</div>
 					</AccordionContent>
 				</AccordionItem>
 
 				{/* Explorer Section */}
-				<AccordionItem value="explorer" class="flex-1 min-h-0">
-					<div class="sticky top-[22px] bg-muted/60 z-10 flex items-center">
+				<AccordionItem value="explorer" class="flex-1 min-h-0 flex flex-col">
+					<div class="flex items-center w-full shrink-0 bg-background border-b border-border/50">
 						<AccordionPrimitive.Header class="flex-1">
-							<AccordionPrimitive.Trigger class="flex items-center gap-1 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground [&[data-expanded]>svg]:rotate-180">
-								<VsChevronDown size={16} class="shrink-0 transition-transform duration-200 -rotate-90" />
+							<AccordionPrimitive.Trigger class="flex w-full items-center gap-1 py-1 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground focus:outline-none [&:not([data-expanded])>svg]:-rotate-90">
+								<VsChevronDown
+									size={16}
+									class="shrink-0 transition-transform duration-200"
+								/>
 								Explorer
 							</AccordionPrimitive.Trigger>
 						</AccordionPrimitive.Header>
 						<FsToolbar parentPath={parentPath} />
 					</div>
-					<AccordionContent>
-						<Show
-							when={!props.loading() && props.tree()}
-							fallback={
-								<p class="text-sm text-muted-foreground">
-									{props.loading() ? '' : 'No filesystem loaded.'}
-								</p>
-							}
-						>
-							{(tree) => (
-								<>
-									<For each={tree().children}>
-										{(child) => <TreeNode node={child} />}
-									</For>
-									<Show
-										when={
-											state.creationState && state.creationState.parentPath === ''
-										}
-									>
-										<CreationRow
-											depth={1}
-											type={state.creationState!.type}
-											onSubmit={async (name) => {
-												const parent = state.creationState!.parentPath
-												const type = state.creationState!.type
-												if (type === 'file') {
-													await actions.createFile(parent, name)
-												} else {
-													await actions.createDir(parent, name)
-												}
-												actions.setCreationState(null)
-											}}
-											onCancel={() => actions.setCreationState(null)}
-										/>
-									</Show>
-								</>
-							)}
-						</Show>
+					<AccordionContent class="flex-1 min-h-0">
+						<div class="overflow-auto h-full">
+							<Show
+								when={!props.loading() && props.tree()}
+								fallback={
+									<p class="text-sm text-muted-foreground p-2">
+										{props.loading() ? '' : 'No filesystem loaded.'}
+									</p>
+								}
+							>
+								{(tree) => (
+									<>
+										<For each={tree().children}>
+											{(child) => <TreeNode node={child} />}
+										</For>
+										<Show
+											when={
+												state.creationState &&
+												state.creationState.parentPath === ''
+											}
+										>
+											<CreationRow
+												depth={1}
+												type={state.creationState!.type}
+												onSubmit={async (name) => {
+													const parent = state.creationState!.parentPath
+													const type = state.creationState!.type
+													if (type === 'file') {
+														await actions.createFile(parent, name)
+													} else {
+														await actions.createDir(parent, name)
+													}
+													actions.setCreationState(null)
+												}}
+												onCancel={() => actions.setCreationState(null)}
+											/>
+										</Show>
+									</>
+								)}
+							</Show>
+						</div>
 					</AccordionContent>
 				</AccordionItem>
 			</Accordion>

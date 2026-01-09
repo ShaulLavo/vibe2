@@ -53,9 +53,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 
 	const settingsView = useSettingsViewState({
 		selectedPath: () => state.selectedPath,
-		isLoading: () => state.loading,
-		isSelectedFileLoading: () => state.selectedFileLoading,
-		selectPath,
 	})
 
 	const [treeSitterWorker] = createResource(async () => getTreeSitterWorker())
@@ -155,9 +152,8 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						}
 					>
 						<SettingsTab
-							initialCategory={settingsView.settingsRoute.currentCategory()}
-							currentCategory={settingsView.settingsRoute.currentCategory()}
-							parentCategory={settingsView.settingsRoute.currentParentCategory()}
+							initialCategory={settingsView.currentCategory()}
+							currentCategory={settingsView.currentCategory()}
 							onCategoryChange={settingsView.handleCategoryChange}
 						/>
 					</Match>

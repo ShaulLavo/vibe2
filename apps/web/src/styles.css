@@ -139,7 +139,9 @@ body {
 		@apply pointer-events-none absolute inset-y-0 right-0 border-b border-t;
 	}
 	.tree-node-button {
-		@apply relative z-10 flex w-full items-center overflow-hidden rounded text-left text-sm transition;
+		@apply relative z-10 flex w-full items-center overflow-hidden rounded text-left transition;
+		font-size: var(--file-tree-font-size, 13px);
+		font-family: var(--file-tree-font-family, system-ui);
 	}
 	.tree-node-icon {
 		@apply mr-1 flex items-center justify-center w-4 text-center ml-1;
@@ -167,6 +169,8 @@ body {
 	.editor-line {
 		@apply absolute left-0 top-0 w-full whitespace-pre;
 		color: var(--editor-foreground);
+		font-size: var(--editor-font-size, 14px);
+		font-family: var(--editor-font-family, 'JetBrains Mono');
 	}
 }
 .transition-display {
