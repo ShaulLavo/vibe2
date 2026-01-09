@@ -196,26 +196,42 @@ export function useCommandPalette(): [() => PaletteState, PaletteActions] {
 			const currentResults = results()
 			const currentIndex = selectedIndex()
 			
+			console.log(`[useCommandPalette] activateSelected called`, { 
+				resultsCount: currentResults.length, 
+				currentIndex 
+			})
+			
 			if (currentResults.length === 0 || currentIndex >= currentResults.length) {
+				console.log(`[useCommandPalette] activateSelected: no results or invalid index`)
 				return
 			}
 			
 			const selectedResult = currentResults[currentIndex]
 			if (!selectedResult) {
+				console.log(`[useCommandPalette] activateSelected: selectedResult is undefined`)
 				return
 			}
+			
+			console.log(`[useCommandPalette] activateSelected: selected result`, { 
+				kind: selectedResult.kind, 
+				id: selectedResult.id,
+				label: selectedResult.label,
+				description: selectedResult.description 
+			})
 			
 			if (selectedResult.kind === 'file') {
 				// Handle file activation by opening it in the tab system
 				const filePath = selectedResult.description // The full file path is stored in description
+				console.log(`[useCommandPalette] activateSelected: opening file`, { filePath })
 				if (filePath) {
 					void fsActions.selectPath(filePath).then(() => {
+						console.log(`[useCommandPalette] activateSelected: selectPath completed successfully`, { filePath })
 						actions.close()
 					}).catch((error) => {
-						console.error('Failed to open file:', error)
+						console.error('[useCommandPalette] Failed to open file:', error)
 					})
 				} else {
-					console.error('File path not found in result')
+					console.error('[useCommandPalette] File path not found in result')
 					actions.close()
 				}
 			} else if (selectedResult.kind === 'command') {
