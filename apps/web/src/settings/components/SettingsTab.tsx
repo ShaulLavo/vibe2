@@ -33,18 +33,43 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 	// Use currentCategory prop if provided, otherwise local state
 	const selectedCategory = () => props.currentCategory || localSelectedCategory()
 
+	const parseCategoryPath = (
+		categoryId: string
+	): { id: string; parentId?: string } => {
+		const segments = categoryId.split('/').filter(Boolean)
+		if (segments.length < 2) {
+			return { id: categoryId }
+		}
+		return {
+			id: segments[segments.length - 1],
+			parentId: segments[0],
+		}
+	}
+
 	// Find category info (handles both top-level and subcategories)
 	const findCategoryInfo = (
 		categoryId: string
 	): { label: string; parentId?: string } | undefined => {
+		const parsed = parseCategoryPath(categoryId)
+		if (parsed.parentId) {
+			const parent = settingsState.schema.categories.find(
+				(cat) => cat.id === parsed.parentId
+			)
+			const subcategory = parent?.subcategories?.find(
+				(sub) => sub.id === parsed.id
+			)
+			if (subcategory) {
+				return { label: subcategory.label, parentId: parsed.parentId }
+			}
+		}
 		for (const cat of settingsState.schema.categories) {
-			if (cat.id === categoryId) {
+			if (cat.id === parsed.id) {
 				return { label: cat.label }
 			}
 			// Check subcategories
 			if (cat.subcategories) {
 				for (const sub of cat.subcategories) {
-					if (sub.id === categoryId) {
+					if (sub.id === parsed.id) {
 						return { label: sub.label, parentId: cat.id }
 					}
 				}
@@ -57,6 +82,10 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 		const info = findCategoryInfo(selectedCategory())
 		return info?.label
 	})
+
+	const panelCategoryId = createMemo(
+		() => parseCategoryPath(selectedCategory()).id
+	)
 
 	const handleCategorySelect = (categoryId: string) => {
 		const info = findCategoryInfo(categoryId)
@@ -73,7 +102,7 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 	// Update parent category when selected category changes or from props
 	createEffect(() => {
 		const category = selectedCategory()
-		
+
 		if (props.parentCategory) {
 			// If parent category is provided via props, use it
 			setParentCategory(props.parentCategory)
@@ -109,7 +138,7 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 					onCategorySelect={handleCategorySelect}
 				/>
 				<SettingsPanel
-					categoryId={selectedCategory()}
+					categoryId={panelCategoryId()}
 					categoryLabel={activeCategoryLabel()}
 					parentCategoryId={parentCategory()}
 					settings={settingsState.schema.settings}

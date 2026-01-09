@@ -1,5 +1,12 @@
 import type { Component } from 'solid-js'
-import { For } from 'solid-js'
+import { Label } from '../label'
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '../select'
 import { cn } from '../utils'
 
 export type SettingSelectOption = {
@@ -17,39 +24,37 @@ export type SettingSelectProps = {
 }
 
 export const SettingSelect: Component<SettingSelectProps> = (props) => {
-	const handleChange = (event: Event) => {
-		const target = event.target as HTMLSelectElement
-		props.onChange(target.value)
-	}
+	const selectedOption = () =>
+		props.options.find((o) => o.value === props.value)
 
 	return (
 		<div class={cn('space-y-1', props.class)}>
-			<label class="text-sm font-medium text-foreground">
-				{props.label}
-			</label>
+			<Label>{props.label}</Label>
 			{props.description && (
-				<p class="text-sm text-muted-foreground">
-					{props.description}
-				</p>
+				<p class="text-sm text-muted-foreground">{props.description}</p>
 			)}
-			<select
-				value={props.value}
-				onChange={handleChange}
-				class={cn(
-					'flex h-8 w-full rounded-sm border border-border/60 bg-background px-2 py-1 text-sm',
-					'ring-offset-background',
-					'focus-visible:outline-none focus-visible:border-foreground/40',
-					'disabled:cursor-not-allowed disabled:opacity-50'
+			<Select
+				value={selectedOption()}
+				onChange={(val) => val && props.onChange(val.value)}
+				options={props.options}
+				optionValue="value"
+				optionTextValue="label"
+				itemComponent={(props) => (
+					<SelectItem
+						item={props.item}
+						class="focus:bg-foreground/5 focus:text-foreground"
+					>
+						{props.item.rawValue.label}
+					</SelectItem>
 				)}
 			>
-				<For each={props.options}>
-					{(option) => (
-						<option value={option.value}>
-							{option.label}
-						</option>
-					)}
-				</For>
-			</select>
+				<SelectTrigger class="h-8 py-1 focus:ring-0 focus:ring-offset-0 border-border/60">
+					<SelectValue<SettingSelectOption>>
+						{(state) => state.selectedOption()?.label}
+					</SelectValue>
+				</SelectTrigger>
+				<SelectContent />
+			</Select>
 		</div>
 	)
 }
