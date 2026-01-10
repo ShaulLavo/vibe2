@@ -114,6 +114,22 @@ Effects are primarily intended for handling side effects that do not write to th
 - **Props are reactive getters**: Usually, there is no need to pass accessors (functions) as props. If you pass a signal or memo value like `<Comp value={mySignal()} />`, then `props.value` inside `Comp` is already a reactive getter—no need to wrap it in an accessor.
 - **Debugging Reactivity**: When debugging SolidJS, it is recommended to use `createEffect` with a log inside to track reactivity and verify when dependencies are changing.
 
+### Child Props & The `children` Helper
+
+- **Rule of Thumb**: Use the `children` helper when accepting `children` in your component. This ensures that children are properly resolved (functions executed, arrays flattened), memoized (preventing redundant DOM creation), and tracked in the correct scope.
+
+  ```tsx
+  import { children } from 'solid-js'
+  // ...
+  const resolved = children(() => props.children)
+  // Use resolved() in your JSX
+  ```
+
+- **Conditional Rendering**: The helper evaluates children eagerly. To avoid unnecessary creation (e.g. for `<Show>`), condition the input:
+  ```tsx
+  const resolved = children(() => visible() && props.children)
+  ```
+
 > **Note:** Before implementing a custom solution, it is recommended to check **[solid-primitives](https://github.com/solidjs-community/solid-primitives)**.
 > You can install individual packages using `bun add @solid-primitives/{name}` from the list below:
 >
