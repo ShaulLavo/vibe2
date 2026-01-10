@@ -27,6 +27,9 @@
 - **Logic Separation**: Never write complex logic inside component files.
   - All **pure logic** must reside in an appropriate utility file.
   - All **logic that touches state** must reside in a hook (`create*` or `use*` primitive).
+- **Comments**: Avoid adding comments unless they are important (explain _why_, not _what_).
+  - **Minimalism**: Have "very few comments".
+- **Complexity**: If code is complex, reduce nesting and move statements/calculations into variables or functions with a descriptive name.
 
 ## Logging
 

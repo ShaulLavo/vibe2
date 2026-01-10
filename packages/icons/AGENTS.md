@@ -58,3 +58,9 @@ Effects are primarily intended for handling side effects that do not write to th
 
 - **Never destructure props**: Destructuring `props` breaks reactivity. Use `splitProps` and `mergeProps` to separate or merge props while maintaining reactivity.
 - **Props are reactive getters**: Usually, there is no need to pass accessors (functions) as props. If you pass a signal or memo value like `<Comp value={mySignal()} />`, then `props.value` inside `Comp` is already a reactive getter—no need to wrap it in an accessor.
+
+## 🦾 Coding Standards
+
+### 🗣️ Comments & Complexity
+- **Minimalism**: Avoid adding comments unless they are important (explain *why*, not *what*).
+- **Code Clarity**: If code is complex, reduce nesting and move statements/calculations into variables or functions with descriptive names over commenting.
