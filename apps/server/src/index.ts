@@ -66,7 +66,7 @@ const app = new Elysia()
 			},
 		})
 	})
-	.post('/git/proxy', async ({ request, set }) => {
+	.all('/git/proxy', async ({ request, set }) => {
 		const requestUrl = new URL(request.url)
 		const urlParam = requestUrl.searchParams.get('url')
 		const rawSearch = requestUrl.search
@@ -93,16 +93,34 @@ const app = new Elysia()
 			return 'Host not allowed'
 		}
 
-		if (request.method !== 'POST') {
+		const method = request.method.toUpperCase()
+		const allowedMethods = ['GET', 'POST', 'HEAD']
+		if (!allowedMethods.includes(method)) {
 			set.status = 405
 			return 'Method not allowed'
 		}
 
+		console.log(
+			'[git-proxy] request',
+			JSON.stringify({ method, url: target.toString() }, null, 2)
+		)
+
 		const upstream = await fetch(target.toString(), {
-			method: 'POST',
+			method,
 			headers: buildGitProxyHeaders(request.headers),
-			body: request.body ?? undefined,
+			body:
+				method === 'GET' || method === 'HEAD'
+					? undefined
+					: request.body ?? undefined,
 		})
+		console.log(
+			'[git-proxy] response',
+			JSON.stringify(
+				{ status: upstream.status, url: target.toString() },
+				null,
+				2
+			)
+		)
 
 		return buildGitProxyResponse(upstream)
 	})
