@@ -1,15 +1,23 @@
 import { createEffect, createMemo } from 'solid-js'
 import { createStore, produce } from 'solid-js/store'
-import { createSettingsStore, type SettingsStore } from '../../store/createSettingsStore'
+import {
+	createSettingsStore,
+	type SettingsStore,
+	type SettingsState,
+	type SettingsActions,
+} from '../../store/createSettingsStore'
 import { updateEditorFontOptions } from '../utils/updateEditorFontOptions'
 import type { SettingsSchema } from '../../types'
 import type { FsSource } from '../../../fs/types'
 
-export type FontAwareSettingsStore = [SettingsState, SettingsActions & {
-	getEnhancedSchema: () => SettingsSchema
-	getAvailableFontOptions: () => Array<{ value: string; label: string }>
-	isFontAvailable: (fontValue: string) => boolean
-}]
+export type FontAwareSettingsStore = [
+	SettingsState,
+	SettingsActions & {
+		getEnhancedSchema: () => SettingsSchema
+		getAvailableFontOptions: () => Array<{ value: string; label: string }>
+		isFontAvailable: (fontValue: string) => boolean
+	},
+]
 
 /**
  * Creates a settings store that is aware of installed fonts
@@ -28,25 +36,36 @@ export const createFontAwareSettingsStore = (
 			return baseState.schema
 		}
 
-		const updatedSettings = updateEditorFontOptions(baseState.schema.settings, installed)
-		
+		const updatedSettings = updateEditorFontOptions(
+			baseState.schema.settings,
+			installed
+		)
+
 		return {
 			...baseState.schema,
-			settings: updatedSettings
+			settings: updatedSettings,
 		}
 	})
+
+	// Create enhanced state that uses the enhanced schema
+	const enhancedState = createMemo(() => ({
+		...baseState,
+		schema: enhancedSchema(),
+	}))
 
 	// Get available font options for the editor
 	const getAvailableFontOptions = () => {
 		const schema = enhancedSchema()
-		const fontSetting = schema.settings.find(s => s.key === 'editor.fontFamily')
+		const fontSetting = schema.settings.find(
+			(s) => s.key === 'editor.fontFamily'
+		)
 		return fontSetting?.options || []
 	}
 
 	// Check if a font value is available
 	const isFontAvailable = (fontValue: string): boolean => {
 		const options = getAvailableFontOptions()
-		return options.some(option => option.value === fontValue)
+		return options.some((option) => option.value === fontValue)
 	}
 
 	// Enhanced actions that include font awareness
@@ -61,10 +80,16 @@ export const createFontAwareSettingsStore = (
 	createEffect(() => {
 		const installed = installedFonts()
 		if (installed) {
-			console.log('[FontAwareSettingsStore] Installed fonts updated:', JSON.stringify(Array.from(installed), null, 2))
-			console.log('[FontAwareSettingsStore] Available font options:', JSON.stringify(getAvailableFontOptions(), null, 2))
+			console.log(
+				'[FontAwareSettingsStore] Installed fonts updated:',
+				JSON.stringify(Array.from(installed), null, 2)
+			)
+			console.log(
+				'[FontAwareSettingsStore] Available font options:',
+				JSON.stringify(getAvailableFontOptions(), null, 2)
+			)
 		}
 	})
 
-	return [baseState, enhancedActions]
+	return [enhancedState(), enhancedActions]
 }

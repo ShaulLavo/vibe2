@@ -5,7 +5,7 @@ vi.mock('./FontCacheService', () => ({
 	fontCacheService: {
 		init: vi.fn().mockResolvedValue(undefined),
 		isFontCached: vi.fn().mockResolvedValue(true),
-	}
+	},
 }))
 
 // Import after mocking
@@ -26,7 +26,7 @@ class MockFontFace {
 	constructor(family: string, source: ArrayBuffer, descriptors?: any) {
 		this.family = family
 	}
-	
+
 	async load() {
 		return this
 	}
@@ -40,7 +40,7 @@ const mockDocumentFonts = {
 	ready: Promise.resolve(),
 	[Symbol.iterator]: function* () {
 		yield new MockFontFace('TestFont', new ArrayBuffer(0))
-	}
+	},
 }
 
 // Setup global mocks
@@ -67,10 +67,10 @@ describe('FontInstallationService', () => {
 	beforeEach(() => {
 		service = new FontInstallationService()
 		vi.clearAllMocks()
-		
+
 		// Setup mock cache response
 		const mockResponse = new Response(new ArrayBuffer(1024), {
-			headers: { 'Content-Type': 'font/ttf' }
+			headers: { 'Content-Type': 'font/ttf' },
 		})
 		mockCache.match.mockResolvedValue(mockResponse)
 	})
@@ -95,19 +95,19 @@ describe('FontInstallationService', () => {
 		expect(statusUpdates[statusUpdates.length - 1]).toMatchObject({
 			fontName,
 			isInstalled: true,
-			isLoading: false
+			isLoading: false,
 		})
 	})
 
 	it('should not install font if already installed', async () => {
 		const fontName = 'TestFont'
-		
+
 		// First installation
 		await service.installFont(fontName)
-		
+
 		// Reset mocks
 		vi.clearAllMocks()
-		
+
 		// Second installation attempt
 		await service.installFont(fontName)
 
@@ -118,10 +118,10 @@ describe('FontInstallationService', () => {
 
 	it('should uninstall a font successfully', async () => {
 		const fontName = 'TestFont'
-		
+
 		// First install the font
 		await service.installFont(fontName)
-		
+
 		// Then uninstall it
 		await service.uninstallFont(fontName)
 
@@ -131,10 +131,10 @@ describe('FontInstallationService', () => {
 
 	it('should check font installation status correctly', async () => {
 		const fontName = 'TestFont'
-		
+
 		// Initially not installed
 		expect(service.isFontInstalled(fontName)).toBe(true) // Mock returns true
-		
+
 		// After installation
 		await service.installFont(fontName)
 		expect(service.isFontInstalled(fontName)).toBe(true)
@@ -142,18 +142,20 @@ describe('FontInstallationService', () => {
 
 	it('should handle installation errors gracefully', async () => {
 		const fontName = 'ErrorFont'
-		
+
 		// Mock cache to return null (font not found)
 		mockCache.match.mockResolvedValueOnce(null)
-		
+
 		let statusUpdates: any[] = []
-		
-		await expect(service.installFont(fontName, (status) => {
-			statusUpdates.push(status)
-		})).rejects.toThrow('Font not found in cache')
+
+		await expect(
+			service.installFont(fontName, (status) => {
+				statusUpdates.push(status)
+			})
+		).rejects.toThrow('Font not found in cache')
 
 		// Should have received error status
-		const errorStatus = statusUpdates.find(s => s.error)
+		const errorStatus = statusUpdates.find((s) => s.error)
 		expect(errorStatus).toBeDefined()
 		expect(errorStatus.isInstalled).toBe(false)
 		expect(errorStatus.isLoading).toBe(false)
@@ -161,7 +163,7 @@ describe('FontInstallationService', () => {
 
 	it('should initialize service correctly', async () => {
 		await service.initialize()
-		
+
 		// Should have waited for document.fonts.ready
 		expect(mockDocumentFonts.ready).toBeDefined()
 	})

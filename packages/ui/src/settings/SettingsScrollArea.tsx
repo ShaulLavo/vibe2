@@ -13,7 +13,9 @@ export type SettingsScrollAreaProps = JSX.HTMLAttributes<HTMLDivElement> & {
 const SCROLLBAR_WIDTH = 10
 const SCROLLBAR_MIN_THUMB = 24
 
-export const SettingsScrollArea: Component<SettingsScrollAreaProps> = (props) => {
+export const SettingsScrollArea: Component<SettingsScrollAreaProps> = (
+	props
+) => {
 	const [local, others] = splitProps(props as SettingsScrollAreaProps, [
 		'class',
 		'contentClass',

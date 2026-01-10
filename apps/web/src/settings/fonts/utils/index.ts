@@ -1,1 +1,5 @@
-export { updateEditorFontOptions, getFontDisplayName, isFontAvailable } from './updateEditorFontOptions'
+export {
+	updateEditorFontOptions,
+	getFontDisplayName,
+	isFontAvailable,
+} from './updateEditorFontOptions'

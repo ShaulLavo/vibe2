@@ -130,6 +130,20 @@ export const SettingsEffects: Component = () => {
 
 		const root = document.documentElement
 
+		// UI font settings (global for file explorer, sidebars, settings, etc.)
+		const uiFontSize =
+			settingsState.values['ui.fontSize'] ??
+			settingsState.defaults['ui.fontSize']
+		const uiFontFamily =
+			settingsState.values['ui.fontFamily'] ??
+			settingsState.defaults['ui.fontFamily']
+		if (uiFontSize != null) {
+			root.style.setProperty('--ui-font-size', `${uiFontSize}px`)
+		}
+		if (uiFontFamily != null) {
+			root.style.setProperty('--ui-font-family', String(uiFontFamily))
+		}
+
 		// Editor font settings
 		const editorFontSize =
 			settingsState.values['editor.fontSize'] ??
@@ -158,23 +172,6 @@ export const SettingsEffects: Component = () => {
 			root.style.setProperty(
 				'--terminal-font-family',
 				String(terminalFontFamily)
-			)
-		}
-
-		// File tree font settings
-		const fileTreeFontSize =
-			settingsState.values['fileTree.fontSize'] ??
-			settingsState.defaults['fileTree.fontSize']
-		const fileTreeFontFamily =
-			settingsState.values['fileTree.fontFamily'] ??
-			settingsState.defaults['fileTree.fontFamily']
-		if (fileTreeFontSize != null) {
-			root.style.setProperty('--file-tree-font-size', `${fileTreeFontSize}px`)
-		}
-		if (fileTreeFontFamily != null) {
-			root.style.setProperty(
-				'--file-tree-font-family',
-				String(fileTreeFontFamily)
 			)
 		}
 	})

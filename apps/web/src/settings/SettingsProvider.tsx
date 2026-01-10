@@ -1,5 +1,8 @@
 import { createContext, useContext, type JSX } from 'solid-js'
-import { createSettingsStore, type SettingsStore } from './store/createSettingsStore'
+import {
+	createSettingsStore,
+	type SettingsStore,
+} from './store/createSettingsStore'
 
 const SettingsContext = createContext<SettingsStore>()
 

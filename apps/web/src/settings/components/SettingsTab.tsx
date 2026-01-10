@@ -8,6 +8,8 @@ import {
 import { Resizable } from '../../components/Resizable'
 import { useSettings } from '../SettingsProvider'
 import { FontsSubcategoryUI } from '../fonts/components/FontsSubcategoryUI'
+import { FontFamilySelect } from './FontFamilySelect'
+import { FontCategory } from '../../fonts'
 
 export type SettingsTabProps = {
 	initialCategory?: string
@@ -32,7 +34,8 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 	)
 
 	// Use currentCategory prop if provided, otherwise local state
-	const selectedCategory = () => props.currentCategory || localSelectedCategory()
+	const selectedCategory = () =>
+		props.currentCategory || localSelectedCategory()
 
 	const parseCategoryPath = (
 		categoryId: string
@@ -42,7 +45,7 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 			return { id: categoryId }
 		}
 		return {
-			id: segments[segments.length - 1],
+			id: segments[segments.length - 1] ?? categoryId,
 			parentId: segments[0],
 		}
 	}
@@ -102,7 +105,46 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 
 	// Custom subcategory components
 	const customSubcategoryComponents = {
-		fonts: () => <FontsSubcategoryUI />
+		fonts: () => <FontsSubcategoryUI />,
+	}
+
+	// Custom setting components
+	const customSettingComponents = {
+		'editor.fontFamily': () => (
+			<FontFamilySelect
+				value={String(
+					settingsState.values['editor.fontFamily'] ||
+						"'JetBrains Mono Variable', monospace"
+				)}
+				onChange={(value) => handleSettingChange('editor.fontFamily', value)}
+				label="Font Family"
+				description="Controls the font family."
+				category={FontCategory.MONO}
+			/>
+		),
+		'terminal.fontFamily': () => (
+			<FontFamilySelect
+				value={String(
+					settingsState.values['terminal.fontFamily'] ||
+						"'JetBrains Mono Variable', monospace"
+				)}
+				onChange={(value) => handleSettingChange('terminal.fontFamily', value)}
+				label="Font Family"
+				description="Controls the font family in the terminal."
+				category={FontCategory.MONO}
+			/>
+		),
+		'ui.fontFamily': () => (
+			<FontFamilySelect
+				value={String(
+					settingsState.values['ui.fontFamily'] ||
+						"'Google Sans Flex', sans-serif"
+				)}
+				onChange={(value) => handleSettingChange('ui.fontFamily', value)}
+				label="Font Family"
+				description="Controls the font family for the entire user interface."
+			/>
+		),
 	}
 
 	// Update parent category when selected category changes or from props
@@ -151,6 +193,7 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 					values={settingsState.values}
 					onSettingChange={handleSettingChange}
 					customSubcategoryComponents={customSubcategoryComponents}
+					customSettingComponents={customSettingComponents}
 				/>
 			</Resizable>
 		</div>

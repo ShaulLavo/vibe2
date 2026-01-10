@@ -35,22 +35,28 @@ describe('createSettingsStore', () => {
 				const checkLoaded = () => {
 					if (state.isLoaded) {
 						// Verify appearance category exists and has fonts subcategory
-						const appearanceCategory = state.schema.categories.find(cat => cat.id === 'appearance')
+						const appearanceCategory = state.schema.categories.find(
+							(cat) => cat.id === 'appearance'
+						)
 						expect(appearanceCategory).toBeDefined()
 						expect(appearanceCategory?.subcategories).toBeDefined()
-						
-						const fontsSubcategory = appearanceCategory?.subcategories?.find(sub => sub.id === 'fonts')
+
+						const fontsSubcategory = appearanceCategory?.subcategories?.find(
+							(sub) => sub.id === 'fonts'
+						)
 						expect(fontsSubcategory).toBeDefined()
 						expect(fontsSubcategory?.label).toBe('Fonts')
 						expect(fontsSubcategory?.icon).toBe('VsTextSize')
 
 						// Verify fonts settings exist under appearance category
-						const fontsSettings = state.schema.settings.filter(setting => 
-							setting.category === 'appearance' && setting.subcategory === 'fonts'
+						const fontsSettings = state.schema.settings.filter(
+							(setting) =>
+								setting.category === 'appearance' &&
+								setting.subcategory === 'fonts'
 						)
 						expect(fontsSettings).toHaveLength(3)
-						
-						const settingKeys = fontsSettings.map(s => s.key)
+
+						const settingKeys = fontsSettings.map((s) => s.key)
 						expect(settingKeys).toContain('fonts.autoInstallPreview')
 						expect(settingKeys).toContain('fonts.cacheLimit')
 						expect(settingKeys).toContain('fonts.previewText')
@@ -75,9 +81,9 @@ describe('createSettingsStore', () => {
 	it('property: setting modification updates store', () => {
 		fc.assert(
 			fc.property(
-				fc.string({ minLength: 1, maxLength: 50 }).filter(key => 
-					/^[a-z]+(\.[a-z]+)+$/.test(key)
-				),
+				fc
+					.string({ minLength: 1, maxLength: 50 })
+					.filter((key) => /^[a-z]+(\.[a-z]+)+$/.test(key)),
 				fc.oneof(
 					fc.boolean(),
 					fc.string({ maxLength: 100 }),
@@ -111,9 +117,9 @@ describe('createSettingsStore', () => {
 		await fc.assert(
 			fc.asyncProperty(
 				fc.dictionary(
-					fc.string({ minLength: 1, maxLength: 50 }).filter(key => 
-						/^[a-z]+(\.[a-z]+)+$/.test(key)
-					),
+					fc
+						.string({ minLength: 1, maxLength: 50 })
+						.filter((key) => /^[a-z]+(\.[a-z]+)+$/.test(key)),
 					fc.oneof(
 						fc.boolean(),
 						fc.string({ maxLength: 100 }),
@@ -134,7 +140,9 @@ describe('createSettingsStore', () => {
 									}
 
 									// Verify they are immediately available
-									for (const [key, expectedValue] of Object.entries(settingsMap)) {
+									for (const [key, expectedValue] of Object.entries(
+										settingsMap
+									)) {
 										const actualValue = actions.getSetting(key)
 										expect(actualValue).toBe(expectedValue)
 									}
@@ -203,7 +211,7 @@ describe('createSettingsStore', () => {
 			fc.asyncProperty(
 				fc.constantFrom(
 					'editor.fontSize',
-					'editor.fontFamily', 
+					'editor.fontFamily',
 					'editor.cursorStyle',
 					'editor.tabSize',
 					'editor.wordWrap',

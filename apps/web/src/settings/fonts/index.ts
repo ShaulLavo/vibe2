@@ -4,7 +4,7 @@ export * from './store'
 // Components exports
 export * from './components'
 
-// Hooks exports  
+// Hooks exports
 export * from './hooks'
 
 // Utils exports

@@ -21,24 +21,10 @@
         {
             "key": "terminal.fontFamily",
             "type": "string",
-            "default": "JetBrains Mono Variable, monospace",
+            "default": "'JetBrains Mono Variable', monospace",
             "description": "Controls the font family in the terminal.",
             "category": "terminal",
-            "subcategory": "font",
-            "options": [
-                {
-                    "value": "JetBrains Mono Variable, monospace",
-                    "label": "JetBrains Mono"
-                },
-                {
-                    "value": "Fira Code, monospace",
-                    "label": "Fira Code"
-                },
-                {
-                    "value": "monospace",
-                    "label": "System Monospace"
-                }
-            ]
+            "subcategory": "font"
         }
     ]
 }

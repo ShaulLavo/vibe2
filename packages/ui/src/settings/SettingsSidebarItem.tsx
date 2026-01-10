@@ -50,7 +50,9 @@ export const SettingsSidebarItem: Component<SettingsSidebarItemProps> = (
 	const renderIcon = () => {
 		if (!props.category.icon) return null
 		const IconComponent = iconMap[props.category.icon as IconName]
-		return IconComponent ? <IconComponent class="h-4 w-4 text-muted-foreground" /> : null
+		return IconComponent ? (
+			<IconComponent class="h-4 w-4 text-muted-foreground" />
+		) : null
 	}
 
 	// Controlled expansion state

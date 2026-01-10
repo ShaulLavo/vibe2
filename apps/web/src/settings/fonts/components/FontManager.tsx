@@ -3,17 +3,18 @@ import { VsTrash, VsInfo, VsCheck } from '@repo/icons/vs'
 import { Card, CardContent } from '@repo/ui/Card'
 import { useFontStore } from '../store/FontStoreProvider'
 import { useFontSettingsIntegration } from '../hooks/useFontSettingsIntegration'
+import { CacheStatusIndicator } from './CacheStatusIndicator'
 
 export const FontManager = () => {
 	const { installedFonts, cacheStats, actions, pending } = useFontStore()
 	const { isFontInUse } = useFontSettingsIntegration()
 	const [removingFont, setRemovingFont] = createSignal<string | null>(null)
-	
+
 	const installedFontsList = () => {
 		const fonts = installedFonts()
 		return fonts ? Array.from(fonts).sort() : []
 	}
-	
+
 	const formatBytes = (bytes: number): string => {
 		if (bytes === 0) return '0 B'
 		const k = 1024
@@ -47,6 +48,9 @@ export const FontManager = () => {
 
 	return (
 		<div class="space-y-4">
+			{/* Cache Status Indicator */}
+			<CacheStatusIndicator />
+
 			{/* Cache Statistics */}
 			<Card>
 				<CardContent class="p-4">
@@ -98,7 +102,8 @@ export const FontManager = () => {
 						<Card>
 							<CardContent class="p-4">
 								<p class="text-muted-foreground text-sm text-center">
-									No fonts installed yet. Browse available fonts above to get started.
+									No fonts installed yet. Browse available fonts above to get
+									started.
 								</p>
 							</CardContent>
 						</Card>
@@ -131,8 +136,8 @@ type InstalledFontItemProps = {
 
 const InstalledFontItem = (props: InstalledFontItemProps) => {
 	const displayName = () => props.name.replace(/([A-Z])/g, ' $1').trim()
-	const previewText = "The quick brown fox 123"
-	
+	const previewText = 'The quick brown fox 123'
+
 	return (
 		<Card class="hover:bg-card/80 transition-colors">
 			<CardContent class="p-3">
@@ -149,7 +154,7 @@ const InstalledFontItem = (props: InstalledFontItemProps) => {
 						</div>
 						<div
 							class="text-xs font-mono text-muted-foreground truncate"
-							style={{ "font-family": `"${props.name}", monospace` }}
+							style={{ 'font-family': `"${props.name}", monospace` }}
 						>
 							{previewText}
 						</div>
@@ -158,7 +163,11 @@ const InstalledFontItem = (props: InstalledFontItemProps) => {
 						onClick={props.onRemove}
 						disabled={props.isCurrentlyUsed || props.isRemoving}
 						class="ml-3 p-2 text-destructive hover:bg-destructive/10 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-						title={props.isCurrentlyUsed ? "Cannot remove font that is currently in use" : "Remove font"}
+						title={
+							props.isCurrentlyUsed
+								? 'Cannot remove font that is currently in use'
+								: 'Remove font'
+						}
 					>
 						<Show
 							when={props.isRemoving}

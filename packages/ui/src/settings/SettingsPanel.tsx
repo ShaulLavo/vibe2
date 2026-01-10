@@ -16,6 +16,8 @@ export type SettingsPanelProps = {
 	parentCategoryId?: string
 	/** Custom UI components for specific subcategories */
 	customSubcategoryComponents?: Record<string, () => JSX.Element>
+	/** Custom components for individual settings */
+	customSettingComponents?: Record<string, () => JSX.Element>
 }
 
 export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
@@ -55,7 +57,9 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 
 	// Check if we should show custom UI for fonts subcategory
 	const shouldShowCustomFontsUI = () => {
-		return props.parentCategoryId === 'appearance' && props.categoryId === 'fonts'
+		return (
+			props.parentCategoryId === 'appearance' && props.categoryId === 'fonts'
+		)
 	}
 
 	// Get custom component for subcategory
@@ -82,7 +86,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 				<For each={groupedEntries()}>
 					{([subcategory, settings]) => {
 						const CustomComponent = getCustomComponent(subcategory)
-						
+
 						return (
 							<div class="space-y-3">
 								{/* Subcategory header (only show if not 'general' or if there are multiple subcategories) */}
@@ -105,6 +109,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 														onChange={(value) =>
 															props.onSettingChange(setting.key, value)
 														}
+														customComponents={props.customSettingComponents}
 													/>
 												)}
 											</For>
@@ -123,12 +128,13 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 															onChange={(value) =>
 																props.onSettingChange(setting.key, value)
 															}
+															customComponents={props.customSettingComponents}
 														/>
 													)}
 												</For>
 											</div>
 										</Show>
-										
+
 										{/* Custom component */}
 										{CustomComponent && CustomComponent()}
 									</div>

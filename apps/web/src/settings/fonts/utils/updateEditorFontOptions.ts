@@ -12,7 +12,7 @@ export const updateEditorFontOptions = (
 	settings: SettingDefinition[],
 	installedFonts: Set<string>
 ): SettingDefinition[] => {
-	return settings.map(setting => {
+	return settings.map((setting) => {
 		if (setting.key !== 'editor.fontFamily') {
 			return setting
 		}
@@ -21,27 +21,30 @@ export const updateEditorFontOptions = (
 		const defaultOptions: FontOption[] = [
 			{
 				value: "'JetBrains Mono', monospace",
-				label: "JetBrains Mono"
+				label: 'JetBrains Mono',
 			},
 			{
 				value: "'Fira Code', monospace",
-				label: "Fira Code"
+				label: 'Fira Code',
 			},
 			{
-				value: "monospace",
-				label: "System Monospace"
-			}
+				value: 'monospace',
+				label: 'System Monospace',
+			},
 		]
 
 		// Convert installed fonts to options
-		const installedOptions: FontOption[] = Array.from(installedFonts).map(fontName => ({
-			value: `"${fontName}", monospace`,
-			label: fontName.replace(/([A-Z])/g, ' $1').trim()
-		}))
+		const installedOptions: FontOption[] = Array.from(installedFonts).map(
+			(fontName) => ({
+				value: `"${fontName}", monospace`,
+				label: fontName.replace(/([A-Z])/g, ' $1').trim(),
+			})
+		)
 
 		// Filter out installed fonts that are already in defaults
 		const uniqueInstalledOptions = installedOptions.filter(
-			installed => !defaultOptions.some(def => def.value === installed.value)
+			(installed) =>
+				!defaultOptions.some((def) => def.value === installed.value)
 		)
 
 		// Combine options: defaults first, then installed fonts
@@ -49,7 +52,7 @@ export const updateEditorFontOptions = (
 
 		return {
 			...setting,
-			options: allOptions
+			options: allOptions,
 		}
 	})
 }
@@ -57,12 +60,15 @@ export const updateEditorFontOptions = (
 /**
  * Gets the display name for a font family value
  */
-export const getFontDisplayName = (fontValue: string, installedFonts: Set<string>): string => {
+export const getFontDisplayName = (
+	fontValue: string,
+	installedFonts: Set<string>
+): string => {
 	// Check default fonts first
 	const defaultFonts: Record<string, string> = {
-		"'JetBrains Mono', monospace": "JetBrains Mono",
-		"'Fira Code', monospace": "Fira Code",
-		"monospace": "System Monospace"
+		"'JetBrains Mono', monospace": 'JetBrains Mono',
+		"'Fira Code', monospace": 'Fira Code',
+		monospace: 'System Monospace',
 	}
 
 	if (defaultFonts[fontValue]) {
@@ -89,12 +95,15 @@ export const getFontDisplayName = (fontValue: string, installedFonts: Set<string
 /**
  * Validates if a font family value is available
  */
-export const isFontAvailable = (fontValue: string, installedFonts: Set<string>): boolean => {
+export const isFontAvailable = (
+	fontValue: string,
+	installedFonts: Set<string>
+): boolean => {
 	// Default fonts are always available
 	const defaultFonts = [
 		"'JetBrains Mono', monospace",
-		"'Fira Code', monospace", 
-		"monospace"
+		"'Fira Code', monospace",
+		'monospace',
 	]
 
 	if (defaultFonts.includes(fontValue)) {

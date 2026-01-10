@@ -22,7 +22,10 @@ describe('FontsSubcategoryUI Integration', () => {
 	 */
 	it('should integrate fonts under appearance category', () => {
 		// Test the category structure logic
-		const testCategoryStructure = (parentCategory: string, subcategory: string) => {
+		const testCategoryStructure = (
+			parentCategory: string,
+			subcategory: string
+		) => {
 			return parentCategory === 'appearance' && subcategory === 'fonts'
 		}
 
@@ -37,7 +40,7 @@ describe('FontsSubcategoryUI Integration', () => {
 	it('should support custom subcategory components', () => {
 		// Test the custom component mapping logic
 		const customComponents = {
-			fonts: () => 'FontsUI'
+			fonts: () => 'FontsUI',
 		}
 
 		const getCustomComponent = (subcategory: string) => {

@@ -1,4 +1,4 @@
-import { Show, Suspense, ErrorBoundary } from 'solid-js'
+import { Suspense, ErrorBoundary } from 'solid-js'
 import { FontBrowser } from './FontBrowser'
 import { FontManager } from './FontManager'
 import { FontStoreProvider } from '../store/FontStoreProvider'
@@ -29,7 +29,11 @@ export const FontsSettingsPanelExample = () => {
 					{/* Available Fonts Section */}
 					<section>
 						<h2 class="text-lg font-semibold mb-4">Available Fonts</h2>
-						<Suspense fallback={<div class="text-muted-foreground">Loading fonts...</div>}>
+						<Suspense
+							fallback={
+								<div class="text-muted-foreground">Loading fonts...</div>
+							}
+						>
 							<FontBrowser />
 						</Suspense>
 					</section>

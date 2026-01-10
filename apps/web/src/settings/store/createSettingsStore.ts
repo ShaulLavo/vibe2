@@ -38,28 +38,38 @@ export const createSettingsStore = (
 
 	const loadSchema = async (): Promise<SettingsSchema> => {
 		try {
+			console.log('[Settings] Loading schema files...')
 			// Import schema files dynamically
-			const [editorSchema, appearanceSchema, terminalSchema, fileTreeSchema] =
+			const [editorSchema, appearanceSchema, terminalSchema, uiSchema] =
 				await Promise.all([
 					import('../schemas/editor.json'),
 					import('../schemas/appearance.json'),
 					import('../schemas/terminal.json'),
-					import('../schemas/fileTree.json'),
+					import('../schemas/ui.json'),
 				])
+
+			console.log('[Settings] Schema files loaded:', {
+				editor: editorSchema,
+				appearance: appearanceSchema,
+				terminal: terminalSchema,
+				ui: uiSchema,
+			})
 
 			const categories = [
 				editorSchema.category,
 				terminalSchema.category,
-				fileTreeSchema.category,
+				uiSchema.category,
 				appearanceSchema.category,
 			]
 
 			const settings: SettingDefinition[] = [
 				...(editorSchema.settings as SettingDefinition[]),
 				...(terminalSchema.settings as SettingDefinition[]),
-				...(fileTreeSchema.settings as SettingDefinition[]),
+				...(uiSchema.settings as SettingDefinition[]),
 				...(appearanceSchema.settings as SettingDefinition[]),
 			]
+
+			console.log('[Settings] Processed schema:', { categories, settings })
 
 			return { categories, settings }
 		} catch (error) {
@@ -119,9 +129,16 @@ export const createSettingsStore = (
 	// Initialize the store
 	const initialize = async () => {
 		try {
+			console.log('[Settings] Initializing settings store...')
 			const schema = await loadSchema()
 			const defaults = extractDefaults(schema)
 			const savedValues = await loadSavedSettings()
+
+			console.log('[Settings] Initialization data:', {
+				schema,
+				defaults,
+				savedValues,
+			})
 
 			setState(
 				produce((s) => {
@@ -133,6 +150,7 @@ export const createSettingsStore = (
 			)
 
 			setIsInitialized(true)
+			console.log('[Settings] Settings store initialized successfully')
 		} catch (error) {
 			console.error('[Settings] Failed to initialize settings store:', error)
 		}

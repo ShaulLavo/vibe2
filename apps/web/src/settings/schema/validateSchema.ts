@@ -23,13 +23,15 @@ export const validateKeyFormat = (key: string): boolean => {
 /**
  * Validates that a setting definition has all required fields
  */
-export const validateSettingDefinition = (setting: unknown): ValidationResult => {
+export const validateSettingDefinition = (
+	setting: unknown
+): ValidationResult => {
 	const errors: ValidationError[] = []
 
 	if (!setting || typeof setting !== 'object') {
 		return {
 			isValid: false,
-			errors: [{ type: 'invalid_type', message: 'Setting must be an object' }]
+			errors: [{ type: 'invalid_type', message: 'Setting must be an object' }],
 		}
 	}
 
@@ -43,7 +45,8 @@ export const validateSettingDefinition = (setting: unknown): ValidationResult =>
 				type: 'missing_field',
 				message: `Missing required field: ${field}`,
 				field,
-				settingKey: typeof settingObj.key === 'string' ? settingObj.key : undefined
+				settingKey:
+					typeof settingObj.key === 'string' ? settingObj.key : undefined,
 			})
 		}
 	}
@@ -54,7 +57,7 @@ export const validateSettingDefinition = (setting: unknown): ValidationResult =>
 			errors.push({
 				type: 'invalid_key_format',
 				message: `Key must follow dot-notation format (lowercase letters separated by dots): ${settingObj.key}`,
-				settingKey: settingObj.key
+				settingKey: settingObj.key,
 			})
 		}
 	}
@@ -66,14 +69,15 @@ export const validateSettingDefinition = (setting: unknown): ValidationResult =>
 			errors.push({
 				type: 'invalid_type',
 				message: `Invalid type: ${settingObj.type}. Must be one of: ${validTypes.join(', ')}`,
-				settingKey: typeof settingObj.key === 'string' ? settingObj.key : undefined
+				settingKey:
+					typeof settingObj.key === 'string' ? settingObj.key : undefined,
 			})
 		}
 	}
 
 	return {
 		isValid: errors.length === 0,
-		errors
+		errors,
 	}
 }
 
@@ -86,7 +90,7 @@ export const validateSettingsSchema = (schema: unknown): ValidationResult => {
 	if (!schema || typeof schema !== 'object') {
 		return {
 			isValid: false,
-			errors: [{ type: 'invalid_type', message: 'Schema must be an object' }]
+			errors: [{ type: 'invalid_type', message: 'Schema must be an object' }],
 		}
 	}
 
@@ -97,23 +101,25 @@ export const validateSettingsSchema = (schema: unknown): ValidationResult => {
 		errors.push({
 			type: 'missing_field',
 			message: 'Schema must have a settings array',
-			field: 'settings'
+			field: 'settings',
 		})
 	} else {
 		// Validate each setting definition
 		for (let i = 0; i < schemaObj.settings.length; i++) {
 			const settingResult = validateSettingDefinition(schemaObj.settings[i])
 			if (!settingResult.isValid) {
-				errors.push(...settingResult.errors.map(error => ({
-					...error,
-					message: `Setting ${i}: ${error.message}`
-				})))
+				errors.push(
+					...settingResult.errors.map((error) => ({
+						...error,
+						message: `Setting ${i}: ${error.message}`,
+					}))
+				)
 			}
 		}
 	}
 
 	return {
 		isValid: errors.length === 0,
-		errors
+		errors,
 	}
 }

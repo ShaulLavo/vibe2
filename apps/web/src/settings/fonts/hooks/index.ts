@@ -1,1 +1,4 @@
-export { useFontSettingsIntegration, type FontOption } from './useFontSettingsIntegration'
+export {
+	useFontSettingsIntegration,
+	type FontOption,
+} from './useFontSettingsIntegration'

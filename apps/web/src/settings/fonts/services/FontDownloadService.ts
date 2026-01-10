@@ -1,6 +1,7 @@
 import { client } from '~/client'
 import { fontCacheService } from './FontCacheService'
 import { fontInstallationService } from './FontInstallationService'
+import { RetryService } from './RetryService'
 
 export type DownloadProgress = {
 	fontName: string
@@ -16,7 +17,7 @@ export class FontDownloadService {
 	private progressCallbacks = new Map<string, DownloadProgressCallback>()
 
 	/**
-	 * Download and install a font with progress tracking
+	 * Download and install a font with progress tracking and retry logic
 	 */
 	async downloadFont(
 		name: string,
@@ -40,8 +41,17 @@ export class FontDownloadService {
 		}
 
 		try {
-			// Initialize cache service
-			await fontCacheService.init()
+			// Initialize cache service with retry
+			const cacheInitResult = await RetryService.retryCacheOperation(
+				() => fontCacheService.init(),
+				'cache initialization'
+			)
+
+			if (!cacheInitResult.success) {
+				throw (
+					cacheInitResult.error || new Error('Failed to initialize font cache')
+				)
+			}
 
 			// Check if already installed
 			const installedFonts = await fontCacheService.getInstalledFonts()
@@ -52,31 +62,53 @@ export class FontDownloadService {
 			}
 
 			// Update progress: starting download
-			this.updateProgress(name, { 
-				fontName: name, 
-				status: 'downloading', 
-				progress: 0 
+			this.updateProgress(name, {
+				fontName: name,
+				status: 'downloading',
+				progress: 0,
 			})
 
-			// Download font data using server RPC
+			// Download font data using server RPC with retry logic
 			console.log('[FontDownloadService] Calling server RPC for font:', name)
-			const response = await client.fonts({ name }).get({
-				signal: abortController.signal
-			})
+
+			const downloadResult = await RetryService.retryFontDownload(async () => {
+				const response = await client.fonts({ name }).get({
+					signal: abortController.signal,
+				})
+
+				if (abortController.signal.aborted) {
+					throw new Error('Download cancelled')
+				}
+
+				if (!response.data || response.error) {
+					throw new Error(
+						response.error?.message || `Failed to download font: ${name}`
+					)
+				}
+
+				return response
+			}, name)
+
+			if (!downloadResult.success) {
+				throw (
+					downloadResult.error ||
+					new Error(
+						`Failed to download font after ${downloadResult.attempts} attempts`
+					)
+				)
+			}
+
+			const response = downloadResult.result!
 
 			if (abortController.signal.aborted) {
 				throw new Error('Download cancelled')
 			}
 
-			if (!response.data || response.error) {
-				throw new Error(response.error?.message || `Failed to download font: ${name}`)
-			}
-
 			// Update progress: download complete, starting installation
-			this.updateProgress(name, { 
-				fontName: name, 
-				status: 'installing', 
-				progress: 50 
+			this.updateProgress(name, {
+				fontName: name,
+				status: 'installing',
+				progress: 50,
 			})
 
 			// Handle the response data
@@ -93,29 +125,39 @@ export class FontDownloadService {
 				throw new Error('Download cancelled')
 			}
 
-			// Cache the font data
+			// Cache the font data with retry logic
 			console.log('[FontDownloadService] Caching font data for:', name)
-			await fontCacheService.downloadFont(name, downloadUrl)
+			const cacheResult = await RetryService.retryCacheOperation(
+				() => fontCacheService.downloadFont(name, downloadUrl),
+				`font caching for ${name}`
+			)
+
+			if (!cacheResult.success) {
+				throw cacheResult.error || new Error('Failed to cache font data')
+			}
 
 			// Update progress: installation complete
-			this.updateProgress(name, { 
-				fontName: name, 
-				status: 'completed', 
-				progress: 100 
+			this.updateProgress(name, {
+				fontName: name,
+				status: 'completed',
+				progress: 100,
 			})
 
-			console.log('[FontDownloadService] Font download and caching completed:', name)
-
+			console.log(
+				'[FontDownloadService] Font download and caching completed:',
+				name
+			)
 		} catch (error) {
 			console.error('[FontDownloadService] Font download failed:', name, error)
-			
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-			this.updateProgress(name, { 
-				fontName: name, 
-				status: 'error', 
-				error: errorMessage 
+
+			const errorMessage =
+				error instanceof Error ? error.message : 'Unknown error'
+			this.updateProgress(name, {
+				fontName: name,
+				status: 'error',
+				error: errorMessage,
 			})
-			
+
 			throw error
 		} finally {
 			// Clean up
@@ -128,16 +170,64 @@ export class FontDownloadService {
 	 * Install a font using FontFace API after it's been downloaded and cached
 	 */
 	async installFont(name: string): Promise<void> {
-		console.log('[FontDownloadService] Installing font using FontFace API:', name)
-		
+		console.log(
+			'[FontDownloadService] Installing font using FontFace API:',
+			name
+		)
+
 		try {
-			await fontInstallationService.installFont(name, (status) => {
-				console.log('[FontDownloadService] Installation status:', JSON.stringify(status, null, 2))
-			})
-			
+			// Use retry logic for font installation
+			const installResult = await RetryService.withRetry(
+				async () => {
+					await fontInstallationService.installFont(name, (status) => {
+						console.log(
+							'[FontDownloadService] Installation status:',
+							JSON.stringify(status, null, 2)
+						)
+					})
+				},
+				{
+					maxRetries: 2,
+					baseDelay: 1000,
+					maxDelay: 5000,
+					backoffFactor: 2,
+					retryCondition: (error: Error) => {
+						const message = error.message.toLowerCase()
+						// Don't retry on font format or browser support issues
+						if (
+							message.includes('unsupported') ||
+							message.includes('invalid font')
+						) {
+							return false
+						}
+						// Retry on temporary failures
+						return (
+							message.includes('failed to load') || message.includes('network')
+						)
+					},
+					onRetry: (attempt, error) => {
+						console.log(
+							`[FontDownloadService] Retrying font installation for ${name} (attempt ${attempt}):`,
+							error.message
+						)
+					},
+				}
+			)
+
+			if (!installResult.success) {
+				throw (
+					installResult.error ||
+					new Error('Font installation failed after retries')
+				)
+			}
+
 			console.log('[FontDownloadService] Font successfully installed:', name)
 		} catch (error) {
-			console.error('[FontDownloadService] Font installation failed:', name, error)
+			console.error(
+				'[FontDownloadService] Font installation failed:',
+				name,
+				error
+			)
 			throw error
 		}
 	}
@@ -150,7 +240,10 @@ export class FontDownloadService {
 		downloadUrl: string,
 		onProgress?: DownloadProgressCallback
 	): Promise<void> {
-		console.log('[FontDownloadService] Starting download and install for:', name)
+		console.log(
+			'[FontDownloadService] Starting download and install for:',
+			name
+		)
 
 		// Download the font first
 		await this.downloadFont(name, downloadUrl, onProgress)
@@ -158,7 +251,10 @@ export class FontDownloadService {
 		// Then install it using FontFace API
 		await this.installFont(name)
 
-		console.log('[FontDownloadService] Font download and installation completed:', name)
+		console.log(
+			'[FontDownloadService] Font download and installation completed:',
+			name
+		)
 	}
 
 	/**

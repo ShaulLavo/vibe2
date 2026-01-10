@@ -12,11 +12,15 @@ describe('SettingsSidebar', () => {
 				// Generate categories with subcategories
 				fc.array(
 					fc.record({
-						id: fc.string({ minLength: 1, maxLength: 20 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(s)),
+						id: fc
+							.string({ minLength: 1, maxLength: 20 })
+							.filter((s) => /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(s)),
 						label: fc.string({ minLength: 1, maxLength: 50 }),
 						subcategories: fc.array(
 							fc.record({
-								id: fc.string({ minLength: 1, maxLength: 20 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(s)),
+								id: fc
+									.string({ minLength: 1, maxLength: 20 })
+									.filter((s) => /^[a-zA-Z][a-zA-Z0-9_-]*$/.test(s)),
 								label: fc.string({ minLength: 1, maxLength: 50 }),
 							}),
 							{ minLength: 1, maxLength: 5 }

@@ -58,7 +58,10 @@ export class FontMetadataService {
 			await this.store.setItem(metadata.name, metadata)
 			console.log(`Stored metadata for font: ${metadata.name}`)
 		} catch (error) {
-			console.error(`Failed to store metadata for font ${metadata.name}:`, error)
+			console.error(
+				`Failed to store metadata for font ${metadata.name}:`,
+				error
+			)
 			throw error
 		}
 	}
@@ -228,7 +231,10 @@ export class FontMetadataService {
 		}
 
 		try {
-			await this.store.setItem(FontMetadataService.AVAILABLE_FONTS_KEY, cacheData)
+			await this.store.setItem(
+				FontMetadataService.AVAILABLE_FONTS_KEY,
+				cacheData
+			)
 			console.log('Cached available fonts list')
 		} catch (error) {
 			console.error('Failed to cache available fonts:', error)
@@ -249,7 +255,8 @@ export class FontMetadataService {
 			// Check if cache is expired
 			const cachedAt = new Date(cacheData.cachedAt)
 			const expiryTime =
-				cachedAt.getTime() + FontMetadataService.CACHE_EXPIRY_HOURS * 60 * 60 * 1000
+				cachedAt.getTime() +
+				FontMetadataService.CACHE_EXPIRY_HOURS * 60 * 60 * 1000
 
 			if (Date.now() > expiryTime) {
 				console.log('Available fonts cache expired')

@@ -21,13 +21,19 @@ export type SettingItemProps = {
 	value: unknown
 	onChange: (value: unknown) => void
 	class?: string
+	customComponents?: Record<string, () => any>
 }
 
 export const SettingItem: Component<SettingItemProps> = (props) => {
+	// Check if there's a custom component for this setting
+	const customComponent = () => props.customComponents?.[props.setting.key]
+
 	return (
 		<div class={cn('py-2.5', props.class)}>
-			{/* Setting control based on type */}
+			{/* Custom component if available */}
 			<Switch>
+				<Match when={customComponent()}>{customComponent()!()}</Match>
+
 				<Match when={props.setting.type === 'boolean'}>
 					<SettingCheckbox
 						checked={Boolean(props.value)}

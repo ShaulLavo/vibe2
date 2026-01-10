@@ -13,9 +13,9 @@
 	--color-accent: var(--syntax-keyword);
 	--color-accent-foreground: var(--editor-background);
 
-	--font-mono: 'JetBrains Mono Variable', monospace;
+	--font-mono: var(--editor-font-family, 'JetBrains Mono Variable', monospace);
 	--font-serif: 'Geist Variable', sans-serif;
-	--font-sans: 'Google Sans Flex', sans-serif;
+	--font-sans: var(--ui-font-family, 'Google Sans Flex', sans-serif);
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -24,6 +24,8 @@
 body {
 	background-color: var(--editor-background, hsl(240 10% 3.9%));
 	color: var(--editor-foreground, hsl(0 0% 98%));
+	font-family: var(--ui-font-family, 'Google Sans Flex', sans-serif);
+	font-size: var(--ui-font-size, 13px);
 }
 
 /* ghostty-web: ensure the terminal canvas doesn't behave like inline content */
@@ -140,8 +142,8 @@ body {
 	}
 	.tree-node-button {
 		@apply relative z-10 flex w-full items-center overflow-hidden rounded text-left transition;
-		font-size: var(--file-tree-font-size, 13px);
-		font-family: var(--file-tree-font-family, system-ui);
+		font-size: var(--ui-font-size, 13px);
+		font-family: var(--ui-font-family, system-ui);
 	}
 	.tree-node-icon {
 		@apply mr-1 flex items-center justify-center w-4 text-center ml-1;

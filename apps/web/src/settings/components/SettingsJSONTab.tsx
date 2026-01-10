@@ -1,6 +1,10 @@
 import type { Component } from 'solid-js'
 import { createSignal, createMemo, createEffect } from 'solid-js'
-import { Editor, type TextEditorDocument, type EditorError } from '@repo/code-editor'
+import {
+	Editor,
+	type TextEditorDocument,
+	type EditorError,
+} from '@repo/code-editor'
 import { ensureFs } from '../../fs/runtime/fsRuntime'
 import { useSettings } from '../SettingsProvider'
 import { createPieceTableSnapshot } from '@repo/utils'
@@ -12,13 +16,15 @@ export const SettingsJSONTab: Component = () => {
 	const [fileContent, setFileContent] = createSignal('')
 	const [isLoaded, setIsLoaded] = createSignal(false)
 	const [pieceTable, setPieceTable] = createSignal(createPieceTableSnapshot(''))
-	const [validationErrors, setValidationErrors] = createSignal<EditorError[]>([])
+	const [validationErrors, setValidationErrors] = createSignal<EditorError[]>(
+		[]
+	)
 	const [lastSavedContent, setLastSavedContent] = createSignal('')
 
 	// Validate JSON content and return errors
 	const validateJSON = (content: string): EditorError[] => {
 		const errors: EditorError[] = []
-		
+
 		try {
 			JSON.parse(content)
 			// If parsing succeeds, no errors
@@ -28,7 +34,7 @@ export const SettingsJSONTab: Component = () => {
 				const message = error.message
 				let startIndex = 0
 				let endIndex = content.length
-				
+
 				// Look for position information in the error message
 				const positionMatch = message.match(/position (\d+)/)
 				if (positionMatch) {
@@ -36,7 +42,7 @@ export const SettingsJSONTab: Component = () => {
 					startIndex = Math.max(0, position - 1)
 					endIndex = Math.min(content.length, position + 1)
 				}
-				
+
 				errors.push({
 					startIndex,
 					endIndex,
@@ -45,7 +51,7 @@ export const SettingsJSONTab: Component = () => {
 				})
 			}
 		}
-		
+
 		return errors
 	}
 
@@ -54,7 +60,7 @@ export const SettingsJSONTab: Component = () => {
 		try {
 			const ctx = await ensureFs('opfs')
 			const exists = await ctx.exists(SETTINGS_FILE_PATH)
-			
+
 			let content = ''
 			if (exists) {
 				const file = ctx.file(SETTINGS_FILE_PATH, 'r')
@@ -65,7 +71,7 @@ export const SettingsJSONTab: Component = () => {
 				await ctx.ensureDir('/.system')
 				await ctx.write(SETTINGS_FILE_PATH, content)
 			}
-			
+
 			setFileContent(content)
 			setLastSavedContent(content)
 			setPieceTable(createPieceTableSnapshot(content))
@@ -92,24 +98,24 @@ export const SettingsJSONTab: Component = () => {
 				console.error('[SettingsJSONTab] Cannot save invalid JSON:', errors)
 				return false
 			}
-			
+
 			const parsed = JSON.parse(content)
-			
+
 			// TODO: Auto-format JSON on save (not yet supported by code editor)
 			// For now, we save the content as-is
-			
+
 			// Save to VFS
 			const ctx = await ensureFs('opfs')
 			await ctx.ensureDir('/.system')
 			await ctx.write(SETTINGS_FILE_PATH, content)
-			
+
 			// Update settings store with parsed values
 			// Reset all settings first, then apply the new values
 			settingsActions.resetAllSettings()
 			for (const [key, value] of Object.entries(parsed)) {
 				settingsActions.setSetting(key, value)
 			}
-			
+
 			setLastSavedContent(content)
 			console.log('[SettingsJSONTab] Settings saved successfully')
 			return true
@@ -179,7 +185,8 @@ export const SettingsJSONTab: Component = () => {
 						<div class="flex-shrink-0 px-4 py-2 border-b border-border bg-muted/50">
 							{validationErrors().length > 0 && (
 								<div class="text-sm text-destructive">
-									⚠️ JSON validation errors: {validationErrors().length} error(s)
+									⚠️ JSON validation errors: {validationErrors().length}{' '}
+									error(s)
 								</div>
 							)}
 							{hasUnsavedChanges() && validationErrors().length === 0 && (
@@ -189,7 +196,7 @@ export const SettingsJSONTab: Component = () => {
 							)}
 						</div>
 					)}
-					
+
 					<Editor
 						document={editorDocument}
 						isFileSelected={() => true}

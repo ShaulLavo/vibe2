@@ -29,24 +29,10 @@
         {
             "key": "editor.fontFamily",
             "type": "string",
-            "default": "'JetBrains Mono', monospace",
+            "default": "'JetBrains Mono Variable', monospace",
             "description": "Controls the font family.",
             "category": "editor",
-            "subcategory": "font",
-            "options": [
-                {
-                    "value": "'JetBrains Mono', monospace",
-                    "label": "JetBrains Mono"
-                },
-                {
-                    "value": "'Fira Code', monospace",
-                    "label": "Fira Code"
-                },
-                {
-                    "value": "monospace",
-                    "label": "System Monospace"
-                }
-            ]
+            "subcategory": "font"
         },
         {
             "key": "editor.cursorStyle",

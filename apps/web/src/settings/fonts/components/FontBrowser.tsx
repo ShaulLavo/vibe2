@@ -2,6 +2,7 @@ import { For, Show, Suspense, createSignal, ErrorBoundary } from 'solid-js'
 import { VsSearch } from '@repo/icons/vs'
 import { useFontStore } from '../store/FontStoreProvider'
 import { FontCard } from './FontCard'
+import { FontErrorBoundary } from './ErrorBoundary/FontErrorBoundary'
 
 export const FontBrowser = () => {
 	const { availableFonts, installedFonts, pending } = useFontStore()
@@ -10,9 +11,9 @@ export const FontBrowser = () => {
 	const filteredFonts = () => {
 		const fonts = availableFonts() || {}
 		const query = searchQuery().toLowerCase()
-		
+
 		if (!query) return Object.entries(fonts)
-		
+
 		return Object.entries(fonts).filter(([name]) =>
 			name.toLowerCase().includes(query)
 		)
@@ -39,20 +40,12 @@ export const FontBrowser = () => {
 			</div>
 
 			{/* Font Grid with Progressive Loading */}
-			<ErrorBoundary
-				fallback={(error) => (
-					<div class="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-						<p class="text-destructive text-sm mb-2">
-							Failed to load fonts: {error.message}
-						</p>
-						<button
-							onClick={() => window.location.reload()}
-							class="px-3 py-1 text-xs bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
-						>
-							Retry
-						</button>
-					</div>
-				)}
+			<FontErrorBoundary
+				maxRetries={3}
+				retryDelay={2000}
+				onError={(error) => {
+					console.error('[FontBrowser] Error loading fonts:', error)
+				}}
 			>
 				<Suspense fallback={<FontBrowserSkeleton />}>
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -71,13 +64,15 @@ export const FontBrowser = () => {
 						</For>
 					</div>
 				</Suspense>
-			</ErrorBoundary>
+			</FontErrorBoundary>
 
 			{/* Empty State */}
 			<Show when={filteredFonts().length === 0 && !pending()}>
 				<div class="text-center py-8">
 					<p class="text-muted-foreground text-sm">
-						{searchQuery() ? 'No fonts found matching your search.' : 'No fonts available.'}
+						{searchQuery()
+							? 'No fonts found matching your search.'
+							: 'No fonts available.'}
 					</p>
 					<Show when={searchQuery()}>
 						<button
@@ -95,16 +90,14 @@ export const FontBrowser = () => {
 
 const FontBrowserSkeleton = () => (
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-		<For each={Array(6).fill(0)}>
-			{() => <FontCardSkeleton />}
-		</For>
+		<For each={Array(6).fill(0)}>{() => <FontCardSkeleton />}</For>
 	</div>
 )
 
 const FontCardSkeleton = () => (
 	<div class="p-4 border border-border rounded-lg animate-pulse bg-card">
-		<div class="h-4 bg-muted rounded mb-2"></div>
-		<div class="h-8 bg-muted rounded mb-3"></div>
-		<div class="h-8 bg-muted rounded"></div>
+		<div class="h-4 bg-muted rounded mb-2" />
+		<div class="h-8 bg-muted rounded mb-3" />
+		<div class="h-8 bg-muted rounded" />
 	</div>
 )

@@ -35,11 +35,18 @@ describe('FontManager Component Logic', () => {
 	it('should handle font removal prevention logic', () => {
 		// Test the logic for preventing removal of fonts in use
 		const canRemoveFont = (fontName: string, currentFont: string): boolean => {
-			return !currentFont.includes(`"${fontName}"`) && !currentFont.includes(`'${fontName}'`)
+			return (
+				!currentFont.includes(`"${fontName}"`) &&
+				!currentFont.includes(`'${fontName}'`)
+			)
 		}
 
-		expect(canRemoveFont('JetBrainsMono', '"JetBrainsMono", monospace')).toBe(false)
-		expect(canRemoveFont('JetBrainsMono', "'JetBrainsMono', monospace")).toBe(false)
+		expect(canRemoveFont('JetBrainsMono', '"JetBrainsMono", monospace')).toBe(
+			false
+		)
+		expect(canRemoveFont('JetBrainsMono', "'JetBrainsMono', monospace")).toBe(
+			false
+		)
 		expect(canRemoveFont('FiraCode', '"JetBrainsMono", monospace')).toBe(true)
 		expect(canRemoveFont('FiraCode', 'monospace')).toBe(true)
 	})
@@ -48,17 +55,20 @@ describe('FontManager Component Logic', () => {
 		// Property-based test for font list sorting
 		fc.assert(
 			fc.property(
-				fc.array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 0, maxLength: 10 }),
+				fc.array(fc.string({ minLength: 1, maxLength: 20 }), {
+					minLength: 0,
+					maxLength: 10,
+				}),
 				(fontNames) => {
 					const sorted1 = [...fontNames].sort()
 					const sorted2 = [...fontNames].sort()
-					
+
 					// Sorting should be deterministic
 					expect(sorted1).toEqual(sorted2)
-					
+
 					// All original items should be present
 					expect(sorted1.length).toBe(fontNames.length)
-					
+
 					return true
 				}
 			),

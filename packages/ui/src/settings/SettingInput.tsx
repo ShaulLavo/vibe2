@@ -24,10 +24,7 @@ export const SettingInput: Component<SettingInputProps> = (props) => {
 
 	return (
 		<div class={cn('space-y-1', props.class)}>
-			<TextField.Root
-				value={String(props.value)}
-				onChange={handleChange}
-			>
+			<TextField.Root value={String(props.value)} onChange={handleChange}>
 				<TextField.Label class="text-sm font-medium text-foreground">
 					{props.label}
 				</TextField.Label>

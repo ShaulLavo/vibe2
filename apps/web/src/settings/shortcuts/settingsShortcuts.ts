@@ -2,7 +2,7 @@ import type { KeymapController } from '../../keymap/KeymapContext'
 
 /**
  * Registers settings keyboard shortcuts with the KeymapController
- * 
+ *
  * Shortcuts:
  * - Cmd/Ctrl+,: Open settings
  */
@@ -16,7 +16,7 @@ export function registerSettingsShortcuts(
 		id: 'settings.open-meta-comma',
 		options: {
 			preventDefault: true,
-		}
+		},
 	})
 
 	const ctrlCommaBinding = controller.registerKeybinding({
@@ -24,7 +24,7 @@ export function registerSettingsShortcuts(
 		id: 'settings.open-ctrl-comma',
 		options: {
 			preventDefault: true,
-		}
+		},
 	})
 
 	// Register command for opening settings
