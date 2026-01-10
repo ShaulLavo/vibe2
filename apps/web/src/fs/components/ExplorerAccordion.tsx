@@ -1,4 +1,4 @@
-import { createMemo, onCleanup, onMount, ParentComponent } from 'solid-js'
+import { createMemo, JSX, onCleanup, onMount, ParentComponent } from 'solid-js'
 import { Accordion, AccordionItem, AccordionContent } from '@repo/ui/accordion'
 import * as AccordionPrimitive from '@kobalte/core/accordion'
 import { VsChevronDown } from '@repo/icons/vs/VsChevronDown'
@@ -7,6 +7,33 @@ import { useFocusManager } from '~/focus/focusManager'
 import { useFs } from '../context/FsContext'
 import { FsToolbar } from './FsToolbar'
 import { SystemFilesSection } from './SystemFilesSection'
+
+type FsAccordionSectionProps = {
+	value: string
+	title: string
+	class?: string
+	headerClass?: string
+	toolbar?: JSX.Element
+	children: JSX.Element
+}
+
+const FsAccordionSection = (props: FsAccordionSectionProps) => (
+	<AccordionItem value={props.value} class={props.class}>
+		<AccordionPrimitive.Header
+			class={`flex items-center w-full shrink-0 bg-background ${props.headerClass ?? ''}`}
+		>
+			<AccordionPrimitive.Trigger class="flex w-full items-center gap-1 py-1 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground focus:outline-none [&:not([data-expanded])>svg]:-rotate-90">
+				<VsChevronDown
+					size={16}
+					class="shrink-0 transition-transform duration-200"
+				/>
+				{props.title}
+			</AccordionPrimitive.Trigger>
+			{props.toolbar}
+		</AccordionPrimitive.Header>
+		<AccordionContent class="min-h-0 flex-1">{props.children}</AccordionContent>
+	</AccordionItem>
+)
 
 export const ExplorerAccordion: ParentComponent = (props) => {
 	const focus = useFocusManager()
@@ -45,48 +72,25 @@ export const ExplorerAccordion: ParentComponent = (props) => {
 				defaultValue={['system', 'explorer']}
 				class="flex flex-col h-full overflow-hidden"
 			>
-				{/* System Section */}
-				<AccordionItem
+				<FsAccordionSection
 					value="system"
+					title="System"
 					class="shrink-0 flex flex-col max-h-[30%] border-b border-border/50"
 				>
-					<AccordionPrimitive.Header class="flex items-center w-full shrink-0 bg-background">
-						<AccordionPrimitive.Trigger class="flex w-full items-center gap-1 py-1 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground focus:outline-none [&:not([data-expanded])>svg]:-rotate-90">
-							<VsChevronDown
-								size={16}
-								class="shrink-0 transition-transform duration-200"
-							/>
-							System
-						</AccordionPrimitive.Trigger>
-					</AccordionPrimitive.Header>
-					<AccordionContent class="min-h-0 flex-1">
-						<div class="overflow-auto max-h-full">
-							<SystemFilesSection />
-						</div>
-					</AccordionContent>
-				</AccordionItem>
+					<div class="overflow-auto max-h-full">
+						<SystemFilesSection />
+					</div>
+				</FsAccordionSection>
 
-				{/* Explorer Section */}
-				<AccordionItem value="explorer" class="flex-1 min-h-0 flex flex-col">
-					<Flex
-						alignItems="center"
-						class="w-full shrink-0 bg-background border-b border-border/50"
-					>
-						<AccordionPrimitive.Header class="flex-1">
-							<AccordionPrimitive.Trigger class="flex w-full items-center gap-1 py-1 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground focus:outline-none [&:not([data-expanded])>svg]:-rotate-90">
-								<VsChevronDown
-									size={16}
-									class="shrink-0 transition-transform duration-200"
-								/>
-								Explorer
-							</AccordionPrimitive.Trigger>
-						</AccordionPrimitive.Header>
-						<FsToolbar parentPath={parentPath} />
-					</Flex>
-					<AccordionContent class="flex-1 min-h-0">
-						{props.children}
-					</AccordionContent>
-				</AccordionItem>
+				<FsAccordionSection
+					value="explorer"
+					title="Explorer"
+					class="flex-1 min-h-0 flex flex-col"
+					headerClass="border-b border-border/50"
+					toolbar={<FsToolbar parentPath={parentPath} />}
+				>
+					{props.children}
+				</FsAccordionSection>
 			</Accordion>
 		</Flex>
 	)
