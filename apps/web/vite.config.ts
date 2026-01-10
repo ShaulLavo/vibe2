@@ -1,9 +1,62 @@
 import path from 'node:path'
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import solidPlugin from 'vite-plugin-solid'
 import devtools from 'solid-devtools/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { playwright } from '@vitest/browser-playwright'
+import { build } from 'vite'
+
+/**
+ * Plugin to build the service worker as a separate bundle
+ */
+function serviceWorkerPlugin(): Plugin {
+	return {
+		name: 'service-worker',
+		apply: 'build',
+		async writeBundle() {
+			await build({
+				configFile: false,
+				build: {
+					emptyOutDir: false,
+					lib: {
+						entry: path.resolve(__dirname, 'src/sw.ts'),
+						formats: ['es'],
+						fileName: () => 'sw.js',
+					},
+					outDir: path.resolve(__dirname, 'dist'),
+					rollupOptions: {
+						output: {
+							entryFileNames: 'sw.js',
+						},
+					},
+				},
+			})
+		},
+	}
+}
+
+/**
+ * Plugin to serve the service worker in dev mode
+ */
+function serviceWorkerDevPlugin(): Plugin {
+	return {
+		name: 'service-worker-dev',
+		apply: 'serve',
+		configureServer(server) {
+			server.middlewares.use(async (req, res, next) => {
+				if (req.url === '/sw.js') {
+					const result = await server.transformRequest('/src/sw.ts')
+					if (result) {
+						res.setHeader('Content-Type', 'application/javascript')
+						res.end(result.code)
+						return
+					}
+				}
+				next()
+			})
+		},
+	}
+}
 
 export default defineConfig(({ mode }) => {
 	const appDir = path.resolve(__dirname)
@@ -22,6 +75,8 @@ export default defineConfig(({ mode }) => {
 				autoname: true,
 			}),
 			solidPlugin(),
+			serviceWorkerPlugin(),
+			serviceWorkerDevPlugin(),
 		],
 		resolve: {
 			alias: [

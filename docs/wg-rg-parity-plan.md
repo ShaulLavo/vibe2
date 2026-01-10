@@ -45,8 +45,8 @@ This plan targets full CLI parity for the `wg` command (just-bash adapter) with 
 ### 3) Regex Engine Integration
 
 - Add a regex engine suitable for browser/Bun runtime:
-	- Fast path for fixed-string search (current byte matcher) when `-F` or no regex needed.
-	- Regex path for default behavior, with Unicode support parity where feasible.
+  - Fast path for fixed-string search (current byte matcher) when `-F` or no regex needed.
+  - Regex path for default behavior, with Unicode support parity where feasible.
 - Define compilation cache keyed by pattern + flags (case, unicode, multiline).
 - Respect `-S/--smart-case`, `-i/--ignore-case`, `-U/--multiline`.
 - Ensure `-o/--only-matching` uses regex capture spans when regex is enabled.
@@ -55,8 +55,8 @@ This plan targets full CLI parity for the `wg` command (just-bash adapter) with 
 
 - Implement full gitignore-style glob matching (path-aware, `**`, `!` negations).
 - Load ignore sources:
-	- `.gitignore`, `.ignore`, `.rgignore`.
-	- Git info/exclude and global excludes if accessible in the browser sandbox.
+  - `.gitignore`, `.ignore`, `.rgignore`.
+  - Git info/exclude and global excludes if accessible in the browser sandbox.
 - Implement `--no-ignore`, `-u/--unrestricted` stacking semantics.
 - Support `--hidden` and integrate with ignore logic.
 
@@ -97,19 +97,19 @@ This plan targets full CLI parity for the `wg` command (just-bash adapter) with 
 - Use chunked regex scanning with overlap aware of multiline patterns.
 - Add caches for ignore rules and compiled regexes.
 - Instrument:
-	- file enumeration
-	- pattern compilation
-	- per-file scan time
-	- bytes scanned
+  - file enumeration
+  - pattern compilation
+  - per-file scan time
+  - bytes scanned
 - Add optional debug logging toggles (per existing logger utilities).
 
 ### 11) Tests & Fixture Parity
 
 - Add unit tests for:
-	- regex features (`\w`, groups, unicode, multiline)
-	- ignore rules and globs
-	- output formatting
-	- exit codes
+  - regex features (`\w`, groups, unicode, multiline)
+  - ignore rules and globs
+  - output formatting
+  - exit codes
 - Add fixture repos matching `rg` examples and compare outputs.
 - Keep tests deterministic and fast.
 
