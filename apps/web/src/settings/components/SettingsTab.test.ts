@@ -25,9 +25,9 @@ function simulateSettingsTabSingleton(openSettingsCalls: string[]): {
 	tabCount: number
 	activePath: string | null
 } {
-	// In the file system approach, opening settings means selecting /.system/settings.json
+	// In the file system approach, opening settings means selecting /.system/userSettings.json
 	// The tab system naturally ensures only one instance of any file path can be open
-	const SETTINGS_PATH = '/.system/settings.json'
+	const SETTINGS_PATH = '/.system/userSettings.json'
 
 	// Simulate multiple calls to open settings
 	let activePath: string | null = null
@@ -85,7 +85,7 @@ describe('SettingsTab', () => {
 					// If there were openSettings calls, should have exactly 1 tab
 					if (openSettingsCalls.length > 0) {
 						expect(result.tabCount).toBe(1)
-						expect(result.activePath).toBe('/.system/settings.json')
+						expect(result.activePath).toBe('/.system/userSettings.json')
 					}
 				}
 			),
@@ -113,7 +113,7 @@ describe('SettingsTab', () => {
 
 					// Regardless of how many times we call openSettings, should only have 1 tab
 					expect(result.tabCount).toBe(1)
-					expect(result.activePath).toBe('/.system/settings.json')
+					expect(result.activePath).toBe('/.system/userSettings.json')
 				}
 			),
 			{ numRuns: 100 }
@@ -203,7 +203,7 @@ describe('SettingsTab', () => {
 		// Test single call
 		const singleCall = simulateSettingsTabSingleton(['openSettings'])
 		expect(singleCall.tabCount).toBe(1)
-		expect(singleCall.activePath).toBe('/.system/settings.json')
+		expect(singleCall.activePath).toBe('/.system/userSettings.json')
 
 		// Test multiple calls
 		const multipleCalls = simulateSettingsTabSingleton([
@@ -212,7 +212,7 @@ describe('SettingsTab', () => {
 			'openSettings',
 		])
 		expect(multipleCalls.tabCount).toBe(1)
-		expect(multipleCalls.activePath).toBe('/.system/settings.json')
+		expect(multipleCalls.activePath).toBe('/.system/userSettings.json')
 
 		// Test mixed calls
 		const mixedCalls = simulateSettingsTabSingleton([
@@ -222,7 +222,7 @@ describe('SettingsTab', () => {
 			'openSettings',
 		])
 		expect(mixedCalls.tabCount).toBe(1)
-		expect(mixedCalls.activePath).toBe('/.system/settings.json')
+		expect(mixedCalls.activePath).toBe('/.system/userSettings.json')
 	})
 
 	/**

@@ -1,6 +1,6 @@
 /**
  * Resource Cleanup Utilities
- * 
+ *
  * Comprehensive resource management and cleanup for font operations.
  * Ensures proper cleanup of caches, IndexedDB, document fonts, and memory.
  */
@@ -28,7 +28,9 @@ export interface ResourceStats {
 export class FontResourceCleanup {
 	private static instance: FontResourceCleanup
 	private cleanupInProgress = false
-	private cleanupStatusSignal = createSignal<'idle' | 'cleaning' | 'complete' | 'error'>('idle')
+	private cleanupStatusSignal = createSignal<
+		'idle' | 'cleaning' | 'complete' | 'error'
+	>('idle')
 	private cleanupStatus = this.cleanupStatusSignal[0]
 	private setCleanupStatus = this.cleanupStatusSignal[1]
 
@@ -48,7 +50,7 @@ export class FontResourceCleanup {
 			cacheEntries: 0,
 			indexedDBSize: 0,
 			documentFonts: 0,
-			memoryUsage: 0
+			memoryUsage: 0,
 		}
 
 		try {
@@ -81,7 +83,6 @@ export class FontResourceCleanup {
 
 			// IndexedDB size estimation (approximate)
 			stats.indexedDBSize = await this.estimateIndexedDBSize()
-
 		} catch (error) {
 			console.warn('Failed to get resource stats:', error)
 		}
@@ -99,13 +100,13 @@ export class FontResourceCleanup {
 
 		this.cleanupInProgress = true
 		this.setCleanupStatus('cleaning')
-		
+
 		const startTime = performance.now()
 		const result: CleanupResult = {
 			success: true,
 			itemsRemoved: 0,
 			errors: [],
-			duration: 0
+			duration: 0,
 		}
 
 		try {
@@ -129,7 +130,6 @@ export class FontResourceCleanup {
 
 			result.success = result.errors.length === 0
 			this.setCleanupStatus(result.success ? 'complete' : 'error')
-
 		} catch (error) {
 			result.success = false
 			result.errors.push(`Cleanup failed: ${error}`)
@@ -151,7 +151,7 @@ export class FontResourceCleanup {
 			success: true,
 			itemsRemoved: 0,
 			errors: [],
-			duration: 0
+			duration: 0,
 		}
 
 		try {
@@ -176,7 +176,6 @@ export class FontResourceCleanup {
 			if (fontRemoved) {
 				result.itemsRemoved++
 			}
-
 		} catch (error) {
 			result.success = false
 			result.errors.push(`Failed to cleanup font ${fontName}: ${error}`)
@@ -190,13 +189,15 @@ export class FontResourceCleanup {
 	/**
 	 * Clean up old/unused resources based on age and usage
 	 */
-	async cleanupOldResources(maxAge: number = 7 * 24 * 60 * 60 * 1000): Promise<CleanupResult> {
+	async cleanupOldResources(
+		maxAge: number = 7 * 24 * 60 * 60 * 1000
+	): Promise<CleanupResult> {
 		const startTime = performance.now()
 		const result: CleanupResult = {
 			success: true,
 			itemsRemoved: 0,
 			errors: [],
-			duration: 0
+			duration: 0,
 		}
 
 		try {
@@ -212,9 +213,12 @@ export class FontResourceCleanup {
 					if (response) {
 						const lastModified = response.headers.get('last-modified')
 						const date = response.headers.get('date')
-						
-						const timestamp = lastModified ? new Date(lastModified).getTime() : 
-							date ? new Date(date).getTime() : now
+
+						const timestamp = lastModified
+							? new Date(lastModified).getTime()
+							: date
+								? new Date(date).getTime()
+								: now
 
 						if (now - timestamp > maxAge) {
 							const deleted = await cache.delete(request)
@@ -235,7 +239,6 @@ export class FontResourceCleanup {
 					result.itemsRemoved++
 				}
 			}
-
 		} catch (error) {
 			result.success = false
 			result.errors.push(`Failed to cleanup old resources: ${error}`)
@@ -259,7 +262,7 @@ export class FontResourceCleanup {
 			cacheClean: false,
 			indexedDBClean: false,
 			documentFontsClean: false,
-			totalItems: 0
+			totalItems: 0,
 		}
 
 		try {
@@ -282,7 +285,7 @@ export class FontResourceCleanup {
 			if (document.fonts) {
 				// Count fonts that look like NerdFonts
 				let nerdFontCount = 0
-				document.fonts.forEach(font => {
+				document.fonts.forEach((font) => {
 					if (font.family.includes('Nerd') || font.family.includes('Mono')) {
 						nerdFontCount++
 					}
@@ -292,7 +295,6 @@ export class FontResourceCleanup {
 			} else {
 				verification.documentFontsClean = true
 			}
-
 		} catch (error) {
 			console.error('Failed to verify cleanup:', error)
 		}
@@ -309,7 +311,10 @@ export class FontResourceCleanup {
 
 	// Private methods
 
-	private async cleanupCacheAPI(): Promise<{ itemsRemoved: number; errors: string[] }> {
+	private async cleanupCacheAPI(): Promise<{
+		itemsRemoved: number
+		errors: string[]
+	}> {
 		const result = { itemsRemoved: 0, errors: [] }
 
 		try {
@@ -337,7 +342,10 @@ export class FontResourceCleanup {
 		return result
 	}
 
-	private async cleanupIndexedDB(): Promise<{ itemsRemoved: number; errors: string[] }> {
+	private async cleanupIndexedDB(): Promise<{
+		itemsRemoved: number
+		errors: string[]
+	}> {
 		const result = { itemsRemoved: 0, errors: [] }
 
 		try {
@@ -358,7 +366,6 @@ export class FontResourceCleanup {
 					setTimeout(() => resolve(), 1000)
 				}
 			})
-
 		} catch (error) {
 			result.errors.push(`IndexedDB cleanup failed: ${error}`)
 		}
@@ -366,20 +373,25 @@ export class FontResourceCleanup {
 		return result
 	}
 
-	private async cleanupDocumentFonts(): Promise<{ itemsRemoved: number; errors: string[] }> {
+	private async cleanupDocumentFonts(): Promise<{
+		itemsRemoved: number
+		errors: string[]
+	}> {
 		const result = { itemsRemoved: 0, errors: [] }
 
 		try {
 			if (document.fonts) {
 				const fontsToRemove: FontFace[] = []
-				
-				document.fonts.forEach(font => {
+
+				document.fonts.forEach((font) => {
 					// Remove fonts that look like NerdFonts
-					if (font.family.includes('Nerd') || 
+					if (
+						font.family.includes('Nerd') ||
 						font.family.includes('JetBrains') ||
 						font.family.includes('Fira') ||
 						font.family.includes('Hack') ||
-						font.family.includes('Source')) {
+						font.family.includes('Source')
+					) {
 						fontsToRemove.push(font)
 					}
 				})
@@ -406,7 +418,7 @@ export class FontResourceCleanup {
 		try {
 			// Force garbage collection if available
 			if ('gc' in window && typeof (window as any).gc === 'function') {
-				(window as any).gc()
+				;(window as any).gc()
 				console.log('🗑️ Forced garbage collection')
 			}
 
@@ -423,7 +435,7 @@ export class FontResourceCleanup {
 			const db = await this.openIndexedDB()
 			const transaction = db.transaction(['fonts'], 'readwrite')
 			const store = transaction.objectStore('fonts')
-			
+
 			await new Promise<void>((resolve, reject) => {
 				const request = store.delete(fontName)
 				request.onsuccess = () => resolve()
@@ -441,7 +453,7 @@ export class FontResourceCleanup {
 		try {
 			if (document.fonts) {
 				let removed = false
-				document.fonts.forEach(font => {
+				document.fonts.forEach((font) => {
 					if (font.family.includes(fontName)) {
 						document.fonts.delete(font)
 						removed = true
@@ -473,7 +485,7 @@ export class FontResourceCleanup {
 			const db = await this.openIndexedDB()
 			const transaction = db.transaction(['fonts'], 'readonly')
 			const store = transaction.objectStore('fonts')
-			
+
 			return new Promise((resolve, reject) => {
 				const request = store.getAll()
 				request.onsuccess = () => resolve(request.result || [])
@@ -488,9 +500,11 @@ export class FontResourceCleanup {
 		try {
 			const allEntries = await this.getAllIndexedDBEntries()
 			const now = Date.now()
-			
-			return allEntries.filter(entry => {
-				const lastAccessed = entry.lastAccessed ? new Date(entry.lastAccessed).getTime() : 0
+
+			return allEntries.filter((entry) => {
+				const lastAccessed = entry.lastAccessed
+					? new Date(entry.lastAccessed).getTime()
+					: 0
 				return now - lastAccessed > maxAge
 			})
 		} catch (error) {
@@ -512,7 +526,7 @@ export class FontResourceCleanup {
  */
 export function useFontResourceCleanup() {
 	const cleanup = FontResourceCleanup.getInstance()
-	
+
 	// Cleanup on component unmount
 	onCleanup(async () => {
 		// Optional: Clean up old resources on unmount
@@ -524,14 +538,15 @@ export function useFontResourceCleanup() {
 			}
 		}
 	})
-	
+
 	return {
 		getResourceStats: () => cleanup.getResourceStats(),
 		cleanupAllResources: () => cleanup.cleanupAllResources(),
 		cleanupFont: (fontName: string) => cleanup.cleanupFont(fontName),
-		cleanupOldResources: (maxAge?: number) => cleanup.cleanupOldResources(maxAge),
+		cleanupOldResources: (maxAge?: number) =>
+			cleanup.cleanupOldResources(maxAge),
 		verifyCleanup: () => cleanup.verifyCleanup(),
-		getCleanupStatus: () => cleanup.getCleanupStatus()
+		getCleanupStatus: () => cleanup.getCleanupStatus(),
 	}
 }
 
@@ -553,22 +568,27 @@ export class AutoCleanupScheduler {
 	/**
 	 * Start automatic cleanup every interval
 	 */
-	start(intervalMs: number = 24 * 60 * 60 * 1000): void { // Default: 24 hours
+	start(intervalMs: number = 24 * 60 * 60 * 1000): void {
+		// Default: 24 hours
 		if (this.isRunning) return
 
 		this.isRunning = true
 		this.intervalId = window.setInterval(async () => {
 			console.log('🔄 Running scheduled font cleanup...')
-			
+
 			const cleanup = FontResourceCleanup.getInstance()
 			const result = await cleanup.cleanupOldResources()
-			
+
 			if (result.itemsRemoved > 0) {
-				console.log(`✅ Scheduled cleanup removed ${result.itemsRemoved} old resources`)
+				console.log(
+					`✅ Scheduled cleanup removed ${result.itemsRemoved} old resources`
+				)
 			}
 		}, intervalMs)
 
-		console.log(`⏰ Automatic font cleanup scheduled every ${intervalMs / 1000 / 60} minutes`)
+		console.log(
+			`⏰ Automatic font cleanup scheduled every ${intervalMs / 1000 / 60} minutes`
+		)
 	}
 
 	/**

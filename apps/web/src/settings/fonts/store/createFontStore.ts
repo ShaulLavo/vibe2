@@ -25,6 +25,7 @@ export type FontStoreState = {
 
 export type FontActions = {
 	downloadFont: (name: string) => Promise<void>
+	downloadMultipleFonts: (names: string[]) => Promise<void>
 	removeFont: (name: string) => Promise<void>
 	isFontInstalled: (name: string) => boolean
 	getCacheStats: () => Promise<{ totalSize: number; fontCount: number }>
@@ -153,6 +154,68 @@ export const createFontStore = (): FontStore => {
 		}
 	}
 
+	const downloadMultipleFonts = async (names: string[]): Promise<void> => {
+		// Add all to queue
+		setState('downloadQueue', (queue) => new Set([...queue, ...names]))
+
+		try {
+			// Call batch API
+			console.log('[FontStore] Batch downloading fonts:', names)
+			const response = await client.fonts.batch.post({ names })
+
+			if (!response.data) {
+				throw new Error('No data received from batch download')
+			}
+
+			// Process each font result
+			const { fontCacheService } = await import('../services/FontCacheService')
+			const { fontInstallationService } =
+				await import('../services/FontInstallationService')
+
+			// Initialize services
+			await fontCacheService.init()
+			await fontInstallationService.initialize()
+
+			const updates: Promise<void>[] = []
+
+			for (const [name, base64Data] of Object.entries(response.data)) {
+				if (base64Data) {
+					// Decode and cache
+					const binaryString = atob(base64Data)
+					const bytes = new Uint8Array(binaryString.length)
+					for (let i = 0; i < binaryString.length; i++) {
+						bytes[i] = binaryString.charCodeAt(i)
+					}
+
+					updates.push(
+						(async () => {
+							try {
+								await fontCacheService.storeFont(name, bytes.buffer)
+								await fontInstallationService.installFont(name)
+							} catch (e) {
+								console.error(`Failed to install ${name}`, e)
+							}
+						})()
+					)
+				}
+			}
+			await Promise.all(updates)
+
+			batch(() => {
+				refetchInstalledFonts()
+				refetchCacheStats()
+			})
+		} catch (error) {
+			console.error('[FontStore] Batch download failed:', error)
+		} finally {
+			setState('downloadQueue', (queue) => {
+				const newQueue = new Set(queue)
+				names.forEach((name) => newQueue.delete(name))
+				return newQueue
+			})
+		}
+	}
+
 	const removeFont = async (name: string): Promise<void> => {
 		await fontCacheService.init()
 
@@ -198,6 +261,7 @@ export const createFontStore = (): FontStore => {
 
 	const actions: FontActions = {
 		downloadFont,
+		downloadMultipleFonts,
 		removeFont,
 		isFontInstalled,
 		getCacheStats: getCacheStatsAction,

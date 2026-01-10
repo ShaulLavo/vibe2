@@ -1,12 +1,14 @@
-import { For, Show, Suspense, createSignal, ErrorBoundary } from 'solid-js'
-import { VsSearch } from '@repo/icons/vs'
+import { For, Show, Suspense, createSignal } from 'solid-js'
+import { VsSearch, VsDownload, VsClose } from '@repo/icons/vs'
 import { useFontStore } from '../store/FontStoreProvider'
-import { FontCard } from './FontCard'
+import { SelectableFontCard } from './SelectableFontCard'
 import { FontErrorBoundary } from './ErrorBoundary/FontErrorBoundary'
+import { useMultiSelect } from '../hooks/useMultiSelect'
 
 export const FontBrowser = () => {
-	const { availableFonts, installedFonts, pending } = useFontStore()
+	const { availableFonts, installedFonts, pending, actions } = useFontStore()
 	const [searchQuery, setSearchQuery] = createSignal('')
+	const selection = useMultiSelect<string>()
 
 	const filteredFonts = () => {
 		const fonts = availableFonts() || {}
@@ -25,18 +27,45 @@ export const FontBrowser = () => {
 		return state.downloadQueue.has(fontName)
 	}
 
+	const handleBatchDownload = async () => {
+		if (selection.count() === 0) return
+		const fontsToDownload = Array.from(selection.selected())
+		await actions.downloadMultipleFonts(fontsToDownload)
+		selection.exitSelectMode()
+	}
+
 	return (
 		<div class="space-y-4">
 			{/* Search Input - Always visible */}
-			<div class="relative">
-				<VsSearch class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-				<input
-					type="text"
-					placeholder="Search fonts..."
-					value={searchQuery()}
-					onInput={(e) => setSearchQuery(e.currentTarget.value)}
-					class="w-full pl-10 pr-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-				/>
+			<div class="relative flex gap-2">
+				<div class="relative flex-1">
+					<VsSearch class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+					<input
+						type="text"
+						placeholder="Search fonts..."
+						value={searchQuery()}
+						onInput={(e) => setSearchQuery(e.currentTarget.value)}
+						class="w-full pl-10 pr-3 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+					/>
+				</div>
+				<Show when={selection.count() > 0}>
+					<div class="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-200">
+						<button
+							onClick={handleBatchDownload}
+							class="flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
+						>
+							<VsDownload class="w-4 h-4" />
+							Download ({selection.count()})
+						</button>
+						<button
+							onClick={selection.exitSelectMode}
+							class="p-2 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground transition-colors"
+							title="Cancel selection"
+						>
+							<VsClose class="w-4 h-4" />
+						</button>
+					</div>
+				</Show>
 			</div>
 
 			{/* Font Grid with Progressive Loading */}
@@ -52,12 +81,20 @@ export const FontBrowser = () => {
 						<For each={filteredFonts()}>
 							{([fontName, downloadUrl]) => (
 								<Suspense fallback={<FontCardSkeleton />}>
-									<FontCard
+									<SelectableFontCard
 										name={fontName}
 										downloadUrl={downloadUrl}
 										isInstalled={installedFonts()?.has(fontName) ?? false}
 										isDownloading={isInDownloadQueue(fontName)}
 										pending={pending()}
+										isSelected={selection.isSelected(fontName)}
+										isSelectMode={selection.isSelectMode()}
+										onToggle={() => {
+											if (!selection.isSelectMode()) {
+												selection.enterSelectMode()
+											}
+											selection.toggle(fontName)
+										}}
 									/>
 								</Suspense>
 							)}

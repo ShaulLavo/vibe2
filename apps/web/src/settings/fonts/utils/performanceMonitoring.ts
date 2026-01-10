@@ -1,6 +1,6 @@
 /**
  * Performance Monitoring and Optimization Utilities
- * 
+ *
  * Provides performance monitoring, lazy loading, and optimization
  * for font management operations.
  */
@@ -35,7 +35,7 @@ class FontPerformanceMonitor {
 		cacheHitRate: 0,
 		memoryUsage: 0,
 		renderTime: 0,
-		totalFontsLoaded: 0
+		totalFontsLoaded: 0,
 	})
 	private performanceData = this.performanceDataSignal[0]
 	private setPerformanceData = this.performanceDataSignal[1]
@@ -51,12 +51,12 @@ class FontPerformanceMonitor {
 	 * Start tracking a font download operation
 	 */
 	startFontDownload(fontName: string): void {
-		const existing = this.metrics.get(fontName) || {} as FontLoadingMetrics
+		const existing = this.metrics.get(fontName) || ({} as FontLoadingMetrics)
 		this.metrics.set(fontName, {
 			...existing,
 			fontName,
 			downloadStartTime: performance.now(),
-			cacheHit: false
+			cacheHit: false,
 		})
 	}
 
@@ -119,7 +119,7 @@ class FontPerformanceMonitor {
 			cacheHitRate: 0,
 			memoryUsage: 0,
 			renderTime: 0,
-			totalFontsLoaded: 0
+			totalFontsLoaded: 0,
 		})
 	}
 
@@ -129,7 +129,7 @@ class FontPerformanceMonitor {
 	getPerformanceReport(): string {
 		const metrics = this.getMetrics()
 		const fontMetrics = Array.from(this.metrics.values())
-		
+
 		let report = '=== Font Performance Report ===\n'
 		report += `Total Fonts Loaded: ${metrics.totalFontsLoaded}\n`
 		report += `Average Download Time: ${metrics.fontDownloadTime.toFixed(2)}ms\n`
@@ -137,38 +137,44 @@ class FontPerformanceMonitor {
 		report += `Cache Hit Rate: ${(metrics.cacheHitRate * 100).toFixed(1)}%\n`
 		report += `Memory Usage: ${(metrics.memoryUsage / 1024 / 1024).toFixed(2)}MB\n`
 		report += `Render Time: ${metrics.renderTime.toFixed(2)}ms\n\n`
-		
+
 		if (fontMetrics.length > 0) {
 			report += '=== Individual Font Metrics ===\n'
-			fontMetrics.forEach(metric => {
+			fontMetrics.forEach((metric) => {
 				const downloadTime = metric.downloadEndTime - metric.downloadStartTime
-				const installTime = metric.installationEndTime - metric.installationStartTime
+				const installTime =
+					metric.installationEndTime - metric.installationStartTime
 				report += `${metric.fontName}:\n`
 				report += `  Download: ${downloadTime.toFixed(2)}ms ${metric.cacheHit ? '(cached)' : '(network)'}\n`
 				report += `  Install: ${installTime.toFixed(2)}ms\n`
 				report += `  Size: ${(metric.size / 1024).toFixed(1)}KB\n\n`
 			})
 		}
-		
+
 		return report
 	}
 
 	private updateAggregateMetrics(): void {
 		const fontMetrics = Array.from(this.metrics.values())
-		const completedMetrics = fontMetrics.filter(m => 
-			m.downloadEndTime && m.installationEndTime
+		const completedMetrics = fontMetrics.filter(
+			(m) => m.downloadEndTime && m.installationEndTime
 		)
 
 		if (completedMetrics.length === 0) return
 
-		const totalDownloadTime = completedMetrics.reduce((sum, m) => 
-			sum + (m.downloadEndTime - m.downloadStartTime), 0
+		const totalDownloadTime = completedMetrics.reduce(
+			(sum, m) => sum + (m.downloadEndTime - m.downloadStartTime),
+			0
 		)
-		const totalInstallTime = completedMetrics.reduce((sum, m) => 
-			sum + (m.installationEndTime - m.installationStartTime), 0
+		const totalInstallTime = completedMetrics.reduce(
+			(sum, m) => sum + (m.installationEndTime - m.installationStartTime),
+			0
 		)
-		const cacheHits = completedMetrics.filter(m => m.cacheHit).length
-		const totalSize = completedMetrics.reduce((sum, m) => sum + (m.size || 0), 0)
+		const cacheHits = completedMetrics.filter((m) => m.cacheHit).length
+		const totalSize = completedMetrics.reduce(
+			(sum, m) => sum + (m.size || 0),
+			0
+		)
 
 		this.setPerformanceData({
 			fontDownloadTime: totalDownloadTime / completedMetrics.length,
@@ -176,7 +182,7 @@ class FontPerformanceMonitor {
 			cacheHitRate: cacheHits / completedMetrics.length,
 			memoryUsage: totalSize,
 			renderTime: this.measureRenderTime(),
-			totalFontsLoaded: completedMetrics.length
+			totalFontsLoaded: completedMetrics.length,
 		})
 	}
 
@@ -194,18 +200,20 @@ class FontPerformanceMonitor {
  */
 export function usePerformanceMonitor() {
 	const monitor = FontPerformanceMonitor.getInstance()
-	
+
 	return {
-		startFontDownload: (fontName: string) => monitor.startFontDownload(fontName),
-		completeFontDownload: (fontName: string, fromCache?: boolean) => 
+		startFontDownload: (fontName: string) =>
+			monitor.startFontDownload(fontName),
+		completeFontDownload: (fontName: string, fromCache?: boolean) =>
 			monitor.completeFontDownload(fontName, fromCache),
-		startFontInstallation: (fontName: string) => monitor.startFontInstallation(fontName),
-		completeFontInstallation: (fontName: string, size: number) => 
+		startFontInstallation: (fontName: string) =>
+			monitor.startFontInstallation(fontName),
+		completeFontInstallation: (fontName: string, size: number) =>
 			monitor.completeFontInstallation(fontName, size),
 		getMetrics: () => monitor.getMetrics(),
 		getFontMetrics: (fontName: string) => monitor.getFontMetrics(fontName),
 		clearMetrics: () => monitor.clearMetrics(),
-		getPerformanceReport: () => monitor.getPerformanceReport()
+		getPerformanceReport: () => monitor.getPerformanceReport(),
 	}
 }
 
@@ -216,14 +224,14 @@ export function createLazyFontPreview() {
 	const isVisibleSignal = createSignal(false)
 	const isVisible = isVisibleSignal[0]
 	const setIsVisible = isVisibleSignal[1]
-	
+
 	const elementSignal = createSignal<HTMLElement>()
 	const element = elementSignal[0]
 	const setElement = elementSignal[1]
 
 	const observer = new IntersectionObserver(
 		(entries) => {
-			entries.forEach(entry => {
+			entries.forEach((entry) => {
 				if (entry.isIntersecting) {
 					setIsVisible(true)
 					observer.disconnect()
@@ -245,7 +253,7 @@ export function createLazyFontPreview() {
 	return {
 		ref,
 		isVisible,
-		element
+		element,
 	}
 }
 
@@ -268,16 +276,19 @@ export class FontLoadingOptimizer {
 		return new Promise((resolve, reject) => {
 			const wrappedDownload = async () => {
 				const monitor = FontPerformanceMonitor.getInstance()
-				
+
 				try {
 					this.activeDownloads++
 					monitor.startFontDownload(fontName)
-					
+
 					// Add timeout
 					const timeoutPromise = new Promise<never>((_, reject) => {
-						setTimeout(() => reject(new Error('Download timeout')), this.DOWNLOAD_TIMEOUT)
+						setTimeout(
+							() => reject(new Error('Download timeout')),
+							this.DOWNLOAD_TIMEOUT
+						)
 					})
-					
+
 					await Promise.race([downloadFn(), timeoutPromise])
 					monitor.completeFontDownload(fontName)
 					resolve()
@@ -299,7 +310,10 @@ export class FontLoadingOptimizer {
 	}
 
 	private static processQueue(): void {
-		if (this.downloadQueue.length > 0 && this.activeDownloads < this.MAX_CONCURRENT_DOWNLOADS) {
+		if (
+			this.downloadQueue.length > 0 &&
+			this.activeDownloads < this.MAX_CONCURRENT_DOWNLOADS
+		) {
 			const nextDownload = this.downloadQueue.shift()
 			if (nextDownload) {
 				nextDownload()
@@ -313,8 +327,8 @@ export class FontLoadingOptimizer {
 	static preloadPopularFonts(fontNames: string[]): void {
 		// Preload up to 3 popular fonts in the background
 		const popularFonts = fontNames.slice(0, 3)
-		
-		popularFonts.forEach(fontName => {
+
+		popularFonts.forEach((fontName) => {
 			// Use requestIdleCallback if available
 			if ('requestIdleCallback' in window) {
 				requestIdleCallback(() => {
@@ -332,7 +346,7 @@ export class FontLoadingOptimizer {
 			const cache = await caches.open('nerdfonts-v1')
 			const cacheKey = `/fonts/${fontName}`
 			const cached = await cache.match(cacheKey)
-			
+
 			if (!cached) {
 				// Preload from server
 				const response = await fetch(`/fonts/${fontName}`)
@@ -375,7 +389,7 @@ export function createMemoryMonitor() {
 			setMemoryInfo({
 				usedJSHeapSize: memory.usedJSHeapSize,
 				totalJSHeapSize: memory.totalJSHeapSize,
-				jsHeapSizeLimit: memory.jsHeapSizeLimit
+				jsHeapSizeLimit: memory.jsHeapSizeLimit,
 			})
 		}
 	}
@@ -397,7 +411,7 @@ export function createMemoryMonitor() {
 	return {
 		memoryInfo,
 		memoryUsagePercentage,
-		updateMemoryInfo
+		updateMemoryInfo,
 	}
 }
 
@@ -418,11 +432,15 @@ export const PerformanceDebugger = {
 	 */
 	exportMetrics(): string {
 		const monitor = FontPerformanceMonitor.getInstance()
-		return JSON.stringify({
-			timestamp: new Date().toISOString(),
-			metrics: monitor.getMetrics(),
-			individualMetrics: Array.from((monitor as any).metrics.values())
-		}, null, 2)
+		return JSON.stringify(
+			{
+				timestamp: new Date().toISOString(),
+				metrics: monitor.getMetrics(),
+				individualMetrics: Array.from((monitor as any).metrics.values()),
+			},
+			null,
+			2
+		)
 	},
 
 	/**
@@ -434,5 +452,5 @@ export const PerformanceDebugger = {
 		}, intervalMs)
 
 		return () => clearInterval(interval)
-	}
+	},
 }

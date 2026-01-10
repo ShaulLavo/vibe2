@@ -168,3 +168,26 @@ export async function getPreviewSubset(
 
 	return subset
 }
+
+export async function getBatchFonts(
+	fontNames: string[]
+): Promise<{ [fontName: string]: ArrayBuffer | null }> {
+	await ensureCacheDirs()
+
+	const results = await Promise.allSettled(
+		fontNames.map(async (name) => ({
+			name,
+			data: await getExtractedFont(name),
+		}))
+	)
+
+	return results.reduce(
+		(acc, result) => {
+			if (result.status === 'fulfilled' && result.value.data) {
+				acc[result.value.name] = result.value.data
+			}
+			return acc
+		},
+		{} as { [fontName: string]: ArrayBuffer | null }
+	)
+}

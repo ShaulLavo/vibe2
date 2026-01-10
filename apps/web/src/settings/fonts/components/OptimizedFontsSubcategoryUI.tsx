@@ -21,23 +21,18 @@ import {
 	onMount,
 	onCleanup,
 } from 'solid-js'
-import {
-	VsSearch,
-	VsRefresh,
-	VsInfo,
-	VsSettings,
-} from '@repo/icons/vs'
+import { VsSearch, VsRefresh, VsInfo, VsSettings } from '@repo/icons/vs'
 import { Card, CardContent } from '@repo/ui/Card'
 import { useFontRegistry, FontSource, FontStatus } from '../../../fonts'
 import type { FontEntry } from '../../../fonts'
 import { OptimizedFontCard, VirtualFontGrid } from './LazyFontPreview'
-import { 
+import {
 	useFontPerformanceOptimization,
-	ResourceCleanup 
+	ResourceCleanup,
 } from '../integration/PerformanceOptimization'
-import { 
+import {
 	usePerformanceMonitor,
-	createMemoryMonitor 
+	createMemoryMonitor,
 } from '../utils/performanceMonitoring'
 
 export const OptimizedFontsSubcategoryUI = () => {
@@ -68,11 +63,11 @@ const OptimizedFontsContent = () => {
 		enablePerformanceMonitoring: true,
 		enableMemoryMonitoring: true,
 		preloadPopularFonts: true,
-		debugMode: import.meta.env.DEV
+		debugMode: import.meta.env.DEV,
 	})
 	const performanceMonitor = usePerformanceMonitor()
 	const memoryMonitor = createMemoryMonitor()
-	
+
 	const [searchQuery, setSearchQuery] = createSignal('')
 	const [isPending, startTransition] = useTransition()
 	const [showPerformanceStats, setShowPerformanceStats] = createSignal(false)
@@ -105,10 +100,16 @@ const OptimizedFontsContent = () => {
 
 	// Popular fonts for preloading
 	const popularFonts = createMemo(() => {
-		const popular = ['JetBrainsMono', 'FiraCode', 'Hack', 'SourceCodePro', 'UbuntuMono']
-		return nerdfonts().filter(font => 
-			popular.some(name => font.id.includes(name))
-		).map(font => font.id)
+		const popular = [
+			'JetBrainsMono',
+			'FiraCode',
+			'Hack',
+			'SourceCodePro',
+			'UbuntuMono',
+		]
+		return nerdfonts()
+			.filter((font) => popular.some((name) => font.id.includes(name)))
+			.map((font) => font.id)
 	})
 
 	// Preload popular fonts on mount
@@ -169,11 +170,11 @@ const OptimizedFontsContent = () => {
 		const metrics = performanceMonitor.getMetrics()
 		const memoryUsage = memoryMonitor.memoryUsagePercentage()
 		const optimizationStatus = optimization.getOptimizationStatus()
-		
+
 		return {
 			...metrics,
 			memoryUsage,
-			isHealthy: optimizationStatus.isHealthy
+			isHealthy: optimizationStatus.isHealthy,
 		}
 	})
 
@@ -182,7 +183,9 @@ const OptimizedFontsContent = () => {
 			{/* Header with controls */}
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-4">
-					<h3 class="text-sm font-medium text-foreground">Available NerdFonts</h3>
+					<h3 class="text-sm font-medium text-foreground">
+						Available NerdFonts
+					</h3>
 					<Show when={import.meta.env.DEV}>
 						<button
 							onClick={() => setShowPerformanceStats(!showPerformanceStats())}
@@ -247,19 +250,19 @@ const OptimizedFontsContent = () => {
 					}
 				>
 					<VirtualFontGrid
-						fonts={filteredFonts().map(font => ({
+						fonts={filteredFonts().map((font) => ({
 							fontName: font.id,
 							displayName: font.displayName,
 							fontFamily: font.fontFamily,
 							isInstalled: font.isLoaded,
-							isDownloading: registry.isDownloading(font.id)
+							isDownloading: registry.isDownloading(font.id),
 						}))}
 						onDownload={(fontName) => {
-							const font = filteredFonts().find(f => f.id === fontName)
+							const font = filteredFonts().find((f) => f.id === fontName)
 							if (font) handleDownload(font)
 						}}
 						onRemove={(fontName) => {
-							const font = filteredFonts().find(f => f.id === fontName)
+							const font = filteredFonts().find((f) => f.id === fontName)
 							if (font) handleRemove(font)
 						}}
 					/>
@@ -382,8 +385,9 @@ const PerformanceStatsPanel = (props: { stats: any }) => {
 						class="w-2 h-2 rounded-full"
 						classList={{
 							'bg-green-500': props.stats.isHealthy,
-							'bg-yellow-500': !props.stats.isHealthy && props.stats.memoryUsage < 90,
-							'bg-red-500': props.stats.memoryUsage >= 90
+							'bg-yellow-500':
+								!props.stats.isHealthy && props.stats.memoryUsage < 90,
+							'bg-red-500': props.stats.memoryUsage >= 90,
 						}}
 					/>
 				</div>
@@ -394,15 +398,21 @@ const PerformanceStatsPanel = (props: { stats: any }) => {
 					</div>
 					<div>
 						<span class="text-muted-foreground">Avg Download:</span>
-						<span class="ml-2 font-mono">{props.stats.fontDownloadTime.toFixed(0)}ms</span>
+						<span class="ml-2 font-mono">
+							{props.stats.fontDownloadTime.toFixed(0)}ms
+						</span>
 					</div>
 					<div>
 						<span class="text-muted-foreground">Cache Hit Rate:</span>
-						<span class="ml-2 font-mono">{(props.stats.cacheHitRate * 100).toFixed(0)}%</span>
+						<span class="ml-2 font-mono">
+							{(props.stats.cacheHitRate * 100).toFixed(0)}%
+						</span>
 					</div>
 					<div>
 						<span class="text-muted-foreground">Memory:</span>
-						<span class="ml-2 font-mono">{props.stats.memoryUsage.toFixed(1)}%</span>
+						<span class="ml-2 font-mono">
+							{props.stats.memoryUsage.toFixed(1)}%
+						</span>
 					</div>
 				</div>
 			</CardContent>

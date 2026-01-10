@@ -1,6 +1,6 @@
 /**
  * End-to-End Font Management Workflow Integration Test
- * 
+ *
  * Tests the complete user journey:
  * 1. Browse available fonts
  * 2. Download and install fonts
@@ -21,9 +21,11 @@ import { FontCategory } from '../../../fonts'
 
 // Mock the server endpoints
 const mockFontLinks = {
-	'JetBrainsMono': 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip',
-	'FiraCode': 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.zip',
-	'Hack': 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/Hack.zip'
+	JetBrainsMono:
+		'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/JetBrainsMono.zip',
+	FiraCode:
+		'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/FiraCode.zip',
+	Hack: 'https://github.com/ryanoasis/nerd-fonts/releases/download/v3.1.1/Hack.zip',
 }
 
 const mockFontData = new ArrayBuffer(1024) // Mock font data
@@ -34,13 +36,13 @@ global.fetch = vi.fn().mockImplementation((url: string) => {
 		// Available fonts endpoint
 		return Promise.resolve({
 			ok: true,
-			json: () => Promise.resolve(mockFontLinks)
+			json: () => Promise.resolve(mockFontLinks),
 		})
 	} else if (url.includes('/fonts/')) {
 		// Individual font download endpoint
 		return Promise.resolve({
 			ok: true,
-			arrayBuffer: () => Promise.resolve(mockFontData)
+			arrayBuffer: () => Promise.resolve(mockFontData),
 		})
 	}
 	return Promise.reject(new Error('Unknown endpoint'))
@@ -51,11 +53,11 @@ const mockCache = {
 	match: vi.fn(),
 	put: vi.fn(),
 	delete: vi.fn(),
-	keys: vi.fn().mockResolvedValue([])
+	keys: vi.fn().mockResolvedValue([]),
 }
 
 global.caches = {
-	open: vi.fn().mockResolvedValue(mockCache)
+	open: vi.fn().mockResolvedValue(mockCache),
 } as any
 
 // Mock IndexedDB
@@ -65,7 +67,7 @@ const mockDB = {
 	get: vi.fn(),
 	put: vi.fn(),
 	delete: vi.fn(),
-	getAll: vi.fn().mockResolvedValue([])
+	getAll: vi.fn().mockResolvedValue([]),
 }
 
 global.indexedDB = {
@@ -73,8 +75,8 @@ global.indexedDB = {
 		onsuccess: null,
 		onerror: null,
 		onupgradeneeded: null,
-		result: mockDB
-	}))
+		result: mockDB,
+	})),
 } as any
 
 // Mock FontFace API
@@ -83,7 +85,7 @@ global.FontFace = vi.fn().mockImplementation((family, source, descriptors) => ({
 	source,
 	descriptors,
 	load: vi.fn().mockResolvedValue(undefined),
-	loaded: Promise.resolve()
+	loaded: Promise.resolve(),
 }))
 
 global.document = {
@@ -93,8 +95,8 @@ global.document = {
 		delete: vi.fn(),
 		check: vi.fn().mockReturnValue(true),
 		load: vi.fn().mockResolvedValue([]),
-		ready: Promise.resolve()
-	}
+		ready: Promise.resolve(),
+	},
 } as any
 
 describe('Font Management Workflow Integration', () => {
@@ -110,8 +112,10 @@ describe('Font Management Workflow Integration', () => {
 
 	it('completes the full font management workflow', async () => {
 		const TestApp = () => {
-			const [selectedFont, setSelectedFont] = createSignal("'JetBrains Mono Variable', monospace")
-			
+			const [selectedFont, setSelectedFont] = createSignal(
+				"'JetBrains Mono Variable', monospace"
+			)
+
 			return (
 				<SettingsProvider>
 					<FontRegistryProvider>
@@ -120,7 +124,7 @@ describe('Font Management Workflow Integration', () => {
 							<div data-testid="fonts-browser">
 								<FontsSubcategoryUI />
 							</div>
-							
+
 							{/* Font Selection Component */}
 							<div data-testid="font-selector">
 								<FontFamilySelect
@@ -142,11 +146,14 @@ describe('Font Management Workflow Integration', () => {
 		try {
 			// Step 1: Verify fonts browser loads available fonts
 			console.log('Step 1: Verifying font browser loads available fonts...')
-			
+
 			// Wait for the fonts to load (Suspense boundary)
-			await waitFor(() => {
-				expect(screen.getByText('Available NerdFonts')).toBeInTheDocument()
-			}, { timeout: 5000 })
+			await waitFor(
+				() => {
+					expect(screen.getByText('Available NerdFonts')).toBeInTheDocument()
+				},
+				{ timeout: 5000 }
+			)
 
 			// Verify font cards are displayed
 			await waitFor(() => {
@@ -157,13 +164,16 @@ describe('Font Management Workflow Integration', () => {
 
 			// Step 2: Download and install a font
 			console.log('Step 2: Downloading and installing a font...')
-			
+
 			// Find and click download button for JetBrainsMono
-			const jetbrainsCard = screen.getByText('JetBrainsMono').closest('[data-testid]') || 
+			const jetbrainsCard =
+				screen.getByText('JetBrainsMono').closest('[data-testid]') ||
 				screen.getByText('JetBrainsMono').closest('.p-4')
 			expect(jetbrainsCard).toBeInTheDocument()
-			
-			const downloadButton = jetbrainsCard?.querySelector('button') as HTMLButtonElement
+
+			const downloadButton = jetbrainsCard?.querySelector(
+				'button'
+			) as HTMLButtonElement
 			expect(downloadButton).toBeInTheDocument()
 			expect(downloadButton.textContent).toContain('Download')
 
@@ -177,27 +187,34 @@ describe('Font Management Workflow Integration', () => {
 			})
 
 			// Wait for download to complete
-			await waitFor(() => {
-				expect(downloadButton.textContent).toContain('Remove')
-				expect(downloadButton).not.toBeDisabled()
-			}, { timeout: 5000 })
+			await waitFor(
+				() => {
+					expect(downloadButton.textContent).toContain('Remove')
+					expect(downloadButton).not.toBeDisabled()
+				},
+				{ timeout: 5000 }
+			)
 
 			// Step 3: Verify font appears in installed fonts section
 			console.log('Step 3: Verifying font appears in installed fonts...')
-			
+
 			await waitFor(() => {
 				const installedSection = screen.getByText('Installed Fonts (1)')
 				expect(installedSection).toBeInTheDocument()
 			})
 
 			// Verify the font is listed in installed fonts
-			const installedFontItem = screen.getByText('JetBrainsMono').closest('.flex')
+			const installedFontItem = screen
+				.getByText('JetBrainsMono')
+				.closest('.flex')
 			expect(installedFontItem).toBeInTheDocument()
-			expect(installedFontItem?.textContent).toContain('Sample: The quick brown fox 123')
+			expect(installedFontItem?.textContent).toContain(
+				'Sample: The quick brown fox 123'
+			)
 
 			// Step 4: Verify font is available in editor font selector
 			console.log('Step 4: Verifying font is available in editor selector...')
-			
+
 			const fontSelector = screen.getByTestId('font-selector')
 			expect(fontSelector).toBeInTheDocument()
 
@@ -206,7 +223,7 @@ describe('Font Management Workflow Integration', () => {
 
 			// Step 5: Test font removal
 			console.log('Step 5: Testing font removal...')
-			
+
 			const removeButton = installedFontItem?.querySelector('button')
 			expect(removeButton).toBeInTheDocument()
 			expect(removeButton?.textContent).toContain('Remove')
@@ -216,18 +233,23 @@ describe('Font Management Workflow Integration', () => {
 
 			// Verify font is removed from installed fonts
 			await waitFor(() => {
-				expect(screen.queryByText('Installed Fonts (1)')).not.toBeInTheDocument()
+				expect(
+					screen.queryByText('Installed Fonts (1)')
+				).not.toBeInTheDocument()
 				expect(screen.getByText('No fonts installed yet')).toBeInTheDocument()
 			})
 
 			// Verify download button is available again
-			const jetbrainsCardAfterRemoval = screen.getByText('JetBrainsMono').closest('.p-4')
-			const downloadButtonAfterRemoval = jetbrainsCardAfterRemoval?.querySelector('button')
+			const jetbrainsCardAfterRemoval = screen
+				.getByText('JetBrainsMono')
+				.closest('.p-4')
+			const downloadButtonAfterRemoval =
+				jetbrainsCardAfterRemoval?.querySelector('button')
 			expect(downloadButtonAfterRemoval?.textContent).toContain('Download')
 
 			// Step 6: Test search functionality
 			console.log('Step 6: Testing search functionality...')
-			
+
 			const searchInput = screen.getByPlaceholderText('Search fonts...')
 			expect(searchInput).toBeInTheDocument()
 
@@ -251,26 +273,30 @@ describe('Font Management Workflow Integration', () => {
 
 			// Step 7: Test error handling
 			console.log('Step 7: Testing error handling...')
-			
+
 			// Mock a failed download
 			const originalFetch = global.fetch
 			global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
 
 			const hackCard = screen.getByText('Hack').closest('.p-4')
-			const hackDownloadButton = hackCard?.querySelector('button') as HTMLButtonElement
-			
+			const hackDownloadButton = hackCard?.querySelector(
+				'button'
+			) as HTMLButtonElement
+
 			fireEvent.click(hackDownloadButton)
 
 			// Should handle error gracefully without crashing
-			await waitFor(() => {
-				expect(hackDownloadButton.textContent).toContain('Download')
-			}, { timeout: 3000 })
+			await waitFor(
+				() => {
+					expect(hackDownloadButton.textContent).toContain('Download')
+				},
+				{ timeout: 3000 }
+			)
 
 			// Restore fetch
 			global.fetch = originalFetch
 
 			console.log('✅ All workflow steps completed successfully!')
-
 		} finally {
 			unmount()
 		}
@@ -282,7 +308,7 @@ describe('Font Management Workflow Integration', () => {
 		// Mock cached font data
 		mockCache.match.mockResolvedValue(
 			new Response(mockFontData, {
-				headers: { 'Content-Type': 'font/ttf' }
+				headers: { 'Content-Type': 'font/ttf' },
 			})
 		)
 
@@ -292,7 +318,7 @@ describe('Font Management Workflow Integration', () => {
 			installedAt: new Date(),
 			size: 1024,
 			version: '1.0',
-			lastAccessed: new Date()
+			lastAccessed: new Date(),
 		}
 
 		mockDB.getAll.mockResolvedValue([mockMetadata])
@@ -319,7 +345,6 @@ describe('Font Management Workflow Integration', () => {
 			expect(mockDB.getAll).toHaveBeenCalled()
 
 			console.log('✅ Cache persistence test completed!')
-
 		} finally {
 			unmount()
 		}
@@ -344,10 +369,11 @@ describe('Font Management Workflow Integration', () => {
 				expect(screen.getByText('JetBrainsMono')).toBeInTheDocument()
 			})
 
-			const downloadButton = screen.getByText('JetBrainsMono')
+			const downloadButton = screen
+				.getByText('JetBrainsMono')
 				.closest('.p-4')
 				?.querySelector('button') as HTMLButtonElement
-			
+
 			fireEvent.click(downloadButton)
 
 			await waitFor(() => {
@@ -365,7 +391,6 @@ describe('Font Management Workflow Integration', () => {
 			expect(mockCache.delete).toHaveBeenCalledWith('/fonts/JetBrainsMono')
 
 			console.log('✅ Resource cleanup test completed!')
-
 		} finally {
 			unmount()
 		}
@@ -375,8 +400,10 @@ describe('Font Management Workflow Integration', () => {
 		console.log('Testing settings store integration...')
 
 		const TestApp = () => {
-			const [fontFamily, setFontFamily] = createSignal("'JetBrains Mono Variable', monospace")
-			
+			const [fontFamily, setFontFamily] = createSignal(
+				"'JetBrains Mono Variable', monospace"
+			)
+
 			return (
 				<SettingsProvider>
 					<FontRegistryProvider>
@@ -403,10 +430,11 @@ describe('Font Management Workflow Integration', () => {
 				expect(screen.getByText('JetBrainsMono')).toBeInTheDocument()
 			})
 
-			const downloadButton = screen.getByText('JetBrainsMono')
+			const downloadButton = screen
+				.getByText('JetBrainsMono')
 				.closest('.p-4')
 				?.querySelector('button') as HTMLButtonElement
-			
+
 			fireEvent.click(downloadButton)
 
 			await waitFor(() => {
@@ -418,7 +446,6 @@ describe('Font Management Workflow Integration', () => {
 			// which uses the font registry to get available fonts
 
 			console.log('✅ Settings store integration test completed!')
-
 		} finally {
 			unmount()
 		}

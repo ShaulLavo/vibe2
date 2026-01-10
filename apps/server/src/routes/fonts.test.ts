@@ -58,4 +58,28 @@ describe('Fonts Routes', () => {
 			expect(response.status).toBe(404)
 		})
 	})
+
+	describe('POST /fonts/batch', () => {
+		it('should return 422 when body is invalid', async () => {
+			const response = await app.handle(
+				new Request('http://localhost/fonts/batch', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({}),
+				})
+			)
+			expect(response.status).toBe(422)
+		})
+
+		it('should return 422 when names array is empty', async () => {
+			const response = await app.handle(
+				new Request('http://localhost/fonts/batch', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ names: [] }),
+				})
+			)
+			expect(response.status).toBe(422)
+		})
+	})
 })

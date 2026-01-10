@@ -1,24 +1,24 @@
 import { useFs } from '../../fs/context/FsContext'
 
-const SETTINGS_FILE_PATH = '/.system/settings.json'
+const USER_SETTINGS_FILE_PATH = '/.system/userSettings.json'
 
 export const useSettingsIntegration = () => {
 	const [, { selectPath }] = useFs()
 
 	const openSettings = async () => {
-		await selectPath(SETTINGS_FILE_PATH)
+		await selectPath(USER_SETTINGS_FILE_PATH)
 	}
 
 	const openJSONView = async () => {
-		await selectPath(SETTINGS_FILE_PATH)
+		await selectPath(USER_SETTINGS_FILE_PATH)
 	}
 
 	const openUIView = async () => {
-		await selectPath(SETTINGS_FILE_PATH)
+		await selectPath(USER_SETTINGS_FILE_PATH)
 	}
 
 	const isSettingsFile = (path: string | undefined) => {
-		return path === SETTINGS_FILE_PATH
+		return path === USER_SETTINGS_FILE_PATH
 	}
 
 	return {
@@ -26,6 +26,6 @@ export const useSettingsIntegration = () => {
 		openJSONView,
 		openUIView,
 		isSettingsFile,
-		SETTINGS_FILE_PATH,
+		USER_SETTINGS_FILE_PATH,
 	}
 }

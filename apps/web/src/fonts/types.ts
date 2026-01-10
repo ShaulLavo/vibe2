@@ -48,7 +48,7 @@ export const FontCSSVariable: Record<FontCategoryType, string> = {
  */
 export const UIFontCSSVariable = {
 	UI: '--font-ui',
-	EDITOR: '--font-editor', 
+	EDITOR: '--font-editor',
 	TERMINAL: '--font-terminal',
 } as const
 
