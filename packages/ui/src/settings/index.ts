@@ -3,7 +3,11 @@ export { SettingsSearch } from './SettingsSearch'
 export type { SettingsSearchProps } from './SettingsSearch'
 
 export { SettingsSidebar } from './SettingsSidebar'
-export type { SettingsSidebarProps, SettingsCategory } from './SettingsSidebar'
+export type {
+	SettingsSidebarProps,
+	SettingsCategory,
+	SettingSetting,
+} from './SettingsSidebar'
 
 export { SettingCheckbox } from './SettingCheckbox'
 export type { SettingCheckboxProps } from './SettingCheckbox'

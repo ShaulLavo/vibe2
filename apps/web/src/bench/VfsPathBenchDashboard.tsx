@@ -1,5 +1,32 @@
-import { createSignal, For, Show, onCleanup } from 'solid-js'
+import { createSignal, createMemo, For, Show, onCleanup } from 'solid-js'
 import { wrap, proxy, type Remote } from 'comlink'
+import { Button } from '@repo/ui/button'
+import { Flex } from '@repo/ui/flex'
+import { Alert, AlertDescription } from '@repo/ui/alert'
+import {
+	createSolidTable,
+	getCoreRowModel,
+	getPaginationRowModel,
+	flexRender,
+	type ColumnDef,
+	type CellContext,
+} from '@tanstack/solid-table'
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@repo/ui/table'
+import {
+	Pagination,
+	PaginationEllipsis,
+	PaginationItem,
+	PaginationItems,
+	PaginationNext,
+	PaginationPrevious,
+} from '@repo/ui/pagination'
 import type {
 	VfsPathScenario,
 	VfsPathResult,
@@ -17,6 +44,221 @@ type ScenarioState = {
 	status: ScenarioStatus
 	result?: VfsPathResult
 	durationMs?: number
+}
+
+const formatMs = (ms: number | undefined): string => {
+	if (ms === undefined) return '—'
+	if (ms < 0.01) return `${(ms * 1000).toFixed(1)}µs`
+	if (ms < 1) return `${ms.toFixed(3)}ms`
+	return `${ms.toFixed(2)}ms`
+}
+
+const formatOps = (ops: number | undefined): string => {
+	if (ops === undefined) return '—'
+	if (ops >= 1000000) return `${(ops / 1000000).toFixed(1)}M/s`
+	if (ops >= 1000) return `${(ops / 1000).toFixed(1)}K/s`
+	return `${ops.toFixed(0)}/s`
+}
+
+const getCategoryColor = (category: string): string => {
+	const colors: Record<string, string> = {
+		'path-resolution':
+			'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+		'handle-acquisition':
+			'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30',
+		'file-read':
+			'bg-pink-500/20 text-pink-700 dark:text-pink-400 border-pink-500/30',
+		'batch-operations':
+			'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30',
+		'cache-effectiveness':
+			'bg-violet-500/20 text-violet-700 dark:text-violet-400 border-violet-500/30',
+	}
+	return colors[category] ?? 'bg-muted text-muted-foreground border-border'
+}
+
+const VfsPathResultsTable = (props: { data: ScenarioState[] }) => {
+	const columns = createMemo<ColumnDef<ScenarioState>[]>(() => [
+		{
+			accessorKey: 'scenario',
+			header: 'Scenario',
+			cell: (info: CellContext<ScenarioState, unknown>) => {
+				const state = info.row.original
+				return (
+					<div>
+						<div class="font-medium text-foreground">{state.scenario.name}</div>
+						<div class="text-xs text-muted-foreground mt-0.5">
+							{state.scenario.description}
+						</div>
+					</div>
+				)
+			},
+		},
+		{
+			accessorKey: 'category',
+			header: 'Category',
+			cell: (info: CellContext<ScenarioState, unknown>) => {
+				const category = info.row.original.scenario.category
+				return (
+					<span
+						class={`inline-block px-2 py-0.5 text-xs font-medium rounded border ${getCategoryColor(category)}`}
+					>
+						{category}
+					</span>
+				)
+			},
+		},
+		{
+			accessorKey: 'status',
+			header: () => <div class="text-center">Status</div>,
+			cell: (info: CellContext<ScenarioState, unknown>) => {
+				const status = info.getValue() as ScenarioStatus
+				return (
+					<div class="text-center">
+						<Show
+							when={status === 'running'}
+							fallback={
+								<Show
+									when={status === 'complete'}
+									fallback={<span class="text-muted-foreground">○</span>}
+								>
+									<span class="text-emerald-400">✓</span>
+								</Show>
+							}
+						>
+							<span class="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+						</Show>
+					</div>
+				)
+			},
+		},
+		{
+			id: 'avg',
+			header: () => <div class="text-right">Avg</div>,
+			cell: (info: CellContext<ScenarioState, unknown>) => (
+				<div class="text-right font-mono text-xs text-muted-foreground">
+					{formatMs(info.row.original.result?.avgMs)}
+				</div>
+			),
+		},
+		{
+			id: 'p50',
+			header: () => <div class="text-right">P50</div>,
+			cell: (info: CellContext<ScenarioState, unknown>) => (
+				<div class="text-right font-mono text-xs text-muted-foreground">
+					{formatMs(info.row.original.result?.p50Ms)}
+				</div>
+			),
+		},
+		{
+			id: 'p95',
+			header: () => <div class="text-right">P95</div>,
+			cell: (info: CellContext<ScenarioState, unknown>) => (
+				<div class="text-right font-mono text-xs text-muted-foreground">
+					{formatMs(info.row.original.result?.p95Ms)}
+				</div>
+			),
+		},
+		{
+			id: 'throughput',
+			header: () => <div class="text-right">Throughput</div>,
+			cell: (info: CellContext<ScenarioState, unknown>) => (
+				<div class="text-right font-mono text-xs text-muted-foreground">
+					{formatOps(info.row.original.result?.opsPerSec)}
+				</div>
+			),
+		},
+	])
+
+	const table = createSolidTable({
+		get data() {
+			return props.data
+		},
+		get columns() {
+			return columns()
+		},
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		initialState: {
+			pagination: {
+				pageSize: 10,
+			},
+		},
+	})
+
+	return (
+		<div>
+			<Table class="text-left text-sm text-foreground">
+				<TableHeader>
+					<For each={table.getHeaderGroups()}>
+						{(headerGroup) => (
+							<TableRow class="bg-muted/50 border-b border-border">
+								<For each={headerGroup.headers}>
+									{(header) => (
+										<TableHead class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+											{header.isPlaceholder
+												? null
+												: flexRender(
+														header.column.columnDef.header,
+														header.getContext()
+													)}
+										</TableHead>
+									)}
+								</For>
+							</TableRow>
+						)}
+					</For>
+				</TableHeader>
+				<TableBody class="divide-y divide-border">
+					<For each={table.getRowModel().rows}>
+						{(row) => (
+							<TableRow class="hover:bg-muted/50 transition-colors">
+								<For each={row.getVisibleCells()}>
+									{(cell) => (
+										<TableCell class="px-4 py-3">
+											{flexRender(
+												cell.column.columnDef.cell,
+												cell.getContext()
+											)}
+										</TableCell>
+									)}
+								</For>
+							</TableRow>
+						)}
+					</For>
+				</TableBody>
+			</Table>
+			<div class="px-4 py-2 bg-muted/30 border-t border-border text-xs text-muted-foreground flex items-center justify-between">
+				<span>
+					Showing{' '}
+					{table.getState().pagination.pageIndex *
+						table.getState().pagination.pageSize +
+						1}
+					-
+					{Math.min(
+						(table.getState().pagination.pageIndex + 1) *
+							table.getState().pagination.pageSize,
+						props.data.length
+					)}{' '}
+					of {props.data.length} scenarios
+				</span>
+				<Pagination
+					count={Math.ceil(
+						props.data.length / table.getState().pagination.pageSize
+					)}
+					page={table.getState().pagination.pageIndex + 1}
+					onPageChange={(page) => table.setPageIndex(page - 1)}
+					itemComponent={(props) => (
+						<PaginationItem page={props.page}>{props.page}</PaginationItem>
+					)}
+					ellipsisComponent={() => <PaginationEllipsis />}
+				>
+					<PaginationPrevious />
+					<PaginationItems />
+					<PaginationNext />
+				</Pagination>
+			</div>
+		</div>
+	)
 }
 
 export const VfsPathBenchDashboard = () => {
@@ -129,36 +371,6 @@ export const VfsPathBenchDashboard = () => {
 		}
 	})
 
-	const formatMs = (ms: number | undefined): string => {
-		if (ms === undefined) return '—'
-		if (ms < 0.01) return `${(ms * 1000).toFixed(1)}µs`
-		if (ms < 1) return `${ms.toFixed(3)}ms`
-		return `${ms.toFixed(2)}ms`
-	}
-
-	const formatOps = (ops: number | undefined): string => {
-		if (ops === undefined) return '—'
-		if (ops >= 1000000) return `${(ops / 1000000).toFixed(1)}M/s`
-		if (ops >= 1000) return `${(ops / 1000).toFixed(1)}K/s`
-		return `${ops.toFixed(0)}/s`
-	}
-
-	const getCategoryColor = (category: string): string => {
-		const colors: Record<string, string> = {
-			'path-resolution':
-				'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-			'handle-acquisition':
-				'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30',
-			'file-read':
-				'bg-pink-500/20 text-pink-700 dark:text-pink-400 border-pink-500/30',
-			'batch-operations':
-				'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30',
-			'cache-effectiveness':
-				'bg-violet-500/20 text-violet-700 dark:text-violet-400 border-violet-500/30',
-		}
-		return colors[category] ?? 'bg-muted text-muted-foreground border-border'
-	}
-
 	const exportResults = () => {
 		const results = allResults()
 		if (results.length === 0) return
@@ -181,7 +393,7 @@ export const VfsPathBenchDashboard = () => {
 			{/* Header */}
 			<header class="border-b border-border bg-card">
 				<div class="max-w-6xl mx-auto px-6 py-6">
-					<div class="flex items-center justify-between">
+					<Flex justifyContent="between">
 						<div>
 							<h1 class="text-xl font-semibold text-foreground">
 								VFS Path Benchmark
@@ -193,34 +405,39 @@ export const VfsPathBenchDashboard = () => {
 						</div>
 						<div class="flex items-center gap-3">
 							<Show when={allResults().length > 0}>
-								<button
+								<Button
 									onClick={exportResults}
-									class="px-4 py-2 text-sm font-medium text-secondary-foreground bg-secondary hover:bg-secondary/80 rounded-lg border border-border transition-colors"
+									variant="secondary"
+									class="border border-border"
 								>
 									Export JSON
-								</button>
+								</Button>
 							</Show>
-							<button
+							<Button
 								onClick={() => (running() ? stopBenchmark() : startBenchmark())}
-								class={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+								variant={running() ? 'destructive' : 'default'}
+								class={
 									running()
-										? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30'
-										: 'bg-indigo-500 text-white hover:bg-indigo-600'
-								}`}
+										? 'bg-rose-500/20 text-rose-400 border-rose-500/30 hover:bg-rose-500/30'
+										: 'bg-indigo-500 hover:bg-indigo-600'
+								}
 							>
 								{running() ? 'Stop' : 'Run Benchmark'}
-							</button>
+							</Button>
 						</div>
-					</div>
+					</Flex>
 				</div>
 			</header>
 
 			<main class="max-w-6xl mx-auto px-6 py-6">
 				{/* Error */}
 				<Show when={error()}>
-					<div class="mb-6 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm">
-						{error()}
-					</div>
+					<Alert
+						variant="destructive"
+						class="mb-6 bg-rose-500/10 border-rose-500/20"
+					>
+						<AlertDescription>{error()}</AlertDescription>
+					</Alert>
 				</Show>
 
 				{/* Progress */}
@@ -250,87 +467,7 @@ export const VfsPathBenchDashboard = () => {
 				{/* Results Table */}
 				<Show when={scenarioStates().length > 0}>
 					<div class="rounded-lg border border-border overflow-hidden bg-card shadow-sm">
-						<div class="overflow-x-auto">
-							<table class="w-full text-left text-sm border-collapse">
-								<thead>
-									<tr class="bg-muted/50 border-b border-border">
-										<th class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-											Scenario
-										</th>
-										<th class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-											Category
-										</th>
-										<th class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap text-center">
-											Status
-										</th>
-										<th class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap text-right">
-											Avg
-										</th>
-										<th class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap text-right">
-											P50
-										</th>
-										<th class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap text-right">
-											P95
-										</th>
-										<th class="px-4 py-3 font-medium text-muted-foreground whitespace-nowrap text-right">
-											Throughput
-										</th>
-									</tr>
-								</thead>
-								<tbody class="divide-y divide-border">
-									<For each={scenarioStates()}>
-										{(state) => (
-											<tr class="hover:bg-muted/50 transition-colors">
-												<td class="px-4 py-3">
-													<div class="font-medium text-foreground">
-														{state.scenario.name}
-													</div>
-													<div class="text-xs text-muted-foreground mt-0.5">
-														{state.scenario.description}
-													</div>
-												</td>
-												<td class="px-4 py-3">
-													<span
-														class={`inline-block px-2 py-0.5 text-xs font-medium rounded border ${getCategoryColor(state.scenario.category)}`}
-													>
-														{state.scenario.category}
-													</span>
-												</td>
-												<td class="px-4 py-3 text-center">
-													<Show
-														when={state.status === 'running'}
-														fallback={
-															<Show
-																when={state.status === 'complete'}
-																fallback={
-																	<span class="text-muted-foreground">○</span>
-																}
-															>
-																<span class="text-emerald-400">✓</span>
-															</Show>
-														}
-													>
-														<span class="inline-block w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-													</Show>
-												</td>
-												<td class="px-4 py-3 text-right font-mono text-xs text-muted-foreground">
-													{formatMs(state.result?.avgMs)}
-												</td>
-												<td class="px-4 py-3 text-right font-mono text-xs text-muted-foreground">
-													{formatMs(state.result?.p50Ms)}
-												</td>
-												<td class="px-4 py-3 text-right font-mono text-xs text-muted-foreground">
-													{formatMs(state.result?.p95Ms)}
-												</td>
-												<td class="px-4 py-3 text-right font-mono text-xs text-muted-foreground">
-													{formatOps(state.result?.opsPerSec)}
-												</td>
-											</tr>
-										)}
-									</For>
-								</tbody>
-							</table>
-						</div>
+						<VfsPathResultsTable data={scenarioStates()} />
 						<div class="px-4 py-2 bg-muted/30 border-t border-border text-xs text-muted-foreground flex justify-between">
 							<span>
 								{completedCount()} of {scenarioStates().length} scenarios

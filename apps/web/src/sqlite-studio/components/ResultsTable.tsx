@@ -1,11 +1,31 @@
-import { For, Show, createSignal, createMemo, type Accessor } from 'solid-js'
+import { For, Show, createMemo, type Accessor } from 'solid-js'
 import {
-	createFixedRowVirtualizer,
-	type FixedRowVirtualizer,
-} from '@repo/code-editor'
-
-const ROW_HEIGHT = 28
-const OVERSCAN = 5
+	createSolidTable,
+	getCoreRowModel,
+	getPaginationRowModel,
+	flexRender,
+	type ColumnDef,
+	type CellContext,
+} from '@tanstack/solid-table'
+import { Flex } from '@repo/ui/flex'
+import { TextField, TextFieldInput } from '@repo/ui/text-field'
+import {
+	Pagination,
+	PaginationEllipsis,
+	PaginationItem,
+	PaginationItems,
+	PaginationNext,
+	PaginationPrevious,
+} from '@repo/ui/pagination'
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@repo/ui/table'
+import { cn } from '@repo/ui/utils'
 
 type ResultsTableProps = {
 	columns: Accessor<string[]>
@@ -30,156 +50,204 @@ type ResultsTableProps = {
 }
 
 export const ResultsTable = (props: ResultsTableProps) => {
-	const [scrollElement, setScrollElement] = createSignal<HTMLElement | null>(
-		null
+	const columns = createMemo<ColumnDef<Record<string, unknown>>[]>(() =>
+		props.columns().map((col) => ({
+			accessorKey: col,
+			header: col,
+			cell: (info: CellContext<Record<string, unknown>, unknown>) => {
+				const row = info.row.original
+				const value = info.getValue()
+
+				const isEditable = () =>
+					props.selectedTable() &&
+					(props.hasRowId() || props.primaryKeys().length > 0)
+
+				const isEditing = () =>
+					props.editingCell()?.row === row && props.editingCell()?.col === col
+
+				return (
+					<div
+						class={cn(
+							'w-full h-full flex items-center px-3 py-1 min-h-[28px]',
+							isEditable() ? 'cursor-text hover:bg-muted/50' : ''
+						)}
+						onClick={() => {
+							if (isEditable()) {
+								props.setEditingCell({
+									row,
+									col,
+									value: row[col],
+								})
+							}
+						}}
+					>
+						<Show
+							when={isEditing()}
+							fallback={
+								value === null ? (
+									<span class="text-muted-foreground italic">null</span>
+								) : (
+									<span class="truncate">{String(value)}</span>
+								)
+							}
+						>
+							<div class="w-full h-full -ml-1 -my-1">
+								<TextField
+									value={String(props.editingCell()?.value ?? '')}
+									onChange={(v) => {
+										const prev = props.editingCell()
+										if (prev) {
+											props.setEditingCell({
+												...prev,
+												value: v,
+											})
+										}
+									}}
+									class="w-full h-full"
+								>
+									<TextFieldInput
+										ref={(el: HTMLInputElement) =>
+											setTimeout(() => el.focus(), 0)
+										}
+										class="w-full h-full min-h-0 px-1 py-0 rounded-none border-primary outline-none focus-visible:ring-0 text-xs bg-background"
+										onBlur={() => props.onCommitEdit()}
+										onKeyDown={(e) => {
+											if (e.key === 'Enter') props.onCommitEdit()
+											if (e.key === 'Escape') props.setEditingCell(null)
+										}}
+									/>
+								</TextField>
+							</div>
+						</Show>
+					</div>
+				)
+			},
+		}))
 	)
 
-	const virtualizer: FixedRowVirtualizer = createFixedRowVirtualizer({
-		count: () => props.rows().length,
-		enabled: () => true,
-		scrollElement,
-		rowHeight: () => ROW_HEIGHT,
-		overscan: OVERSCAN,
+	const table = createSolidTable({
+		get data() {
+			return props.rows()
+		},
+		get columns() {
+			return columns()
+		},
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		initialState: {
+			pagination: {
+				pageSize: 50,
+			},
+		},
 	})
 
-	const displayColumns = createMemo(() => props.columns())
-
-	const gridTemplate = createMemo(() =>
-		displayColumns()
-			.map((col) => {
-				const lc = col.toLowerCase()
-				if (lc === 'path' || lc === 'path_lc') return '3fr'
-				if (lc.includes('basename') && !lc.includes('initials')) return '2fr'
-				if (lc.includes('dir')) return '2fr'
-				if (lc === 'id' || lc === 'recency') return '0.5fr'
-				return '1fr'
-			})
-			.join(' ')
-	)
-
 	return (
-		<div class="rounded-lg border border-border overflow-hidden bg-card shadow-sm flex flex-col flex-1 min-h-0">
-			<div
-				class="shrink-0 bg-muted/50 border-b border-border grid text-sm font-medium text-muted-foreground"
-				style={{ 'grid-template-columns': gridTemplate() }}
-			>
-				<For each={displayColumns()}>
-					{(col) => (
-						<div class="px-4 py-2 whitespace-nowrap overflow-hidden text-ellipsis">
-							{col}
-						</div>
-					)}
-				</For>
-			</div>
-
-			<div ref={setScrollElement} class="overflow-auto flex-1 min-h-0">
-				<div
-					style={{
-						height: `${virtualizer.totalSize()}px`,
-						position: 'relative',
-					}}
-				>
-					<Show
-						when={props.rows().length > 0}
-						fallback={
-							<div class="px-4 py-8 text-center text-muted-foreground italic">
-								No results
-							</div>
-						}
-					>
-						<For each={virtualizer.virtualItems()}>
-							{(virtualItem) => {
-								const row = props.rows()[virtualItem.index]
-								if (!row) return null
-								return (
-									<div
-										class="grid text-sm hover:bg-muted/50 transition-colors"
-										style={{
-											'grid-template-columns': gridTemplate(),
-											position: 'absolute',
-											top: `${virtualItem.start}px`,
-											left: 0,
-											right: 0,
-											height: `${ROW_HEIGHT}px`,
-										}}
-									>
-										<For each={displayColumns()}>
-											{(col) => (
-												<div
-													class={`px-3 py-1 text-foreground whitespace-nowrap overflow-x-auto font-mono text-xs flex items-center border-r border-border/30 last:border-r-0 scrollbar-none ${
-														props.hasRowId() || props.primaryKeys().length > 0
-															? 'cursor-text hover:bg-muted'
-															: ''
-													}`}
-													style={{ 'scrollbar-width': 'none' }}
-													onClick={() => {
-														if (
-															props.selectedTable() &&
-															(props.hasRowId() ||
-																props.primaryKeys().length > 0)
-														) {
-															props.setEditingCell({
-																row,
-																col,
-																value: row[col],
-															})
-														}
-													}}
-												>
-													<Show
-														when={
-															props.editingCell()?.row === row &&
-															props.editingCell()?.col === col
-														}
-														fallback={
-															row[col] === null ? (
-																<span class="text-muted-foreground italic">
-																	null
-																</span>
-															) : (
-																String(row[col])
-															)
-														}
-													>
-														<input
-															ref={(el) => setTimeout(() => el.focus(), 0)}
-															value={String(props.editingCell()?.value ?? '')}
-															class="w-full bg-background text-foreground px-1 py-0.5 rounded border border-primary outline-none"
-															onInput={(e) => {
-																const prev = props.editingCell()
-																if (prev) {
-																	props.setEditingCell({
-																		...prev,
-																		value: e.currentTarget.value,
-																	})
-																}
-															}}
-															onBlur={() => props.onCommitEdit()}
-															onKeyDown={(e) => {
-																if (e.key === 'Enter') props.onCommitEdit()
-																if (e.key === 'Escape')
-																	props.setEditingCell(null)
-															}}
-														/>
-													</Show>
+		<Flex
+			flexDirection="col"
+			alignItems="stretch"
+			class="rounded-lg border border-border overflow-hidden bg-card shadow-sm flex-1 min-h-0"
+		>
+			<div class="overflow-auto flex-1 flex flex-col min-h-0">
+				<Table>
+					<TableHeader class="sticky top-0 z-10 bg-muted/50 backdrop-blur-sm shadow-sm">
+						<For each={table.getHeaderGroups()}>
+							{(headerGroup) => (
+								<TableRow>
+									<For each={headerGroup.headers}>
+										{(header) => (
+											<TableHead class="whitespace-nowrap h-8 px-0 py-0 font-medium text-muted-foreground bg-muted/50">
+												<div class="px-4 py-2 border-r border-border/50 last:border-0">
+													{header.isPlaceholder
+														? null
+														: flexRender(
+																header.column.columnDef.header,
+																header.getContext()
+															)}
 												</div>
+											</TableHead>
+										)}
+									</For>
+								</TableRow>
+							)}
+						</For>
+					</TableHeader>
+					<TableBody>
+						<Show
+							when={table.getRowModel().rows.length > 0}
+							fallback={
+								<TableRow>
+									<TableCell
+										colSpan={props.columns().length}
+										class="h-24 text-center"
+									>
+										No results
+									</TableCell>
+								</TableRow>
+							}
+						>
+							<For each={table.getRowModel().rows}>
+								{(row) => (
+									<TableRow
+										data-state={row.getIsSelected() && 'selected'}
+										class="hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0"
+									>
+										<For each={row.getVisibleCells()}>
+											{(cell) => (
+												<TableCell class="p-0 border-r border-border/30 last:border-r-0 max-w-[300px] overflow-hidden font-mono text-xs">
+													{flexRender(
+														cell.column.columnDef.cell,
+														cell.getContext()
+													)}
+												</TableCell>
 											)}
 										</For>
-									</div>
-								)
-							}}
-						</For>
-					</Show>
+									</TableRow>
+								)}
+							</For>
+						</Show>
+					</TableBody>
+				</Table>
+			</div>
+
+			<div class="px-4 py-2 bg-muted/30 border-t border-border text-xs text-muted-foreground flex items-center justify-between shrink-0">
+				<div class="flex items-center gap-4">
+					<span>
+						Showing{' '}
+						{table.getState().pagination.pageIndex *
+							table.getState().pagination.pageSize +
+							1}
+						-
+						{Math.min(
+							(table.getState().pagination.pageIndex + 1) *
+								table.getState().pagination.pageSize,
+							props.rows().length
+						)}{' '}
+						of {props.rows().length} rows
+					</span>
+
+					<span class="font-mono opacity-50 border-l border-border pl-4">
+						{props.selectedTable()
+							? `Source: ${props.selectedTable()}`
+							: 'Custom Query'}
+					</span>
 				</div>
+
+				<Pagination
+					count={Math.ceil(
+						props.rows().length / table.getState().pagination.pageSize
+					)}
+					page={table.getState().pagination.pageIndex + 1}
+					onPageChange={(page) => table.setPageIndex(page - 1)}
+					itemComponent={(props) => (
+						<PaginationItem page={props.page}>{props.page}</PaginationItem>
+					)}
+					ellipsisComponent={() => <PaginationEllipsis />}
+				>
+					<PaginationPrevious />
+					<PaginationItems />
+					<PaginationNext />
+				</Pagination>
 			</div>
-			<div class="px-4 py-2 bg-muted/30 border-t border-border text-xs text-muted-foreground flex justify-between shrink-0">
-				<span>Showing {props.rows().length} rows</span>
-				<span class="font-mono opacity-50">
-					{props.selectedTable()
-						? `Source: ${props.selectedTable()}`
-						: 'Custom Query'}
-				</span>
-			</div>
-		</div>
+		</Flex>
 	)
 }

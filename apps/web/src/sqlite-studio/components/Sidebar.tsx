@@ -1,5 +1,8 @@
 import { For, Show } from 'solid-js'
+import { Button } from '@repo/ui/button'
+import { Flex } from '@repo/ui/flex'
 import { ResetDatabaseButton } from './ResetDatabaseButton'
+import { cn } from '@repo/ui/utils'
 
 type SidebarProps = {
 	tables: string[]
@@ -16,33 +19,37 @@ type SidebarProps = {
 export const Sidebar = (props: SidebarProps) => {
 	return (
 		<aside class="w-64 border-r border-border bg-card flex flex-col">
-			<div class="p-2 border-b border-border">
+			<Flex
+				flexDirection="col"
+				alignItems="start"
+				class="p-2 border-b border-border items-start"
+			>
 				<h1 class="text-xs font-bold tracking-widest text-muted-foreground uppercase">
 					One Table
 				</h1>
 				<div class="text-lg font-semibold text-foreground tracking-tight">
 					SQLite Studio
 				</div>
-			</div>
+			</Flex>
 			<div class="flex-1 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
 				<div class="py-1 px-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
 					Tables
 				</div>
-				<div>
+				<Flex flexDirection="col" alignItems="stretch" class="gap-0.5">
 					<For each={props.tables}>
 						{(table) => (
-							<button
+							<Button
 								onClick={() => props.onLoadTable(table)}
-								class="w-full text-left px-1 pb-1 rounded-sm text-xs transition-colors border"
-								classList={{
-									'bg-primary/10 text-primary font-medium border-primary/20':
-										props.selectedTable === table,
-									'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent':
-										props.selectedTable !== table,
-								}}
+								variant="ghost"
+								class={cn(
+									'w-full justify-start px-1 h-auto py-1 rounded-sm text-xs border',
+									props.selectedTable === table
+										? 'bg-primary/10 text-primary font-medium border-primary/20 hover:bg-primary/10'
+										: 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent'
+								)}
 							>
 								{table}
-							</button>
+							</Button>
 						)}
 					</For>
 					<Show when={props.tables.length === 0}>
@@ -50,32 +57,34 @@ export const Sidebar = (props: SidebarProps) => {
 							No tables found
 						</div>
 					</Show>
-				</div>
+				</Flex>
 				<div class="py-1 px-1 mt-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">
 					Examples
 				</div>
 				<div>
-					<button
+					<Button
 						onClick={() => props.onLoadExample('file-search')}
-						class="w-full text-left px-1 pb-1 rounded-sm text-xs transition-colors border"
-						classList={{
-							'bg-primary/10 text-primary font-medium border-primary/20':
-								props.selectedTable === 'example:file-search',
-							'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent':
-								props.selectedTable !== 'example:file-search',
-						}}
+						variant="ghost"
+						class={cn(
+							'w-full justify-start px-1 h-auto py-1 rounded-sm text-xs border',
+							props.selectedTable === 'example:file-search'
+								? 'bg-primary/10 text-primary font-medium border-primary/20 hover:bg-primary/10'
+								: 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent'
+						)}
 					>
 						File Search
-					</button>
+					</Button>
 				</div>
 			</div>
 			<div class="p-4 border-t border-border space-y-2">
-				<button
+				<Button
 					onClick={() => props.onRefreshSchema()}
-					class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-muted-foreground rounded-md text-xs font-medium transition-colors"
+					variant="secondary"
+					class="w-full justify-center bg-muted hover:bg-muted/80 text-muted-foreground rounded-md text-xs font-medium"
+					size="sm"
 				>
 					Refresh Schema
-				</button>
+				</Button>
 				<ResetDatabaseButton
 					onReset={props.onResetDatabase}
 					variant="sidebar"

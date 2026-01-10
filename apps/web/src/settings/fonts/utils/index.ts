@@ -1,5 +1,4 @@
-export {
-	updateEditorFontOptions,
-	getFontDisplayName,
-	isFontAvailable,
-} from './updateEditorFontOptions'
+// Utility exports for font management
+export * from './performanceMonitoring'
+export * from './resourceCleanup'
+export * from './serviceWorkerInit'

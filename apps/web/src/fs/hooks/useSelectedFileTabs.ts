@@ -9,7 +9,6 @@ type UseSelectedFileTabsParams = {
 	selectedPath: Accessor<string | undefined>
 	selectPath: FsActions['selectPath']
 	setOpenTabs: FsActions['fileCache']['setOpenTabs']
-	shouldShowJSONView: Accessor<boolean>
 	maxTabs?: number
 }
 

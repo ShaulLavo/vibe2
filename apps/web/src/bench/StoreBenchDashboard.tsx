@@ -19,6 +19,24 @@ import type {
 	BenchScenarioResult,
 } from './types'
 import { formatBytes } from '@repo/utils'
+import { Card } from '@repo/ui/card'
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@repo/ui/table'
+import { Badge } from '@repo/ui/badge'
+import {
+	createSolidTable,
+	getCoreRowModel,
+	flexRender,
+	type ColumnDef,
+	type CellContext,
+} from '@tanstack/solid-table'
+
 type BenchStatus = 'idle' | 'running' | 'completed' | 'skipped' | 'error'
 type ScenarioStatus = 'queued' | 'running' | 'complete'
 
@@ -102,6 +120,119 @@ const statusBadgeClass: Record<BenchStatus, string> = {
 		'bg-emerald-500/10 text-emerald-700 dark:text-emerald-200 ring-1 ring-emerald-500/40',
 	skipped: 'bg-muted text-muted-foreground ring-1 ring-border',
 	error: 'bg-destructive/10 text-destructive ring-1 ring-destructive/40',
+}
+
+const BenchResultsTable = (props: {
+	results: BenchScenarioResult[]
+	winner: string | null
+}) => {
+	const columns = createMemo<ColumnDef<BenchScenarioResult>[]>(() => [
+		{
+			accessorKey: 'store',
+			header: 'Store',
+			cell: (info: CellContext<BenchScenarioResult, unknown>) => (
+				<span class="font-medium">{info.getValue() as string}</span>
+			),
+		},
+		{
+			accessorKey: 'writeMs',
+			header: 'Write',
+			cell: (info: CellContext<BenchScenarioResult, unknown>) => (
+				<span class="font-mono text-xs">
+					{formatNumber(info.getValue() as number)} ms
+				</span>
+			),
+		},
+		{
+			accessorKey: 'readMs',
+			header: 'Read',
+			cell: (info: CellContext<BenchScenarioResult, unknown>) => (
+				<span class="font-mono text-xs">
+					{formatNumber(info.getValue() as number)} ms
+				</span>
+			),
+		},
+		{
+			accessorKey: 'removeMs',
+			header: 'Remove',
+			cell: (info: CellContext<BenchScenarioResult, unknown>) => (
+				<span class="font-mono text-xs">
+					{formatNumber(info.getValue() as number)} ms
+				</span>
+			),
+		},
+		{
+			accessorKey: 'totalMs',
+			header: 'Total',
+			cell: (info: CellContext<BenchScenarioResult, unknown>) => (
+				<span class="font-mono text-xs font-semibold">
+					{formatNumber(info.getValue() as number)} ms
+				</span>
+			),
+		},
+	])
+
+	const table = createSolidTable({
+		get data() {
+			return props.results
+		},
+		get columns() {
+			return columns()
+		},
+		getCoreRowModel: getCoreRowModel(),
+	})
+
+	return (
+		<Table class="text-left text-sm text-foreground">
+			<TableHeader>
+				<For each={table.getHeaderGroups()}>
+					{(headerGroup) => (
+						<TableRow class="text-xs uppercase tracking-wide text-muted-foreground">
+							<For each={headerGroup.headers}>
+								{(header) => (
+									<TableHead class="pb-2 font-medium">
+										{header.isPlaceholder
+											? null
+											: flexRender(
+													header.column.columnDef.header,
+													header.getContext()
+												)}
+									</TableHead>
+								)}
+							</For>
+						</TableRow>
+					)}
+				</For>
+			</TableHeader>
+			<TableBody>
+				<For each={table.getRowModel().rows}>
+					{(row) => {
+						const isWinner = props.winner === row.original.store
+						return (
+							<TableRow
+								class={`text-sm ${
+									isWinner
+										? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-100 hover:bg-emerald-500/20'
+										: 'text-foreground hover:bg-muted/50'
+								}`}
+							>
+								<For each={row.getVisibleCells()}>
+									{(cell) => (
+										<TableCell class="py-1">
+											{flexRender(
+												cell.column.columnDef.cell,
+												cell.getContext()
+											)}
+										</TableCell>
+									)}
+								</For>
+							</TableRow>
+						)
+					}}
+				</For>
+			</TableBody>
+		</Table>
+	)
 }
 
 export const StoreBenchDashboard: Component = () => {
@@ -321,7 +452,7 @@ export const StoreBenchDashboard: Component = () => {
 	return (
 		<div class="min-h-screen bg-background px-6 py-8 text-foreground">
 			<div class="mx-auto flex w-full max-w-6xl flex-col gap-6">
-				<header class="rounded-2xl border border-border bg-card p-6 shadow-sm">
+				<Card class="rounded-2xl p-6">
 					<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 						<div>
 							<p class="text-sm uppercase tracking-[0.2em] text-muted-foreground">
@@ -347,11 +478,12 @@ export const StoreBenchDashboard: Component = () => {
 									</Show>
 									{formatDuration(totalElapsedMs())}
 								</div>
-								<span
-									class={`rounded-full px-3 py-1 text-sm font-medium ${statusBadgeClass[status()]}`}
+								<Badge
+									round
+									class={`px-3 py-1 font-medium ${statusBadgeClass[status()]}`}
 								>
 									{statusLabel[status()]}
-								</span>
+								</Badge>
 							</div>
 							<Show when={currentScenario()}>
 								<p class="text-sm text-amber-200">
@@ -363,7 +495,7 @@ export const StoreBenchDashboard: Component = () => {
 							</Show>
 						</div>
 					</div>
-				</header>
+				</Card>
 
 				<section class="grid gap-4 md:grid-cols-2">
 					<Show
@@ -383,7 +515,7 @@ export const StoreBenchDashboard: Component = () => {
 											).store
 										: null
 								return (
-									<article class="rounded-2xl border border-border bg-card p-4 shadow-sm">
+									<Card class="rounded-2xl p-4">
 										<header class="flex items-start justify-between gap-4">
 											<div>
 												<h2 class="text-xl font-semibold text-card-foreground">
@@ -413,59 +545,20 @@ export const StoreBenchDashboard: Component = () => {
 											}
 										>
 											<div class="mt-4 overflow-x-auto">
-												<table class="w-full text-left text-sm text-foreground">
-													<thead>
-														<tr class="text-xs uppercase tracking-wide text-muted-foreground">
-															<th class="pb-2 font-medium">Store</th>
-															<th class="pb-2 font-medium">Write</th>
-															<th class="pb-2 font-medium">Read</th>
-															<th class="pb-2 font-medium">Remove</th>
-															<th class="pb-2 font-medium">Total</th>
-														</tr>
-													</thead>
-													<tbody>
-														<For each={entry.results}>
-															{(result) => {
-																const isWinner = winner === result.store
-																return (
-																	<tr
-																		class={`text-sm ${
-																			isWinner
-																				? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-100'
-																				: 'text-foreground'
-																		}`}
-																	>
-																		<td class="py-1 font-medium">
-																			{result.store}
-																		</td>
-																		<td class="py-1 font-mono text-xs">
-																			{formatNumber(result.writeMs)} ms
-																		</td>
-																		<td class="py-1 font-mono text-xs">
-																			{formatNumber(result.readMs)} ms
-																		</td>
-																		<td class="py-1 font-mono text-xs">
-																			{formatNumber(result.removeMs)} ms
-																		</td>
-																		<td class="py-1 font-mono text-xs font-semibold">
-																			{formatNumber(result.totalMs)} ms
-																		</td>
-																	</tr>
-																)
-															}}
-														</For>
-													</tbody>
-												</table>
+												<BenchResultsTable
+													results={entry.results}
+													winner={winner}
+												/>
 											</div>
 										</Show>
-									</article>
+									</Card>
 								)
 							}}
 						</For>
 					</Show>
 				</section>
 
-				<section class="rounded-2xl border border-border bg-card p-4 shadow-sm">
+				<Card class="rounded-2xl p-4">
 					<header class="mb-3 flex items-center justify-between">
 						<div>
 							<h3 class="text-lg font-semibold text-card-foreground">
@@ -514,7 +607,7 @@ export const StoreBenchDashboard: Component = () => {
 							</For>
 						</Show>
 					</div>
-				</section>
+				</Card>
 			</div>
 		</div>
 	)

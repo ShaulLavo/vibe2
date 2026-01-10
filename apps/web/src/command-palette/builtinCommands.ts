@@ -1,9 +1,14 @@
 import type { CommandDescriptor, CommandPaletteRegistry } from './types'
-import {
-	setSettingsJsonView,
-	setSettingsUIView,
-} from '../fs/hooks/useSettingsViewState'
-import type { FsActions } from '../fs/context/FsContext'
+import type { FsActions, SelectPathOptions } from '../fs/context/FsContext'
+import type { ViewMode } from '../fs/types/TabIdentity'
+
+/**
+ * Subset of FsActions needed for settings commands
+ */
+type SettingsCommandActions = {
+	selectPath: (path: string, options?: SelectPathOptions) => Promise<void>
+	setViewMode: (path: string, viewMode: ViewMode) => void
+}
 
 /**
  * Registers all built-in commands with the command palette registry.
@@ -14,7 +19,7 @@ import type { FsActions } from '../fs/context/FsContext'
  */
 export function registerBuiltinCommands(
 	registry: CommandPaletteRegistry,
-	fsActions?: FsActions
+	fsActions?: SettingsCommandActions
 ): () => void {
 	const unregisterFunctions: Array<() => void> = []
 
@@ -184,14 +189,16 @@ function registerSaveCommand(registry: CommandPaletteRegistry): () => void {
 
 /**
  * Registers settings-related commands
+ * Uses the view mode system to open settings in different modes
  */
 function registerSettingsCommands(
 	registry: CommandPaletteRegistry,
-	fsActions: FsActions
+	fsActions: SettingsCommandActions
 ): () => void {
 	const unregisterFunctions: Array<() => void> = []
 	const USER_SETTINGS_FILE_PATH = '/.system/userSettings.json'
 
+	// Default "Open Settings" command - opens in editor mode (JSON)
 	const openSettingsCommand: CommandDescriptor = {
 		id: 'settings.open',
 		label: 'Open Settings',
@@ -199,27 +206,29 @@ function registerSettingsCommands(
 		shortcut: '⌘,',
 		handler: async () => {
 			await fsActions.selectPath(USER_SETTINGS_FILE_PATH)
-			setSettingsJsonView()
+			fsActions.setViewMode(USER_SETTINGS_FILE_PATH, 'editor')
 		},
 	}
 
+	// Open Settings (UI) - opens in ui mode
 	const openSettingsUICommand: CommandDescriptor = {
 		id: 'settings.openUI',
 		label: 'Open Settings (UI)',
 		category: 'View',
 		handler: async () => {
 			await fsActions.selectPath(USER_SETTINGS_FILE_PATH)
-			setSettingsUIView()
+			fsActions.setViewMode(USER_SETTINGS_FILE_PATH, 'ui')
 		},
 	}
 
+	// Open Settings (JSON) - explicit JSON/editor mode
 	const openSettingsJSONCommand: CommandDescriptor = {
 		id: 'settings.openJSON',
 		label: 'Open Settings (JSON)',
 		category: 'View',
 		handler: async () => {
 			await fsActions.selectPath(USER_SETTINGS_FILE_PATH)
-			setSettingsJsonView()
+			fsActions.setViewMode(USER_SETTINGS_FILE_PATH, 'editor')
 		},
 	}
 

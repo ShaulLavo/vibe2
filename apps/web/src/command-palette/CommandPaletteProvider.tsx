@@ -56,6 +56,7 @@ export const CommandPaletteProvider: ParentComponent = (props) => {
 		// Register built-in commands (pass fsActions for settings commands)
 		const unregisterBuiltinCommands = registerBuiltinCommands(registry, {
 			selectPath: fsActions.selectPath,
+			setViewMode: fsActions.setViewMode,
 		})
 
 		// Register keyboard shortcuts

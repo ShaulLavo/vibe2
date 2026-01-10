@@ -6,7 +6,3 @@ export {
 	type FontActions,
 } from './createFontStore'
 export { FontStoreProvider, useFontStore } from './FontStoreProvider'
-export {
-	createFontAwareSettingsStore,
-	type FontAwareSettingsStore,
-} from './createFontAwareSettingsStore'

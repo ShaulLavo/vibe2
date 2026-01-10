@@ -1,7 +1,6 @@
 import type { Component, JSX } from 'solid-js'
 import { For, Show, createMemo } from 'solid-js'
 import { SettingItem } from './SettingItem'
-import type { SettingDefinition } from './SettingItem'
 import { SettingsScrollArea } from './SettingsScrollArea'
 import { cn } from '../utils'
 import type { SettingsCategory } from './SettingsSidebarItem'
@@ -96,7 +95,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 									</div>
 								}
 							>
-								{props.customSubcategoryComponents![child.id]()}
+								{props.customSubcategoryComponents?.[child.id]?.()}
 							</Show>
 						</div>
 					)}

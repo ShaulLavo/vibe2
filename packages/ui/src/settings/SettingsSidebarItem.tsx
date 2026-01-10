@@ -12,10 +12,20 @@ const iconMap = {
 
 type IconName = keyof typeof iconMap
 
+export type SettingSetting = {
+	id: string
+	default: unknown
+	description?: string
+	options?: string[] | { value: string; label: string }[]
+	experimental?: boolean
+	icon?: string
+}
+
 export type SettingsCategory = {
 	id: string
 	label: string
 	icon?: string
+	settings?: SettingSetting[]
 	children?: SettingsCategory[]
 }
 

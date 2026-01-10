@@ -1,5 +1,5 @@
 import { CursorMode, Editor } from '@repo/code-editor'
-import { Accessor, Match, Switch, createMemo, createResource } from 'solid-js'
+import { Accessor, Match, Switch, createMemo, createResource, createSignal } from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { useFs } from '../../fs/context/FsContext'
 import { useSettings } from '~/settings/SettingsProvider'
@@ -13,7 +13,6 @@ import { BinaryFileViewer } from '~/components/BinaryFileViewer'
 import { useEditorDecorations } from '../hooks/useEditorDecorations'
 import { useEditorDocument } from '../hooks/useEditorDocument'
 import { useSelectedFileTabs } from '../hooks/useSelectedFileTabs'
-import { useSettingsViewState } from '../hooks/useSettingsViewState'
 import { detectAvailableViewModes } from '../utils/viewModeDetection'
 import { viewModeRegistry } from '../registry/ViewModeRegistry'
 import { type ViewMode } from '../types/TabIdentity'
@@ -49,20 +48,20 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	const [settingsState] = useSettings()
 
 	const editorFontSize = createMemo(() => {
-		const value = settingsState.values['editor.fontSize']
+		const value = settingsState.values['editor.font.size']
 		if (typeof value === 'number') return value
 
-		const fallback = settingsState.defaults['editor.fontSize']
+		const fallback = settingsState.defaults['editor.font.size']
 		if (typeof fallback === 'number') return fallback
 
 		return DEFAULT_FONT_SIZE
 	})
 
 	const editorFontFamily = createMemo(() => {
-		const value = settingsState.values['editor.fontFamily']
+		const value = settingsState.values['editor.font.family']
 		if (typeof value === 'string' && value.trim().length > 0) return value
 
-		const fallback = settingsState.defaults['editor.fontFamily']
+		const fallback = settingsState.defaults['editor.font.family']
 		if (typeof fallback === 'string' && fallback.trim().length > 0) {
 			return fallback
 		}
@@ -70,11 +69,10 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		return DEFAULT_FONT_FAMILY
 	})
 
-	const settingsView = useSettingsViewState({
-		selectedPath: () => state.selectedPath,
-	})
-
 	const [treeSitterWorker] = createResource(async () => getTreeSitterWorker())
+
+	// Settings category state (simple local state)
+	const [currentCategory, setCurrentCategory] = createSignal<string>('editor')
 
 	const {
 		tabsState,
@@ -87,7 +85,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		selectedPath: () => state.selectedPath,
 		selectPath,
 		setOpenTabs: fileCache.setOpenTabs,
-		shouldShowJSONView: settingsView.shouldShowJSONView,
 		maxTabs: MAX_EDITOR_TABS,
 	})
 
@@ -129,6 +126,25 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 			dirtyStatus[tabId] = !!state.dirtyPaths[tabId]
 		}
 		return dirtyStatus
+	}
+
+	// Get view mode for a specific tab (file path)
+	const getTabViewMode = (tabPath: string): ViewMode => {
+		if (tabPath === state.lastKnownFilePath) {
+			// For the currently selected file, use the current view mode
+			return getCurrentViewMode()
+		}
+		// For other tabs, we need to get their stored view mode
+		// Since view modes are stored per path, we can get it from the state
+		const stats = state.fileStats[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath]
+		return state.fileViewModes[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath] || 
+			   viewModeRegistry.getDefaultMode(tabPath, stats)
+	}
+
+	// Get available view modes for a specific tab (file path)
+	const getTabAvailableViewModes = (tabPath: string): ViewMode[] => {
+		const stats = state.fileStats[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath]
+		return detectAvailableViewModes(tabPath, stats)
 	}
 
 	// Handle view mode switching - switches mode on same tab
@@ -186,6 +202,8 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 				onClose={handleTabClose}
 				getLabel={tabLabel}
 				getTooltip={getTabTooltip}
+				getViewMode={getTabViewMode}
+				getAvailableViewModes={getTabAvailableViewModes}
 				dirtyPaths={tabDirtyStatus()}
 				rightSlot={() => (
 					<ViewModeToggle
@@ -233,9 +251,9 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 					{/* Settings file in UI mode (Requirements 3.2) */}
 					<Match when={getCurrentViewMode() === 'ui'}>
 						<SettingsTab
-							initialCategory={settingsView.currentCategory()}
-							currentCategory={settingsView.currentCategory()}
-							onCategoryChange={settingsView.handleCategoryChange}
+							initialCategory={currentCategory()}
+							currentCategory={currentCategory()}
+							onCategoryChange={setCurrentCategory}
 						/>
 					</Match>
 

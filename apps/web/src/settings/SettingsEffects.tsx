@@ -27,10 +27,10 @@ export const SettingsEffects: Component = () => {
 	// Track if we're in the middle of a sync to prevent loops
 	let isSyncing = false
 
-	// Sync appearance.theme setting -> ThemeProvider
+	// Sync appearance.theme.mode setting -> ThemeProvider
 	createEffect(
 		on(
-			() => settingsState.values['appearance.theme'],
+			() => settingsState.values['appearance.theme.mode'],
 			(themeValue) => {
 				if (!settingsState.isLoaded || isSyncing) return
 
@@ -99,20 +99,20 @@ export const SettingsEffects: Component = () => {
 		)
 	)
 
-	// Sync ThemeProvider -> appearance.theme setting (reverse sync)
+	// Sync ThemeProvider -> appearance.theme.mode setting (reverse sync)
 	// This handles when theme changes from ModeToggle or other sources
 	createEffect(
 		on(mode, (currentMode) => {
 			if (!settingsState.isLoaded || isSyncing) return
 
 			const settingsValue = themeToSettings(currentMode)
-			const currentSettingsValue = settingsState.values['appearance.theme']
+			const currentSettingsValue = settingsState.values['appearance.theme.mode']
 
 			// Only update if different to avoid loops
 			if (currentSettingsValue !== settingsValue) {
 				isSyncing = true
 				try {
-					settingsActions.setSetting('appearance.theme', settingsValue)
+					settingsActions.setSetting('appearance.theme.mode', settingsValue)
 				} finally {
 					// Small delay to ensure the settings effect doesn't immediately re-trigger
 					setTimeout(() => {
@@ -132,11 +132,11 @@ export const SettingsEffects: Component = () => {
 
 		// UI font settings (global for file explorer, sidebars, settings, etc.)
 		const uiFontSize =
-			settingsState.values['ui.fontSize'] ??
-			settingsState.defaults['ui.fontSize']
+			settingsState.values['ui.font.size'] ??
+			settingsState.defaults['ui.font.size']
 		const uiFontFamily =
-			settingsState.values['ui.fontFamily'] ??
-			settingsState.defaults['ui.fontFamily']
+			settingsState.values['ui.font.family'] ??
+			settingsState.defaults['ui.font.family']
 		if (uiFontSize != null) {
 			root.style.setProperty('--ui-font-size', `${uiFontSize}px`)
 		}
@@ -146,11 +146,11 @@ export const SettingsEffects: Component = () => {
 
 		// Editor font settings
 		const editorFontSize =
-			settingsState.values['editor.fontSize'] ??
-			settingsState.defaults['editor.fontSize']
+			settingsState.values['editor.font.size'] ??
+			settingsState.defaults['editor.font.size']
 		const editorFontFamily =
-			settingsState.values['editor.fontFamily'] ??
-			settingsState.defaults['editor.fontFamily']
+			settingsState.values['editor.font.family'] ??
+			settingsState.defaults['editor.font.family']
 		if (editorFontSize != null) {
 			root.style.setProperty('--editor-font-size', `${editorFontSize}px`)
 		}
@@ -160,11 +160,11 @@ export const SettingsEffects: Component = () => {
 
 		// Terminal font settings
 		const terminalFontSize =
-			settingsState.values['terminal.fontSize'] ??
-			settingsState.defaults['terminal.fontSize']
+			settingsState.values['terminal.font.size'] ??
+			settingsState.defaults['terminal.font.size']
 		const terminalFontFamily =
-			settingsState.values['terminal.fontFamily'] ??
-			settingsState.defaults['terminal.fontFamily']
+			settingsState.values['terminal.font.family'] ??
+			settingsState.defaults['terminal.font.family']
 		if (terminalFontSize != null) {
 			root.style.setProperty('--terminal-font-size', `${terminalFontSize}px`)
 		}

@@ -1,4 +1,6 @@
 import { type Accessor } from 'solid-js'
+import { TextField, TextFieldTextArea } from '@repo/ui/text-field'
+import { Button } from '@repo/ui/button'
 
 type QueryEditorProps = {
 	sqlQuery: Accessor<string>
@@ -10,24 +12,29 @@ export const QueryEditor = (props: QueryEditorProps) => {
 	return (
 		<div class="border-b border-border bg-background">
 			<div class="relative group pl-3">
-				<textarea
+				<TextField
 					value={props.sqlQuery()}
-					onInput={(e) => props.setSqlQuery(e.currentTarget.value)}
-					placeholder="Enter SQL query..."
-					class="w-full h-40 bg-background p-2 text-xs font-mono text-foreground placeholder-muted-foreground focus:outline-none resize-none leading-normal block"
-					onKeyDown={(e) => {
-						if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-							props.onRunQuery()
-						}
-					}}
-				/>
+					onChange={props.setSqlQuery}
+					class="w-full"
+				>
+					<TextFieldTextArea
+						placeholder="Enter SQL query..."
+						class="w-full h-40 border-0 focus-visible:ring-0 p-2 text-xs font-mono resize-none leading-normal block shadow-none rounded-none"
+						onKeyDown={(e) => {
+							if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+								props.onRunQuery()
+							}
+						}}
+					/>
+				</TextField>
 				<div class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-					<button
+					<Button
 						onClick={() => props.onRunQuery()}
-						class="bg-primary hover:bg-primary/90 text-primary-foreground px-2 py-0.5 rounded-sm text-[10px] font-medium transition-colors shadow-sm shadow-primary/20 uppercase tracking-wide"
+						size="sm"
+						class="h-auto py-0.5 px-2 rounded-sm text-[10px] uppercase tracking-wide"
 					>
 						Run
-					</button>
+					</Button>
 				</div>
 			</div>
 		</div>

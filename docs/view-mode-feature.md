@@ -8,7 +8,6 @@ Implement a **view mode system** for file tabs. Files can have multiple view mod
 
 - `apps/web/src/fs/components/SelectedFilePanel.tsx` - renders editor/settings based on view state
 - `apps/web/src/fs/components/Tabs.tsx` - tab bar component
-- `apps/web/src/fs/hooks/useSettingsViewState.ts` - current settings view toggle (`isJsonView` signal)
 - `apps/web/src/fs/hooks/useSelectedFileTabs.ts` - tab state management
 - `apps/web/src/fs/context/FsContext.tsx` - FS context with selected path
 - `apps/web/src/command-palette/builtinCommands.ts` - settings commands

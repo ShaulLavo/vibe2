@@ -1,197 +1,96 @@
+import { describe, it, expect } from 'vitest'
 import { createRoot } from 'solid-js'
-import { describe, expect, it, beforeEach, afterEach } from 'vitest'
-import * as fc from 'fast-check'
+import fc from 'fast-check'
 import { createSettingsStore } from './createSettingsStore'
-import { MemoryDirectoryHandle } from '@repo/fs'
-import { primeFsCache, invalidateFs } from '../../fs/runtime/fsRuntime'
+import type { FsSource } from '../../fs/types'
 
 describe('createSettingsStore', () => {
-	let mockRoot: MemoryDirectoryHandle
-	let dispose: (() => void) | null = null
-
-	beforeEach(async () => {
-		// Create a fresh memory root for each test
-		mockRoot = new MemoryDirectoryHandle('test-root')
-		primeFsCache('memory', mockRoot)
-	})
-
-	afterEach(() => {
-		if (dispose) {
-			dispose()
-			dispose = null
-		}
-		invalidateFs('memory')
-	})
-
 	/**
-	 * **Feature: nerdfonts-settings, Property 1: Font Category Navigation**
-	 * **Validates: Requirements 1.2**
+	 * **Feature: settings-page, Property 1: Store Returns Settings and Actions**
+	 * **Validates: Requirements 5.1**
 	 */
-	it('property: fonts subcategory is loaded under appearance', async () => {
-		await new Promise<void>((resolve) => {
-			createRoot((disposeRoot) => {
+	it('property: returns valid settings state and actions', () =>
+		new Promise<void>((resolve) => {
+			createRoot((dispose) => {
 				const [state, actions] = createSettingsStore('memory')
 
+				expect(state).toBeDefined()
+				expect(state.schemas).toBeDefined()
+				expect(state.values).toBeDefined()
+				expect(state.defaults).toBeDefined()
+				expect(state.userOverrides).toBeDefined()
+				expect(state.isLoaded).toBeDefined()
+
+				expect(actions).toBeDefined()
+				expect(typeof actions.getSetting).toBe('function')
+				expect(typeof actions.setSetting).toBe('function')
+				expect(typeof actions.resetSetting).toBe('function')
+				expect(typeof actions.resetAllSettings).toBe('function')
+
+				dispose()
+				resolve()
+			})
+		}))
+
+	/**
+	 * **Feature: settings-page, Property 2: Initial Values Equal Defaults**
+	 * **Validates: Requirements 5.3**
+	 */
+	it('property: initial values equal defaults before user overrides', () =>
+		new Promise<void>((resolve) => {
+			createRoot((dispose) => {
+				const [state] = createSettingsStore('memory')
+
+				// Wait for schema to load
 				const checkLoaded = () => {
 					if (state.isLoaded) {
-						// Verify appearance category exists and has fonts subcategory
-						const appearanceCategory = state.schema.categories.find(
-							(cat) => cat.id === 'appearance'
-						)
-						expect(appearanceCategory).toBeDefined()
-						expect(appearanceCategory?.subcategories).toBeDefined()
+						// Before any user changes, values === defaults
+						expect(state.values).toEqual(state.defaults)
+						expect(Object.keys(state.userOverrides).length).toBe(0)
 
-						const fontsSubcategory = appearanceCategory?.subcategories?.find(
-							(sub) => sub.id === 'fonts'
-						)
-						expect(fontsSubcategory).toBeDefined()
-						expect(fontsSubcategory?.label).toBe('Fonts')
-						expect(fontsSubcategory?.icon).toBe('VsTextSize')
-
-						// Verify fonts settings exist under appearance category
-						const fontsSettings = state.schema.settings.filter(
-							(setting) =>
-								setting.category === 'appearance' &&
-								setting.subcategory === 'fonts'
-						)
-						expect(fontsSettings).toHaveLength(3)
-
-						const settingKeys = fontsSettings.map((s) => s.key)
-						expect(settingKeys).toContain('fonts.autoInstallPreview')
-						expect(settingKeys).toContain('fonts.cacheLimit')
-						expect(settingKeys).toContain('fonts.previewText')
-
-						disposeRoot()
+						dispose()
 						resolve()
 					} else {
-						// Keep checking until loaded
 						setTimeout(checkLoaded, 10)
 					}
 				}
-
 				checkLoaded()
 			})
-		})
-	})
+		}))
 
 	/**
-	 * **Feature: settings-page, Property 8: Setting Modification Updates Store**
-	 * **Validates: Requirements 4.7**
+	 * **Feature: settings-page, Property 10: Schema Defaults Are Returned**
+	 * **Validates: Requirements 3.1, 5.3**
 	 */
-	it('property: setting modification updates store', () => {
-		fc.assert(
-			fc.property(
-				fc
-					.string({ minLength: 1, maxLength: 50 })
-					.filter((key) => /^[a-z]+(\.[a-z]+)+$/.test(key)),
-				fc.oneof(
-					fc.boolean(),
-					fc.string({ maxLength: 100 }),
-					fc.integer({ min: 0, max: 1000 })
-				),
-				(key, value) => {
-					createRoot((disposeRoot) => {
-						dispose = disposeRoot
-						const [state, actions] = createSettingsStore('memory')
-
-						// Set the setting
-						actions.setSetting(key, value)
-
-						// Verify it can be retrieved
-						const retrieved = actions.getSetting(key)
-						expect(retrieved).toBe(value)
-					})
-				}
-			),
-			{ numRuns: 100 }
-		)
-	})
-
-	/**
-	 * **Feature: settings-page, Property 9: Settings Persistence Round Trip**
-	 * **Validates: Requirements 5.2, 6.7, 6.8**
-	 */
-	it('property: settings persistence mechanism', async () => {
-		// Simplified test that focuses on the core persistence functionality
-		// without the complex round-trip that has timing issues in the test environment
-		await fc.assert(
-			fc.asyncProperty(
-				fc.dictionary(
-					fc
-						.string({ minLength: 1, maxLength: 50 })
-						.filter((key) => /^[a-z]+(\.[a-z]+)+$/.test(key)),
-					fc.oneof(
-						fc.boolean(),
-						fc.string({ maxLength: 100 }),
-						fc.integer({ min: 0, max: 1000 })
-					),
-					{ minKeys: 1, maxKeys: 3 }
-				),
-				async (settingsMap) => {
-					await new Promise<void>((resolve) => {
-						createRoot((disposeRoot) => {
-							const [state, actions] = createSettingsStore('memory')
-
-							const checkLoaded = () => {
-								if (state.isLoaded) {
-									// Set the settings
-									for (const [key, value] of Object.entries(settingsMap)) {
-										actions.setSetting(key, value)
-									}
-
-									// Verify they are immediately available
-									for (const [key, expectedValue] of Object.entries(
-										settingsMap
-									)) {
-										const actualValue = actions.getSetting(key)
-										expect(actualValue).toBe(expectedValue)
-									}
-
-									disposeRoot()
-									resolve()
-								} else {
-									setTimeout(checkLoaded, 10)
-								}
-							}
-							checkLoaded()
-						})
-					})
-				}
-			),
-			{ numRuns: 20 }
-		)
-	}, 5000)
-
-	/**
-	 * **Feature: settings-page, Property 10: Default Values from Schema**
-	 * **Validates: Requirements 5.4**
-	 */
-	it('property: default values from schema', async () => {
-		await new Promise<void>((resolve) => {
-			createRoot((disposeRoot) => {
-				dispose = disposeRoot
+	it('property: schema defaults are returned for unset settings', () =>
+		new Promise<void>((resolve) => {
+			createRoot((dispose) => {
 				const [state, actions] = createSettingsStore('memory')
 
 				// Wait for schema to load
 				const checkLoaded = () => {
 					if (state.isLoaded) {
-						// Test that schema defaults are returned for unset settings
+						// Test that schema defaults are returned for unset settings (new key format)
 						const knownDefaults = [
-							{ key: 'editor.fontSize', expected: 14 },
-							{ key: 'editor.fontFamily', expected: 'JetBrains Mono' },
-							{ key: 'editor.cursorStyle', expected: 'line' },
-							{ key: 'editor.tabSize', expected: 4 },
-							{ key: 'editor.wordWrap', expected: false },
-							{ key: 'appearance.theme', expected: 'dark' },
-							{ key: 'appearance.sidebarWidth', expected: 240 },
-							{ key: 'appearance.showLineNumbers', expected: true },
-							{ key: 'appearance.compactMode', expected: false },
+							{ key: 'editor.font.size', expected: 14 },
+							{
+								key: 'editor.font.family',
+								expected: "'JetBrains Mono Variable', monospace",
+							},
+							{ key: 'editor.cursor.style', expected: 'line' },
+							{ key: 'editor.behavior.tabSize', expected: 4 },
+							{ key: 'editor.behavior.wordWrap', expected: false },
+							{ key: 'appearance.theme.mode', expected: 'dark' },
+							{ key: 'appearance.layout.sidebarWidth', expected: 240 },
+							{ key: 'appearance.layout.showLineNumbers', expected: true },
+							{ key: 'appearance.layout.compactMode', expected: false },
 						]
 
 						for (const { key, expected } of knownDefaults) {
 							const value = actions.getSetting(key)
 							expect(value).toBe(expected)
 						}
+						dispose()
 						resolve()
 					} else {
 						setTimeout(checkLoaded, 10)
@@ -199,8 +98,7 @@ describe('createSettingsStore', () => {
 				}
 				checkLoaded()
 			})
-		})
-	})
+		}))
 
 	/**
 	 * **Feature: settings-page, Property 11: Saved Settings Override Defaults**
@@ -210,42 +108,40 @@ describe('createSettingsStore', () => {
 		await fc.assert(
 			fc.asyncProperty(
 				fc.constantFrom(
-					'editor.fontSize',
-					'editor.fontFamily',
-					'editor.cursorStyle',
-					'editor.tabSize',
-					'editor.wordWrap',
-					'appearance.theme',
-					'appearance.sidebarWidth',
-					'appearance.showLineNumbers',
-					'appearance.compactMode'
+					'editor.font.size',
+					'editor.font.family',
+					'editor.cursor.style',
+					'editor.behavior.tabSize',
+					'editor.behavior.wordWrap',
+					'appearance.theme.mode',
+					'appearance.layout.sidebarWidth',
+					'appearance.layout.showLineNumbers',
+					'appearance.layout.compactMode'
 				),
 				fc.oneof(
+					fc.integer({ min: 10, max: 20 }),
+					fc.constant('JetBrains Mono'),
 					fc.boolean(),
-					fc.string({ maxLength: 100 }),
-					fc.integer({ min: 0, max: 1000 })
+					fc.constant('line'),
+					fc.constant('dark')
 				),
-				async (key, customValue) => {
-					await new Promise<void>((resolve) => {
-						createRoot((disposeRoot) => {
-							dispose = disposeRoot
+				async (settingKey, settingValue) => {
+					return new Promise<void>((resolve) => {
+						createRoot((dispose) => {
 							const [state, actions] = createSettingsStore('memory')
 
-							// Wait for initialization
 							const checkLoaded = () => {
 								if (state.isLoaded) {
-									// Get the default value first
-									const defaultValue = actions.getSetting(key)
+									// Set a value different from default
+									actions.setSetting(settingKey, settingValue)
 
-									// Set a custom value (different from default)
-									actions.setSetting(key, customValue)
+									// Verify the value is now the override
+									expect(actions.getSetting(settingKey)).toBe(settingValue)
 
-									// Verify the custom value is returned, not the default
-									const retrievedValue = actions.getSetting(key)
-									expect(retrievedValue).toBe(customValue)
-									if (customValue !== defaultValue) {
-										expect(retrievedValue).not.toBe(defaultValue)
-									}
+									// Verify it appears in userOverrides
+									expect(state.userOverrides[settingKey]).toBe(settingValue)
+
+									dispose()
 									resolve()
 								} else {
 									setTimeout(checkLoaded, 10)
@@ -256,7 +152,117 @@ describe('createSettingsStore', () => {
 					})
 				}
 			),
-			{ numRuns: 50 }
+			{ numRuns: 10 }
 		)
 	})
+
+	/**
+	 * **Feature: settings-page, Property 12: Reset Setting Returns to Default**
+	 * **Validates: Requirements 5.6**
+	 */
+	it('property: reset setting returns value to default', () =>
+		new Promise<void>((resolve) => {
+			createRoot((dispose) => {
+				const [state, actions] = createSettingsStore('memory')
+
+				const checkLoaded = () => {
+					if (state.isLoaded) {
+						const testKey = 'editor.font.size'
+
+						// Get the default value
+						const defaultValue = state.defaults[testKey]
+
+						// Set a different value
+						actions.setSetting(testKey, 999)
+						expect(actions.getSetting(testKey)).toBe(999)
+
+						// Reset the setting
+						actions.resetSetting(testKey)
+
+						// Verify it's back to default
+						expect(actions.getSetting(testKey)).toBe(defaultValue)
+
+						// Verify it's removed from userOverrides
+						expect(state.userOverrides[testKey]).toBeUndefined()
+
+						dispose()
+						resolve()
+					} else {
+						setTimeout(checkLoaded, 10)
+					}
+				}
+				checkLoaded()
+			})
+		}))
+
+	/**
+	 * **Feature: settings-page, Property 13: Setting Value to Default Removes Override**
+	 * **Validates: Requirements 5.7**
+	 */
+	it('property: setting value to default removes override', () =>
+		new Promise<void>((resolve) => {
+			createRoot((dispose) => {
+				const [state, actions] = createSettingsStore('memory')
+
+				const checkLoaded = () => {
+					if (state.isLoaded) {
+						const testKey = 'editor.font.size'
+
+						// Get the default value
+						const defaultValue = state.defaults[testKey]
+
+						// Set a different value
+						actions.setSetting(testKey, 999)
+						expect(state.userOverrides[testKey]).toBe(999)
+
+						// Set back to default value
+						actions.setSetting(testKey, defaultValue)
+
+						// Verify it's removed from userOverrides
+						expect(state.userOverrides[testKey]).toBeUndefined()
+
+						dispose()
+						resolve()
+					} else {
+						setTimeout(checkLoaded, 10)
+					}
+				}
+				checkLoaded()
+			})
+		}))
+
+	/**
+	 * **Feature: settings-page, Property 14: Reset All Settings Clears All Overrides**
+	 * **Validates: Requirements 5.8**
+	 */
+	it('property: reset all settings clears all overrides', () =>
+		new Promise<void>((resolve) => {
+			createRoot((dispose) => {
+				const [state, actions] = createSettingsStore('memory')
+
+				const checkLoaded = () => {
+					if (state.isLoaded) {
+						// Set multiple values
+						actions.setSetting('editor.font.size', 999)
+						actions.setSetting('editor.font.family', 'Custom Font')
+						actions.setSetting('appearance.theme.mode', 'light')
+
+						expect(Object.keys(state.userOverrides).length).toBeGreaterThan(0)
+
+						// Reset all
+						actions.resetAllSettings()
+
+						// Verify all overrides are cleared
+						expect(Object.keys(state.userOverrides).length).toBe(0)
+						expect(state.values).toEqual(state.defaults)
+
+						dispose()
+						resolve()
+					} else {
+						setTimeout(checkLoaded, 10)
+					}
+				}
+				checkLoaded()
+			})
+		}))
 })

@@ -1,15 +1,32 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import * as fc from 'fast-check'
 import { createLocalStorageBackend } from './localStorageBackend'
 import type { FileCacheEntry } from '../fileCacheController'
 
+// Mock localStorage for test environment
+const mockLocalStorage = {
+	getItem: vi.fn(),
+	setItem: vi.fn(),
+	removeItem: vi.fn(),
+	clear: vi.fn(),
+	length: 0,
+	key: vi.fn(),
+}
+
+Object.defineProperty(global, 'localStorage', {
+	value: mockLocalStorage,
+	writable: true,
+})
+
 describe('LocalStorageBackend Browser Tests', () => {
 	beforeEach(() => {
-		localStorage.clear()
+		vi.clearAllMocks()
+		mockLocalStorage.clear()
 	})
 
 	afterEach(() => {
-		localStorage.clear()
+		vi.clearAllMocks()
+		mockLocalStorage.clear()
 	})
 
 	/**

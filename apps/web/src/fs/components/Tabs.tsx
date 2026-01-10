@@ -1,5 +1,6 @@
 import { Component, createSelector, For, Show, type JSX } from 'solid-js'
 import { Tab } from './Tab'
+import type { ViewMode } from '../types/TabIdentity'
 
 export type TabsProps = {
 	values: string[]
@@ -8,6 +9,8 @@ export type TabsProps = {
 	onClose?: (value: string) => void
 	getLabel?: (value: string) => string
 	getTooltip?: (value: string) => string
+	getViewMode?: (value: string) => ViewMode
+	getAvailableViewModes?: (value: string) => ViewMode[]
 	emptyLabel?: string
 	dirtyPaths?: Record<string, boolean>
 	rightSlot?: () => JSX.Element
@@ -17,8 +20,21 @@ export const Tabs: Component<TabsProps> = (props) => {
 	const labelFor = (value: string) =>
 		props.getLabel ? props.getLabel(value) : value
 
-	const tooltipFor = (value: string) =>
-		props.getTooltip ? props.getTooltip(value) : value
+	const tooltipFor = (value: string) => {
+		if (props.getTooltip) {
+			const baseTooltip = props.getTooltip(value)
+			const viewMode = props.getViewMode?.(value)
+			const availableModes = props.getAvailableViewModes?.(value) || []
+			
+			// Enhanced tooltip with view mode information (Requirements 8.4)
+			if (viewMode && availableModes.length > 1) {
+				const viewModeLabel = getViewModeDisplayLabel(viewMode)
+				return `${baseTooltip} (${viewModeLabel} mode)`
+			}
+			return baseTooltip
+		}
+		return value
+	}
 
 	const isSelected = createSelector(() => props.activeValue)
 
@@ -46,6 +62,8 @@ export const Tabs: Component<TabsProps> = (props) => {
 								onSelect={props.onSelect}
 								onClose={props.onClose}
 								title={tooltipFor(value)}
+								viewMode={props.getViewMode?.(value)}
+								availableViewModes={props.getAvailableViewModes?.(value) || []}
 							/>
 						)}
 					</For>
@@ -54,4 +72,18 @@ export const Tabs: Component<TabsProps> = (props) => {
 			<Show when={props.rightSlot}>{props.rightSlot!()}</Show>
 		</div>
 	)
+}
+
+// Helper function to get display labels for view modes
+const getViewModeDisplayLabel = (viewMode: ViewMode): string => {
+	switch (viewMode) {
+		case 'editor':
+			return 'Editor'
+		case 'ui':
+			return 'UI'
+		case 'binary':
+			return 'Binary'
+		default:
+			return viewMode
+	}
 }

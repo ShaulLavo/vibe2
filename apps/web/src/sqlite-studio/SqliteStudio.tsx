@@ -7,6 +7,8 @@ import { Sidebar } from './components/Sidebar'
 import { ResetDatabaseButton } from './components/ResetDatabaseButton'
 import { useSqliteStudio } from './hooks/useSqliteStudio'
 import { SearchFiles } from './components/SearchFiles'
+import { Flex } from '@repo/ui/flex'
+import { Alert, AlertDescription } from '@repo/ui/alert'
 
 export const SqliteStudio: Component = () => {
 	const { state, actions } = useSqliteStudio()
@@ -17,7 +19,11 @@ export const SqliteStudio: Component = () => {
 	}
 
 	return (
-		<div class="flex h-screen w-full bg-background text-foreground font-sans selection:bg-primary/30">
+		<Flex
+			class="h-screen w-full bg-background text-foreground font-sans selection:bg-primary/30"
+			alignItems="stretch"
+			justifyContent="start"
+		>
 			<Sidebar
 				tables={state.tables()}
 				selectedTable={state.selectedTable()}
@@ -30,7 +36,11 @@ export const SqliteStudio: Component = () => {
 				onLoadExample={handleLoadExample}
 			/>
 
-			<main class="flex-1 flex flex-col min-w-0 bg-background">
+			<Flex
+				flexDirection="col"
+				class="flex-1 min-w-0 bg-background"
+				alignItems="stretch"
+			>
 				<Header
 					selectedTable={state.selectedTable()}
 					hasRowId={state.hasRowId()}
@@ -56,25 +66,37 @@ export const SqliteStudio: Component = () => {
 				</Show>
 
 				<Show when={!state.selectedTable()?.startsWith('example:')}>
-					<div class="flex-1 flex flex-col p-2 min-h-0">
+					<Flex
+						flexDirection="col"
+						alignItems="stretch"
+						class="flex-1 p-2 min-h-0"
+					>
 						<Show when={state.error()}>
-							<div class="mb-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center justify-between">
-								<span>{state.error()}</span>
-								<Show
-									when={state.error()?.includes('invalid fts5 file format')}
-								>
-									<ResetDatabaseButton
-										onReset={actions.resetDatabase}
-										variant="error"
-									/>
-								</Show>
-							</div>
+							<Alert
+								variant="destructive"
+								class="mb-4 bg-destructive/10 border-destructive/20 justify-between"
+							>
+								<AlertDescription class="flex items-center justify-between w-full">
+									<span>{state.error()}</span>
+									<Show
+										when={state.error()?.includes('invalid fts5 file format')}
+									>
+										<ResetDatabaseButton
+											onReset={actions.resetDatabase}
+											variant="error"
+										/>
+									</Show>
+								</AlertDescription>
+							</Alert>
 						</Show>
 
 						<Show when={state.isLoading()}>
-							<div class="flex items-center justify-center h-32 text-muted-foreground text-sm animate-pulse">
+							<Flex
+								justifyContent="center"
+								class="h-32 text-muted-foreground text-sm animate-pulse"
+							>
 								Loading data...
-							</div>
+							</Flex>
 						</Show>
 
 						<Show
@@ -97,10 +119,14 @@ export const SqliteStudio: Component = () => {
 								/>
 							</Show>
 							<Show when={!state.selectedTable() && state.queryResults()}>
-								<div class="flex flex-col gap-8">
+								<Flex flexDirection="col" alignItems="stretch" class="gap-8">
 									<For each={state.queryResults()}>
 										{(result, index) => (
-											<div class="flex flex-col gap-2">
+											<Flex
+												flexDirection="col"
+												alignItems="stretch"
+												class="gap-2"
+											>
 												<div class="text-xs font-mono text-muted-foreground px-1">
 													Result {index() + 1}
 												</div>
@@ -115,10 +141,10 @@ export const SqliteStudio: Component = () => {
 													setEditingCell={() => {}}
 													onCommitEdit={() => {}}
 												/>
-											</div>
+											</Flex>
 										)}
 									</For>
-								</div>
+								</Flex>
 							</Show>
 						</Show>
 
@@ -131,9 +157,9 @@ export const SqliteStudio: Component = () => {
 						>
 							<EmptyState />
 						</Show>
-					</div>
+					</Flex>
 				</Show>
-			</main>
-		</div>
+			</Flex>
+		</Flex>
 	)
 }

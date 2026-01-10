@@ -72,10 +72,12 @@ export class FontPerformanceOptimizer {
 			this.enableDebugMode()
 		}
 
-		// Setup cleanup on page unload
-		window.addEventListener('beforeunload', () => {
-			this.cleanup()
-		})
+		// Setup cleanup on page unload (only in browser environment)
+		if (typeof window !== 'undefined') {
+			window.addEventListener('beforeunload', () => {
+				this.cleanup()
+			})
+		}
 	}
 
 	private setupPerformanceMonitoring(): void {

@@ -36,4 +36,4 @@ export const SettingsSidebar: Component<SettingsSidebarProps> = (props) => {
 	)
 }
 
-export type { SettingsCategory } from './SettingsSidebarItem'
+export type { SettingsCategory, SettingSetting } from './SettingsSidebarItem'

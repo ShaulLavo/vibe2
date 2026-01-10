@@ -17,7 +17,7 @@ export const useFontSettingsIntegration = () => {
 
 	// Get the current editor font family setting
 	const currentFontFamily = () =>
-		settingsActions.getSetting<string>('editor.fontFamily')
+		settingsActions.getSetting<string>('editor.font.family')
 
 	// Get installed fonts and create font options
 	const installedFontOptions = createMemo(() => {
@@ -92,7 +92,7 @@ export const useFontSettingsIntegration = () => {
 			'[FontSettingsIntegration] Setting editor font family:',
 			fontValue
 		)
-		settingsActions.setSetting('editor.fontFamily', fontValue)
+		settingsActions.setSetting('editor.font.family', fontValue)
 	}
 
 	// Effect to validate font availability when installed fonts change

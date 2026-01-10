@@ -1,22 +1,55 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
 import * as fc from 'fast-check'
 import { createIndexedDBBackend } from './indexedDBBackend'
+
+// Mock IndexedDB for test environment
+const mockIndexedDB = {
+	open: vi.fn(),
+	deleteDatabase: vi.fn(),
+}
+
+const mockIDBRequest = {
+	onsuccess: null,
+	onerror: null,
+	result: null,
+	error: null,
+}
+
+const mockIDBDatabase = {
+	createObjectStore: vi.fn(),
+	transaction: vi.fn(),
+	close: vi.fn(),
+}
+
+const mockIDBTransaction = {
+	objectStore: vi.fn(),
+	oncomplete: null,
+	onerror: null,
+}
+
+const mockIDBObjectStore = {
+	get: vi.fn(),
+	put: vi.fn(),
+	delete: vi.fn(),
+	clear: vi.fn(),
+	getAllKeys: vi.fn(),
+}
+
+Object.defineProperty(global, 'indexedDB', {
+	value: mockIndexedDB,
+	writable: true,
+})
 
 describe('IndexedDBBackend', () => {
 	// Clean up IndexedDB between tests
 	beforeEach(async () => {
-		// Clear any existing test databases
-		if (typeof indexedDB !== 'undefined') {
-			try {
-				const deleteReq = indexedDB.deleteDatabase('test-file-cache')
-				await new Promise((resolve, reject) => {
-					deleteReq.onsuccess = () => resolve(undefined)
-					deleteReq.onerror = () => reject(deleteReq.error)
-				})
-			} catch {
-				// Ignore errors during cleanup
-			}
-		}
+		vi.clearAllMocks()
+		// Mock successful database operations
+		mockIndexedDB.deleteDatabase.mockReturnValue({
+			...mockIDBRequest,
+			onsuccess: null,
+			onerror: null,
+		})
 	})
 
 	afterEach(async () => {

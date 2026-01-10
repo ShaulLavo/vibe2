@@ -1,4 +1,5 @@
 import { Component } from 'solid-js'
+import { Button } from '@repo/ui/button'
 
 type ResetDatabaseButtonProps = {
 	onReset: () => void
@@ -18,22 +19,20 @@ export const ResetDatabaseButton: Component<ResetDatabaseButtonProps> = (
 		}
 	}
 
-	const baseClass =
-		'flex items-center justify-center gap-2 rounded-md font-medium transition-colors'
-
-	const variants = {
-		sidebar:
-			'w-full px-3 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 text-xs',
-		error:
-			'px-3 py-1 bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm text-xs',
-	}
+	const isSidebar = () => (props.variant || 'sidebar') === 'sidebar'
 
 	return (
-		<button
+		<Button
 			onClick={handleClick}
-			class={`${baseClass} ${variants[props.variant || 'sidebar']}`}
+			variant={isSidebar() ? 'ghost' : 'destructive'}
+			size="sm"
+			class={
+				isSidebar()
+					? 'w-full justify-center bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20'
+					: 'shadow-sm'
+			}
 		>
 			Reset Database
-		</button>
+		</Button>
 	)
 }
