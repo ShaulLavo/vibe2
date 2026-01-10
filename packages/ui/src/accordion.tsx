@@ -3,6 +3,7 @@ import { splitProps } from 'solid-js'
 
 import * as AccordionPrimitive from '@kobalte/core/accordion'
 import type { PolymorphicProps } from '@kobalte/core/polymorphic'
+import { VsChevronDown } from '@repo/icons/vs'
 
 import { cn } from './lib/utils'
 
@@ -43,19 +44,10 @@ const AccordionTrigger = <T extends ValidComponent = 'button'>(
 				{...others}
 			>
 				{local.children}
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
+				<VsChevronDown
 					class="size-4 shrink-0 transition-transform duration-200"
 					aria-hidden="true"
-				>
-					<path d="M6 9l6 6l6 -6" />
-				</svg>
+				/>
 			</AccordionPrimitive.Trigger>
 		</AccordionPrimitive.Header>
 	)

@@ -1,9 +1,10 @@
 import type { JSX, ValidComponent } from "solid-js"
 import { Show, splitProps } from "solid-js"
- 
+
 import * as PaginationPrimitive from "@kobalte/core/pagination"
 import type { PolymorphicProps } from "@kobalte/core/polymorphic"
- 
+import { VsChevronLeft, VsChevronRight, VsEllipsis } from "@repo/icons/vs"
+
 import { cn } from "./lib/utils"
 import { buttonVariants } from "./button"
  
@@ -59,20 +60,7 @@ const PaginationEllipsis = <T extends ValidComponent = "div">(
       class={cn("flex size-10 items-center justify-center", local.class)}
       {...others}
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="size-4"
-      >
-        <circle cx="12" cy="12" r="1" />
-        <circle cx="19" cy="12" r="1" />
-        <circle cx="5" cy="12" r="1" />
-      </svg>
+      <VsEllipsis class="size-4" />
       <span class="sr-only">More pages</span>
     </PaginationPrimitive.Ellipsis>
   )
@@ -103,18 +91,7 @@ const PaginationPrevious = <T extends ValidComponent = "button">(
         when={local.children}
         fallback={
           <>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="size-4"
-            >
-              <path d="M15 6l-6 6l6 6" />
-            </svg>
+            <VsChevronLeft class="size-4" />
             <span>Previous</span>
           </>
         }
@@ -151,18 +128,7 @@ const PaginationNext = <T extends ValidComponent = "button">(
         fallback={
           <>
             <span>Next</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="size-4"
-            >
-              <path d="M9 6l6 6l-6 6" />
-            </svg>
+            <VsChevronRight class="size-4" />
           </>
         }
       >

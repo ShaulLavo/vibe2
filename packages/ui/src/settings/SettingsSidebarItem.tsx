@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { For, Show, createSignal, createEffect } from 'solid-js'
+import { For, Show, createEffect, createSelector, createSignal } from 'solid-js'
 import * as Accordion from '@corvu/accordion'
 import { VsChevronRight } from '@repo/icons/vs/VsChevronRight'
 import { VsTextSize } from '@repo/icons/vs/VsTextSize'
@@ -48,16 +48,15 @@ export const SettingsSidebarItem: Component<SettingsSidebarItemProps> = (
 			? `${props.parentId}/${props.category.id}`
 			: props.category.id
 
-	// Selected ONLY if exact match
-	const isSelected = () => props.selectedCategory === fullId()
+	const selectedCategory = () => props.selectedCategory
+	const isSelectedKey = createSelector(selectedCategory)
+	const isSelected = () => isSelectedKey(fullId())
 
-	// Check if this item contains the selected category (for expansion)
 	const isParentOfSelected = () =>
-		props.selectedCategory.startsWith(`${fullId()}/`)
+		selectedCategory().startsWith(`${fullId()}/`)
 
 	const hasChildren = () => Boolean(props.category.children?.length)
 
-	// Render icon if provided
 	const renderIcon = () => {
 		if (!props.category.icon) return null
 		const IconComponent = iconMap[props.category.icon as IconName]
@@ -66,12 +65,22 @@ export const SettingsSidebarItem: Component<SettingsSidebarItemProps> = (
 		) : null
 	}
 
-	// Controlled expansion state
 	const [expandedItems, setExpandedItems] = createSignal<string[]>(
 		isSelected() || isParentOfSelected() ? [props.category.id] : []
 	)
 
-	// Keep expanded state in sync with selection
+	const handleExpandedChange = (value: string[] | string | null) => {
+		if (Array.isArray(value)) {
+			setExpandedItems(value)
+			return
+		}
+		if (value) {
+			setExpandedItems([value])
+			return
+		}
+		setExpandedItems([])
+	}
+
 	createEffect(() => {
 		if (isSelected() || isParentOfSelected()) {
 			setExpandedItems((prev) => {
@@ -81,16 +90,13 @@ export const SettingsSidebarItem: Component<SettingsSidebarItemProps> = (
 		}
 	})
 
-	// ...
-
 	const itemClass = () =>
 		cn(
-			'group w-full justify-between gap-2 text-left text-sm',
-			'h-auto py-1 pr-2.5', // Override button height/padding
-			'border-l-2 border-transparent rounded-none', // Sidebar styling
+			'group flex w-full items-center justify-between gap-2 text-left text-sm',
+			'h-auto py-1 pr-2.5',
+			'border-l-2 border-transparent rounded-none',
 			'transition-colors',
 			'text-foreground/80 hover:bg-muted/50 hover:text-foreground',
-			// Only highlight the exact selected item due to user request
 			isSelected() &&
 				'border-foreground/40 bg-muted/60 text-foreground font-semibold',
 			level() > 0 ? 'pl-5' : 'pl-2.5'
@@ -115,20 +121,25 @@ export const SettingsSidebarItem: Component<SettingsSidebarItemProps> = (
 			<Accordion.Root
 				multiple={true}
 				value={expandedItems()}
-				onValueChange={setExpandedItems}
+				onValueChange={handleExpandedChange}
 			>
 				<Accordion.Item value={props.category.id}>
 					<Accordion.Trigger
-						class={cn(itemClass(), '[&[data-expanded]>svg]:rotate-90')}
+						class={cn(
+							itemClass(),
+							'data-[expanded]:[&_[data-accordion-toggle=true]_svg]:rotate-90'
+						)}
 						onClick={() => props.onCategorySelect(fullId())}
 					>
 						<div class="flex items-center gap-2">
 							{renderIcon()}
 							<span class="truncate">{props.category.label}</span>
 						</div>
-						<VsChevronRight class="h-3.5 w-3.5 text-muted-foreground transition-transform" />
+						<span class="flex items-center" data-accordion-toggle="true">
+							<VsChevronRight class="h-3.5 w-3.5 text-muted-foreground transition-transform" />
+						</span>
 					</Accordion.Trigger>
-					<Accordion.Content class="overflow-hidden data-[expanded]:animate-accordion-down data-[closed]:animate-accordion-up">
+					<Accordion.Content class="overflow-hidden data-[expanded]:animate-accordion-down data-[collapsed]:animate-accordion-up">
 						<div class="space-y-1 pt-1">
 							<For each={props.category.children || []}>
 								{(subcategory) => (

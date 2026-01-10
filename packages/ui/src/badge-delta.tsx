@@ -3,6 +3,14 @@ import { createEffect, on, splitProps } from 'solid-js'
 
 import type { VariantProps } from 'class-variance-authority'
 import { cva } from 'class-variance-authority'
+import type { IconProps } from '@repo/icons'
+import {
+	VsArrowDown,
+	VsArrowSmallDown,
+	VsArrowSmallUp,
+	VsArrowUp,
+	VsRemove,
+} from '@repo/icons/vs'
 
 import { cn } from './lib/utils'
 import type { BadgeProps } from './badge'
@@ -29,86 +37,13 @@ type DeltaVariant = NonNullable<
 >
 
 const iconMap: {
-	[key in DeltaType]: (props: { class?: string }) => JSXElement
+	[key in DeltaType]: (props: IconProps) => JSXElement
 } = {
-	increase: (props) => (
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class={props.class}
-		>
-			<path d="M12 5l0 14" />
-			<path d="M18 11l-6 -6" />
-			<path d="M6 11l6 -6" />
-		</svg>
-	),
-	moderateIncrease: (props) => (
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class={props.class}
-		>
-			<path d="M17 7l-10 10" />
-			<path d="M8 7l9 0l0 9" />
-		</svg>
-	),
-	unchanged: (props) => (
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class={props.class}
-		>
-			<path d="M5 12l14 0" />
-			<path d="M13 18l6 -6" />
-			<path d="M13 6l6 6" />
-		</svg>
-	),
-	moderateDecrease: (props) => (
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class={props.class}
-		>
-			<path d="M7 7l10 10" />
-			<path d="M17 8l0 9l-9 0" />
-		</svg>
-	),
-	decrease: (props) => (
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			class={props.class}
-		>
-			<path d="M12 5l0 14" />
-			<path d="M18 13l-6 6" />
-			<path d="M6 13l6 6" />
-		</svg>
-	),
+	increase: VsArrowUp,
+	moderateIncrease: VsArrowSmallUp,
+	unchanged: VsRemove,
+	moderateDecrease: VsArrowSmallDown,
+	decrease: VsArrowDown,
 }
 
 const variantMap: { [key in DeltaType]: DeltaVariant } = {

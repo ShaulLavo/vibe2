@@ -3,6 +3,7 @@ import { Match, splitProps, Switch } from 'solid-js'
 
 import * as CheckboxPrimitive from '@kobalte/core/checkbox'
 import type { PolymorphicProps } from '@kobalte/core/polymorphic'
+import { VsCheck, VsRemove } from '@repo/icons/vs'
 
 import { cn } from './lib/utils'
 
@@ -29,32 +30,10 @@ const Checkbox = <T extends ValidComponent = 'div'>(
 				<CheckboxPrimitive.Indicator>
 					<Switch>
 						<Match when={!others.indeterminate}>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								class="size-4"
-							>
-								<path d="M5 12l5 5l10 -10" />
-							</svg>
+							<VsCheck class="size-4" />
 						</Match>
 						<Match when={others.indeterminate}>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								class="size-4"
-							>
-								<path d="M5 12l14 0" />
-							</svg>
+							<VsRemove class="size-4" />
 						</Match>
 					</Switch>
 				</CheckboxPrimitive.Indicator>

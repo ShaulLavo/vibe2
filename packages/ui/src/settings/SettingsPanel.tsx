@@ -35,7 +35,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 			contentClass="px-4 py-3 pr-6"
 		>
 			{/* Category header */}
-			<div class="mb-3 border border-border/60 bg-muted/40 px-3 py-1.5">
+			<div class="mb-2 bg-muted/40 py-1.5">
 				<h1 class="text-xl font-semibold text-foreground">
 					{props.category.label}
 				</h1>

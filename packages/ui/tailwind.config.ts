@@ -74,10 +74,16 @@ export default {
 			keyframes: {
 				'accordion-down': {
 					from: { height: '0' },
-					to: { height: 'var(--kb-accordion-content-height)' },
+					to: {
+						height:
+							'var(--corvu-disclosure-content-height, var(--kb-accordion-content-height))',
+					},
 				},
 				'accordion-up': {
-					from: { height: 'var(--kb-accordion-content-height)' },
+					from: {
+						height:
+							'var(--corvu-disclosure-content-height, var(--kb-accordion-content-height))',
+					},
 					to: { height: '0' },
 				},
 				'content-show': {

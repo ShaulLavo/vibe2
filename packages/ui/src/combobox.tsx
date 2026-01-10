@@ -3,6 +3,7 @@ import { Show, splitProps } from 'solid-js'
 
 import * as ComboboxPrimitive from '@kobalte/core/combobox'
 import type { PolymorphicProps } from '@kobalte/core/polymorphic'
+import { VsCheck, VsChevronDown } from '@repo/icons/vs'
 
 import { cn } from './lib/utils'
 
@@ -46,18 +47,7 @@ const ComboboxItemIndicator = <T extends ValidComponent = 'div'>(
 			<Show
 				when={local.children}
 				fallback={
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						class="size-4"
-					>
-						<path d="M5 12l5 5l10 -10" />
-					</svg>
+					<VsCheck class="size-4" />
 				}
 			>
 				{(children) => children()}
@@ -145,19 +135,7 @@ const ComboboxTrigger = <T extends ValidComponent = 'button'>(
 				<Show
 					when={local.children}
 					fallback={
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							class="size-4"
-						>
-							<path d="M8 9l4 -4l4 4" />
-							<path d="M16 15l-4 4l-4 -4" />
-						</svg>
+						<VsChevronDown class="size-4" />
 					}
 				>
 					{(children) => children()}

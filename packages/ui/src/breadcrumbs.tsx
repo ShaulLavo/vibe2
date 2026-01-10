@@ -3,6 +3,7 @@ import { Show, splitProps } from 'solid-js'
 
 import type { PolymorphicProps } from '@kobalte/core'
 import * as BreadcrumbPrimitive from '@kobalte/core/breadcrumbs'
+import { VsChevronRight, VsEllipsis } from '@repo/icons/vs'
 
 import { cn } from './lib/utils'
 
@@ -70,17 +71,7 @@ const BreadcrumbSeparator = <T extends ValidComponent = 'span'>(
 			<Show
 				when={local.children}
 				fallback={
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M9 6l6 6l-6 6" />
-					</svg>
+					<VsChevronRight />
 				}
 			>
 				{local.children}
@@ -96,20 +87,7 @@ const BreadcrumbEllipsis: Component<ComponentProps<'span'>> = (props) => {
 			class={cn('flex size-9 items-center justify-center', local.class)}
 			{...others}
 		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				class="size-4"
-			>
-				<path d="M5 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
-				<path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
-				<path d="M19 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
-			</svg>
+			<VsEllipsis class="size-4" />
 			<span class="sr-only">More</span>
 		</span>
 	)
