@@ -2,6 +2,7 @@ import { For } from 'solid-js'
 import { VsSettingsGear } from '@repo/icons/vs/VsSettingsGear'
 import { VsTools } from '@repo/icons/vs/VsTools'
 import { useFs } from '../context/FsContext'
+import { Button } from '@repo/ui/button'
 
 type SystemFile = {
 	name: string
@@ -55,16 +56,16 @@ export const SystemFilesSection = () => {
 							'group-hover:bg-foreground/10': !isSelected(file.path),
 						}}
 					/>
-					<button
-						type="button"
+					<Button
+						variant="ghost"
 						onMouseDown={() => handleFileSelect(file.path)}
-						onKeyDown={(e) => {
+						onKeyDown={(e: KeyboardEvent) => {
 							if (e.key === 'Enter' || e.key === ' ') {
 								e.preventDefault()
 								handleFileSelect(file.path)
 							}
 						}}
-						class="tree-node-button"
+						class="tree-node-button justify-start gap-0 h-auto min-h-0 p-0 font-normal text-[13px] hover:bg-transparent text-foreground hover:text-foreground"
 					>
 						<span
 							class="tree-node-icon"
@@ -84,7 +85,7 @@ export const SystemFilesSection = () => {
 						>
 							{file.name}
 						</span>
-					</button>
+					</Button>
 				</div>
 			)}
 		</For>

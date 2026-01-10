@@ -3,6 +3,7 @@ import { VsCircleFilled } from '@repo/icons/vs/VsCircleFilled'
 import { createSignal, Show } from 'solid-js'
 import { FileIcon } from './FileIcon'
 import type { ViewMode } from '../types/TabIdentity'
+import { Button } from '@repo/ui/button'
 
 type TabProps = {
 	value: string
@@ -30,16 +31,19 @@ export const Tab = (props: TabProps) => {
 
 	// Determine if we should show view mode indicator (Requirements 8.1, 8.2, 8.3)
 	const shouldShowViewModeIndicator = () => {
-		return props.viewMode && 
-			   props.availableViewModes && 
-			   props.availableViewModes.length > 1 &&
-			   props.viewMode !== 'editor'
+		return (
+			props.viewMode &&
+			props.availableViewModes &&
+			props.availableViewModes.length > 1 &&
+			props.viewMode !== 'editor'
+		)
 	}
 
 	// Get view mode indicator styling
 	const getViewModeIndicatorClass = () => {
-		const baseClass = 'inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-sm'
-		
+		const baseClass =
+			'inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-sm'
+
 		switch (props.viewMode) {
 			case 'ui':
 				return `${baseClass} bg-blue-500/20 text-blue-400 border border-blue-500/30`
@@ -63,26 +67,27 @@ export const Tab = (props: TabProps) => {
 	}
 
 	return (
-		<button
-			type="button"
+		<Button
+			variant="ghost"
 			role="tab"
 			tabIndex={props.isActive ? 0 : -1}
 			onClick={handleSelect}
 			title={props.title ?? props.value}
 			class={
-				'flex items-center gap-2 px-3 py-1 font-semibold transition-colors group ' +
+				'h-auto gap-2 px-3 py-1 font-semibold transition-colors group text-xs rounded-none border-r border-border/30 first:border-l ' +
+				'focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus:outline-none ring-0 outline-none ' + // Force removal of rings
 				(props.isActive
 					? 'bg-background text-foreground'
-					: 'text-muted-foreground hover:text-foreground')
+					: 'text-muted-foreground hover:text-foreground hover:bg-muted/50')
 			}
 			aria-selected={props.isActive}
 		>
 			<FileIcon name={props.label} size={14} class="shrink-0" />
 			<span class="max-w-48 truncate">{props.label}</span>
-			
+
 			{/* View mode indicator (Requirements 8.1, 8.2, 8.3) */}
 			<Show when={shouldShowViewModeIndicator()}>
-				<span 
+				<span
 					class={getViewModeIndicatorClass()}
 					title={`${getViewModeIndicatorText()} mode`}
 				>
@@ -91,13 +96,15 @@ export const Tab = (props: TabProps) => {
 			</Show>
 
 			{props.onClose && (
-				<button
+				<Button
 					type="button"
+					variant="ghost"
+					size="icon"
 					onClick={handleClose}
 					onMouseEnter={() => setIsHovering(true)}
 					onMouseLeave={() => setIsHovering(false)}
 					class={
-						'hover:bg-muted rounded p-0.5 transition-opacity ' +
+						'h-4 w-4 hover:bg-muted rounded p-0.5 transition-opacity ' +
 						(props.isDirty
 							? 'opacity-100'
 							: 'opacity-0 group-hover:opacity-100')
@@ -110,8 +117,8 @@ export const Tab = (props: TabProps) => {
 					>
 						<VsCircleFilled class="h-2.5 w-2.5" />
 					</Show>
-				</button>
+				</Button>
 			)}
-		</button>
+		</Button>
 	)
 }

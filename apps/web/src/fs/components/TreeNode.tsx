@@ -7,6 +7,7 @@ import { VsChevronDown } from '@repo/icons/vs/VsChevronDown'
 import { VsChevronRight } from '@repo/icons/vs/VsChevronRight'
 import { FileIcon } from './FileIcon'
 import { CreationRow } from './CreationRow'
+import { Button } from '@repo/ui/button'
 
 const TREE_INDENT_PX = 8
 
@@ -120,17 +121,17 @@ export const TreeNode = (props: TreeNodeProps) => {
 				/>
 
 				{/* TODO: Move keyboard controls (Enter/Space to toggle) to keyboard manager */}
-				<button
-					type="button"
+				<Button
+					variant="ghost"
 					onMouseDown={handleClick}
-					onKeyDown={(e) => {
+					onKeyDown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault()
 							handleClick()
 						}
 					}}
 					aria-expanded={isDir() ? isOpen() : undefined}
-					class="tree-node-button"
+					class="tree-node-button justify-start gap-0 h-auto min-h-0 p-0 font-normal text-[13px] hover:bg-transparent text-foreground hover:text-foreground"
 				>
 					<span
 						class="tree-node-icon"
@@ -151,7 +152,7 @@ export const TreeNode = (props: TreeNodeProps) => {
 					>
 						{isDir() ? props.node.name || 'root' : props.node.name}
 					</span>
-				</button>
+				</Button>
 			</div>
 
 			<Show when={isDir() && isOpen()}>

@@ -1,8 +1,16 @@
 import { CursorMode, Editor } from '@repo/code-editor'
-import { Accessor, Match, Switch, createMemo, createResource, createSignal } from 'solid-js'
+import {
+	Accessor,
+	Match,
+	Switch,
+	createMemo,
+	createResource,
+	createSignal,
+} from 'solid-js'
 import { useFocusManager } from '~/focus/focusManager'
 import { useFs } from '../../fs/context/FsContext'
 import { useSettings } from '~/settings/SettingsProvider'
+import { Flex } from '@repo/ui/flex'
 
 import { getTreeSitterWorker } from '../../treeSitter/workerClient'
 
@@ -136,14 +144,19 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 		}
 		// For other tabs, we need to get their stored view mode
 		// Since view modes are stored per path, we can get it from the state
-		const stats = state.fileStats[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath]
-		return state.fileViewModes[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath] || 
-			   viewModeRegistry.getDefaultMode(tabPath, stats)
+		const stats =
+			state.fileStats[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath]
+		return (
+			state.fileViewModes[
+				tabPath.startsWith('/') ? tabPath.slice(1) : tabPath
+			] || viewModeRegistry.getDefaultMode(tabPath, stats)
+		)
 	}
 
 	// Get available view modes for a specific tab (file path)
 	const getTabAvailableViewModes = (tabPath: string): ViewMode[] => {
-		const stats = state.fileStats[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath]
+		const stats =
+			state.fileStats[tabPath.startsWith('/') ? tabPath.slice(1) : tabPath]
 		return detectAvailableViewModes(tabPath, stats)
 	}
 
@@ -151,11 +164,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	const handleViewModeSelect = (newViewMode: ViewMode) => {
 		const currentPath = state.lastKnownFilePath
 		if (!currentPath) return
-
-		console.log(
-			'handleViewModeSelect called:',
-			JSON.stringify({ currentPath, newViewMode }, null, 2)
-		)
 
 		// Set the view mode using the new system
 		setViewMode(currentPath, newViewMode)
@@ -165,18 +173,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	const getCurrentViewMode = (): ViewMode => {
 		// Use the new view mode system
 		const currentMode = state.selectedFileViewMode || 'editor'
-		console.log(
-			'getCurrentViewMode:',
-			JSON.stringify(
-				{
-					path: state.lastKnownFilePath,
-					currentMode,
-					selectedFileViewMode: state.selectedFileViewMode,
-				},
-				null,
-				2
-			)
-		)
 		return currentMode
 	}
 
@@ -194,7 +190,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 	}
 
 	return (
-		<div class="flex h-full flex-col font-mono overflow-hidden">
+		<Flex flexDirection="col" class="h-full font-mono overflow-hidden">
 			<Tabs
 				values={tabsState()}
 				activeValue={currentTabId()}
@@ -215,7 +211,9 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 				)}
 			/>
 
-			<div
+			<Flex
+				flexDirection="col"
+				alignItems="stretch"
 				class="relative flex-1 overflow-hidden"
 				style={{ 'view-transition-name': 'editor-content' }}
 			>
@@ -281,7 +279,7 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						</p>
 					</Match>
 				</Switch>
-			</div>
-		</div>
+			</Flex>
+		</Flex>
 	)
 }

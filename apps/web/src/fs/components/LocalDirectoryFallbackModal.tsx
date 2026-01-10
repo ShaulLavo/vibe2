@@ -12,6 +12,7 @@ import {
 	importDirectoryToOpfs,
 	hasOpfsAccess,
 } from '../fallback/importDirectoryToOpfs'
+import { Flex } from '@repo/ui/flex'
 import {
 	registerLocalDirectoryFallback,
 	unregisterLocalDirectoryFallback,
@@ -138,7 +139,7 @@ export const LocalDirectoryFallbackModal: Component = () => {
 		modalId = modal({
 			heading: 'Import a folder',
 			body: (
-				<div class="space-y-3 text-xs text-muted-foreground">
+				<Flex flexDirection="col" class="gap-3 text-xs text-muted-foreground">
 					<p class="text-sm text-foreground">{description()}</p>
 					{singleMode() ? (
 						<>
@@ -167,7 +168,7 @@ export const LocalDirectoryFallbackModal: Component = () => {
 						</>
 					)}
 					{error() && <p class="text-sm text-destructive">{error()}</p>}
-				</div>
+				</Flex>
 			),
 			dismissable: false,
 			// contentClass: 'bg-zinc-950/95 text-zinc-100',

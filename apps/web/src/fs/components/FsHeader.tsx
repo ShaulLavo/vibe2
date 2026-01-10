@@ -1,4 +1,6 @@
 import { Accessor, createMemo } from 'solid-js'
+import { Button } from '@repo/ui/button'
+import { Flex } from '@repo/ui/flex'
 
 type FsHeaderProps = {
 	activeDirPath: Accessor<string>
@@ -12,15 +14,16 @@ export const FsHeader = (props: FsHeaderProps) => {
 	)
 
 	return (
-		<div class="flex items-center gap-2">
+		<Flex alignItems="center" class="gap-2">
 			{displayPath()}
-			<button
-				type="button"
-				class="rounded border border-zinc-700/70 bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-100 hover:bg-zinc-700"
+			<Button
+				variant="outline"
+				size="sm"
+				class="h-auto py-1 px-3 text-xs font-medium border-zinc-700/70 bg-zinc-800 text-zinc-100 hover:bg-zinc-700 hover:text-zinc-50"
 				onMouseDown={() => props.onRefresh()}
 			>
 				Refresh
-			</button>
-		</div>
+			</Button>
+		</Flex>
 	)
 }

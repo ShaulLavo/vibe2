@@ -1,6 +1,8 @@
 import { createSignal, onMount } from 'solid-js'
 import { FileIcon } from './FileIcon'
 import { VsFolder } from '@repo/icons/vs/VsFolder'
+import { TextField, TextFieldInput } from '@repo/ui/text-field'
+import { Flex } from '@repo/ui/flex'
 
 type CreationRowProps = {
 	depth: number
@@ -12,10 +14,11 @@ type CreationRowProps = {
 const TREE_INDENT_PX = 8
 
 export const CreationRow = (props: CreationRowProps) => {
-	let inputRef: HTMLInputElement = null!
+	let inputRef: HTMLInputElement | undefined
 	const [value, setValue] = createSignal('')
 
 	onMount(() => {
+		// Small timeout to ensure DOM is ready for focus
 		setTimeout(() => {
 			inputRef?.focus()
 		}, 0)
@@ -43,30 +46,36 @@ export const CreationRow = (props: CreationRowProps) => {
 	const indentationOffset = () => Math.max(props.depth - 1, 0) * TREE_INDENT_PX
 
 	return (
-		<div
-			class="relative flex items-center pr-2"
+		<Flex
+			alignItems="center"
+			class="relative pr-2 h-[22px]"
 			style={{
 				'padding-left': `${indentationOffset()}px`,
 				'margin-left': `-${indentationOffset()}px`,
 			}}
 		>
-			<span class="tree-node-icon ml-2">
+			<span class="tree-node-icon ml-2 shrink-0 flex items-center justify-center">
 				{props.type === 'folder' ? (
 					<VsFolder size={16} />
 				) : (
 					<FileIcon name={value()} size={16} />
 				)}
 			</span>
-			<input
-				ref={inputRef}
-				type="text"
+			<TextField
 				value={value()}
-				onInput={(e) => setValue(e.currentTarget.value)}
-				onKeyDown={handleKeyDown}
-				onBlur={handleSubmit}
-				class="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
-				placeholder={props.type === 'file' ? 'File name...' : 'Folder name...'}
-			/>
-		</div>
+				onChange={setValue}
+				class="w-full min-w-0 flex-1 ml-1 h-full"
+			>
+				<TextFieldInput
+					ref={(el) => (inputRef = el)}
+					onKeyDown={handleKeyDown}
+					onBlur={handleSubmit}
+					class="flatten-input h-full min-h-0 w-full p-0 text-sm bg-transparent border-none focus-visible:ring-0 rounded-none shadow-none leading-tight"
+					placeholder={
+						props.type === 'file' ? 'File name...' : 'Folder name...'
+					}
+				/>
+			</TextField>
+		</Flex>
 	)
 }

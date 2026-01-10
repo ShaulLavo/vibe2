@@ -1,3 +1,5 @@
+import { Button } from '@repo/ui/button'
+import { Flex } from '@repo/ui/flex'
 import { Resizable } from '~/components/Resizable'
 import { useFs } from '../../fs/context/FsContext'
 import { SelectedFilePanel } from './SelectedFilePanel'
@@ -14,10 +16,13 @@ export const Fs = () => {
 	}
 
 	return (
-		<div class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border/30 bg-muted/60 shadow-xl">
-			<button type="button" onClick={() => void actions.pickNewRoot()}>
+		<Flex
+			flexDirection="col"
+			class="h-full min-h-0 overflow-hidden rounded-lg border border-border/30 bg-muted/60 shadow-xl"
+		>
+			<Button variant="outline" onClick={() => void actions.pickNewRoot()}>
 				Pick New Folder
-			</button>
+			</Button>
 			<Resizable
 				orientation="horizontal"
 				storageKey="fs-horizontal-panel-size"
@@ -30,6 +35,6 @@ export const Fs = () => {
 					currentPath={state.lastKnownFilePath}
 				/>
 			</Resizable>
-		</div>
+		</Flex>
 	)
 }

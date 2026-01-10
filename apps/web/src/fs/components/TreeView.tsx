@@ -3,6 +3,7 @@ import type { FsDirTreeNode } from '@repo/fs'
 import { Accordion, AccordionItem, AccordionContent } from '@repo/ui/accordion'
 import * as AccordionPrimitive from '@kobalte/core/accordion'
 import { VsChevronDown } from '@repo/icons/vs/VsChevronDown'
+import { Flex } from '@repo/ui/flex'
 import { useFocusManager } from '~/focus/focusManager'
 import { useFs } from '../context/FsContext'
 import { TreeNode } from './TreeNode'
@@ -41,7 +42,12 @@ export const TreeView = (props: TreeViewProps) => {
 	})
 
 	return (
-		<div ref={containerRef} class="h-full flex flex-col overflow-hidden">
+		<Flex
+			ref={containerRef}
+			flexDirection="col"
+			alignItems="stretch"
+			class="h-full overflow-hidden"
+		>
 			<Accordion
 				multiple
 				defaultValue={['system', 'explorer']}
@@ -70,7 +76,10 @@ export const TreeView = (props: TreeViewProps) => {
 
 				{/* Explorer Section */}
 				<AccordionItem value="explorer" class="flex-1 min-h-0 flex flex-col">
-					<div class="flex items-center w-full shrink-0 bg-background border-b border-border/50">
+					<Flex
+						alignItems="center"
+						class="w-full shrink-0 bg-background border-b border-border/50"
+					>
 						<AccordionPrimitive.Header class="flex-1">
 							<AccordionPrimitive.Trigger class="flex w-full items-center gap-1 py-1 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground focus:outline-none [&:not([data-expanded])>svg]:-rotate-90">
 								<VsChevronDown
@@ -81,7 +90,7 @@ export const TreeView = (props: TreeViewProps) => {
 							</AccordionPrimitive.Trigger>
 						</AccordionPrimitive.Header>
 						<FsToolbar parentPath={parentPath} />
-					</div>
+					</Flex>
 					<AccordionContent class="flex-1 min-h-0">
 						<div class="overflow-auto h-full">
 							<Show
@@ -126,6 +135,6 @@ export const TreeView = (props: TreeViewProps) => {
 					</AccordionContent>
 				</AccordionItem>
 			</Accordion>
-		</div>
+		</Flex>
 	)
 }

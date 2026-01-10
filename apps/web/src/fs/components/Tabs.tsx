@@ -1,5 +1,6 @@
 import { Component, createSelector, For, Show, type JSX } from 'solid-js'
 import { Tab } from './Tab'
+import { Flex } from '@repo/ui/flex'
 import type { ViewMode } from '../types/TabIdentity'
 
 export type TabsProps = {
@@ -25,7 +26,7 @@ export const Tabs: Component<TabsProps> = (props) => {
 			const baseTooltip = props.getTooltip(value)
 			const viewMode = props.getViewMode?.(value)
 			const availableModes = props.getAvailableViewModes?.(value) || []
-			
+
 			// Enhanced tooltip with view mode information (Requirements 8.4)
 			if (viewMode && availableModes.length > 1) {
 				const viewModeLabel = getViewModeDisplayLabel(viewMode)
@@ -39,15 +40,16 @@ export const Tabs: Component<TabsProps> = (props) => {
 	const isSelected = createSelector(() => props.activeValue)
 
 	return (
-		<div
+		<Flex
 			role="tablist"
-			class="flex shrink-0 items-end gap-1 overflow-x-auto border-b border-border/30 bg-muted/40 text-xs"
+			alignItems="end"
+			class="shrink-0 gap-1 overflow-x-auto border-b border-border/30 bg-muted/40 text-xs"
 		>
-			<div class="flex items-end gap-1 flex-1 overflow-x-auto">
+			<Flex alignItems="end" class="gap-1 flex-1 overflow-x-auto">
 				<Show
 					when={props.values.length > 0}
 					fallback={
-						<p class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+						<p class="text-[10px] uppercase tracking-[0.08em] text-muted-foreground px-2 py-1">
 							{props.emptyLabel ?? 'Open a file to start editing'}
 						</p>
 					}
@@ -68,9 +70,9 @@ export const Tabs: Component<TabsProps> = (props) => {
 						)}
 					</For>
 				</Show>
-			</div>
+			</Flex>
 			<Show when={props.rightSlot}>{props.rightSlot!()}</Show>
-		</div>
+		</Flex>
 	)
 }
 

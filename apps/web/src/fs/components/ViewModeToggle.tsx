@@ -2,6 +2,8 @@ import { Component, For, Show } from 'solid-js'
 import { VsEdit } from '@repo/icons/vs/VsEdit'
 import { VsSettingsGear } from '@repo/icons/vs/VsSettingsGear'
 import { VsFileBinary } from '@repo/icons/vs/VsFileBinary'
+import { Flex } from '@repo/ui/flex'
+import { Button } from '@repo/ui/button'
 import type { ViewMode } from '../types/TabIdentity'
 import type { ViewModeDefinition } from '../registry/ViewModeRegistry'
 
@@ -37,32 +39,31 @@ export const ViewModeToggle: Component<ViewModeToggleProps> = (props) => {
 
 	return (
 		<Show when={shouldShow()}>
-			<div class="flex items-center gap-1 px-2 py-1 border-l border-border/30">
+			<Flex
+				alignItems="center"
+				class="gap-1 px-2 py-1 border-l border-border/30"
+			>
 				<For each={props.availableModes}>
 					{(mode) => {
 						const Icon = getViewModeIcon(mode.id)
 						const isActive = () => mode.id === props.currentViewMode
 
 						return (
-							<button
-								type="button"
+							<Button
+								variant={isActive() ? 'secondary' : 'ghost'}
+								size="icon"
 								onClick={() => handleModeSelect(mode.id)}
 								title={`Switch to ${mode.label} view`}
-								class={
-									'flex items-center justify-center w-6 h-6 rounded text-xs transition-colors ' +
-									(isActive()
-										? 'bg-accent text-accent-foreground'
-										: 'text-muted-foreground hover:text-foreground hover:bg-muted')
-								}
+								class="w-6 h-6 p-0 rounded text-xs"
 								aria-pressed={isActive()}
 								aria-label={`Switch to ${mode.label} view`}
 							>
 								<Icon class="w-3.5 h-3.5" />
-							</button>
+							</Button>
 						)
 					}}
 				</For>
-			</div>
+			</Flex>
 		</Show>
 	)
 }
