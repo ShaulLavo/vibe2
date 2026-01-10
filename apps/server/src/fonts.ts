@@ -3,11 +3,15 @@ import JSZip from 'jszip'
 import fs from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
+import subsetFont from 'subset-font'
+import crypto from 'node:crypto'
 
 // Cache directories
 const CACHE_DIR = path.join(__dirname, '..', '.cache')
 const FONTS_DIR = path.join(CACHE_DIR, 'fonts')
+const PREVIEW_CACHE_DIR = path.join(CACHE_DIR, 'previews')
 const FONT_LINKS_FILE = path.join(CACHE_DIR, 'font-links.json')
+const DEFAULT_PREVIEW_TEXT = 'The quick brown fox jumps 0123'
 
 // Ensure cache directories exist
 async function ensureCacheDirs() {
@@ -126,4 +130,41 @@ export async function getExtractedFont(
 	await fs.writeFile(cachedFontPath, Buffer.from(fontData))
 
 	return fontData
+}
+
+export async function getPreviewSubset(
+	fontName: string,
+	previewText: string = DEFAULT_PREVIEW_TEXT
+): Promise<Buffer | null> {
+	await ensureCacheDirs()
+
+	// Check preview cache first
+	const textHash = crypto
+		.createHash('md5')
+		.update(previewText)
+		.digest('hex')
+		.slice(0, 8)
+	const cachedPreviewPath = path.join(
+		PREVIEW_CACHE_DIR,
+		`${fontName}-${textHash}.woff2`
+	)
+
+	if (existsSync(cachedPreviewPath)) {
+		return await fs.readFile(cachedPreviewPath)
+	}
+
+	// Get full font (downloads if not cached)
+	const fullFont = await getExtractedFont(fontName)
+	if (!fullFont) return null
+
+	// Create subset with only preview characters
+	const subset = await subsetFont(Buffer.from(fullFont), previewText, {
+		targetFormat: 'woff2',
+	})
+
+	// Cache the subset
+	await fs.mkdir(PREVIEW_CACHE_DIR, { recursive: true })
+	await fs.writeFile(cachedPreviewPath, subset)
+
+	return subset
 }
