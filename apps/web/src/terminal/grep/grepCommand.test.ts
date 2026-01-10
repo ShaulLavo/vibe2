@@ -46,34 +46,27 @@ describe('parseGrepArgs', () => {
 					showHelp: fc.boolean(),
 				}),
 				(input) => {
-					// Build args array from input
 					const args: string[] = []
 
-					// Add help flag if needed
 					if (input.showHelp) {
 						args.push('--help')
 					}
 
-					// Add max results if specified
 					if (input.maxResults !== null) {
 						args.push('-n', input.maxResults.toString())
 					}
 
-					// Add exclude patterns
 					for (const pattern of input.excludePatterns) {
 						args.push('--exclude', pattern)
 					}
 
-					// Add positional arguments (pattern and path)
 					args.push(input.pattern)
 					if (input.path !== null) {
 						args.push(input.path)
 					}
 
-					// Parse the args
 					const result = parseGrepArgs(args)
 
-					// Verify all inputs are preserved (accounting for quote stripping)
 					expect(result.showHelp).toBe(input.showHelp)
 					expect(result.pattern).toBe(stripQuotes(input.pattern))
 					expect(result.path).toBe(stripQuotes(input.path))
@@ -275,7 +268,6 @@ describe('formatGrepMatch', () => {
 	it('property: formatted output contains all required components', () => {
 		fc.assert(
 			fc.property(
-				// Generate valid GrepMatch objects
 				fc.record({
 					path: fc.string({ minLength: 1 }),
 					lineNumber: fc.integer({ min: 1, max: 100000 }),
@@ -285,17 +277,14 @@ describe('formatGrepMatch', () => {
 				(match: GrepMatch) => {
 					const formatted = formatGrepMatch(match)
 
-					// Verify all components are present in the output
 					expect(formatted).toContain(match.path)
 					expect(formatted).toContain(match.lineNumber.toString())
 					expect(formatted).toContain(match.lineContent.slice(0, 200)) // May be truncated
 
-					// Verify the format structure (path:lineNumber: content)
 					// The output should have the pattern: <path>:<lineNumber>: <content>
 					const colonIndex = formatted.indexOf(':')
 					expect(colonIndex).toBeGreaterThan(-1)
 
-					// Find the second colon (after line number)
 					const secondColonIndex = formatted.indexOf(':', colonIndex + 1)
 					expect(secondColonIndex).toBeGreaterThan(colonIndex)
 				}
@@ -314,7 +303,6 @@ describe('formatGrepMatch', () => {
 	it('property: formatted output contains ANSI color codes', () => {
 		fc.assert(
 			fc.property(
-				// Generate valid GrepMatch objects
 				fc.record({
 					path: fc.string({ minLength: 1 }),
 					lineNumber: fc.integer({ min: 1, max: 100000 }),
@@ -324,21 +312,16 @@ describe('formatGrepMatch', () => {
 				(match: GrepMatch) => {
 					const formatted = formatGrepMatch(match)
 
-					// ANSI color codes
 					const ANSI_CYAN = '\x1b[36m'
 					const ANSI_YELLOW = '\x1b[33m'
 					const ANSI_RESET = '\x1b[0m'
 
-					// Verify cyan color code is present (for path)
 					expect(formatted).toContain(ANSI_CYAN)
 
-					// Verify yellow color code is present (for line number)
 					expect(formatted).toContain(ANSI_YELLOW)
 
-					// Verify reset code is present
 					expect(formatted).toContain(ANSI_RESET)
 
-					// Verify the order: cyan comes before yellow
 					const cyanIndex = formatted.indexOf(ANSI_CYAN)
 					const yellowIndex = formatted.indexOf(ANSI_YELLOW)
 					expect(cyanIndex).toBeGreaterThan(-1)
@@ -359,7 +342,6 @@ describe('formatGrepMatch', () => {
 	it('property: long lines are truncated with indicator', () => {
 		fc.assert(
 			fc.property(
-				// Generate GrepMatch objects with long line content
 				fc.record({
 					path: fc.string({ minLength: 1 }),
 					lineNumber: fc.integer({ min: 1, max: 100000 }),
@@ -370,18 +352,14 @@ describe('formatGrepMatch', () => {
 				(match: GrepMatch) => {
 					const maxLineLength = 200
 
-					// Pre-condition: ensure line content is actually longer than max
 					fc.pre(match.lineContent.length > maxLineLength)
 
 					const formatted = formatGrepMatch(match, maxLineLength)
 
-					// The truncation indicator
 					const TRUNCATION_INDICATOR = '...'
 
-					// Verify the line was truncated (indicator is present)
 					expect(formatted).toContain(TRUNCATION_INDICATOR)
 
-					// Verify the truncated content is present (first 200 chars)
 					const truncatedContent = match.lineContent.slice(0, maxLineLength)
 					expect(formatted).toContain(truncatedContent)
 				}
@@ -439,7 +417,6 @@ describe('formatProgress', () => {
 	it('property: progress formatting contains required metrics', () => {
 		fc.assert(
 			fc.property(
-				// Generate valid GrepProgress objects
 				fc.record({
 					filesScanned: fc.integer({ min: 0, max: 100000 }),
 					filesTotal: fc.integer({ min: 0, max: 100000 }),
@@ -447,24 +424,19 @@ describe('formatProgress', () => {
 					currentFile: fc.option(fc.string(), { nil: undefined }),
 				}),
 				(progress: GrepProgress) => {
-					// Ensure filesScanned <= filesTotal (valid constraint)
 					fc.pre(progress.filesScanned <= progress.filesTotal)
 
 					const formatted = formatProgress(progress)
 
-					// Verify all required metrics are present in the output
 					expect(formatted).toContain(progress.filesScanned.toString())
 					expect(formatted).toContain(progress.filesTotal.toString())
 					expect(formatted).toContain(progress.matchesFound.toString())
 
-					// Verify the format structure contains "Searching..."
 					expect(formatted).toContain('Searching...')
 
-					// Verify the format contains "files" and "matches"
 					expect(formatted).toContain('files')
 					expect(formatted).toContain('matches')
 
-					// Verify the format structure: filesScanned/filesTotal
 					expect(formatted).toContain(
 						`${progress.filesScanned}/${progress.filesTotal}`
 					)
@@ -569,9 +541,8 @@ describe('handleGrep integration', () => {
 	it('property: max results option limits output', () => {
 		fc.assert(
 			fc.property(
-				// Generate a max results value
 				fc.integer({ min: 1, max: 50 }),
-				// Generate a larger number of potential matches
+
 				fc.array(
 					fc.record({
 						path: fc.string({ minLength: 1 }),
@@ -582,13 +553,10 @@ describe('handleGrep integration', () => {
 					{ minLength: 1, maxLength: 100 }
 				),
 				(maxResults, potentialMatches) => {
-					// Simulate the behavior: grep should return at most maxResults matches
 					const actualMatches = potentialMatches.slice(0, maxResults)
 
-					// Verify the constraint
 					expect(actualMatches.length).toBeLessThanOrEqual(maxResults)
 
-					// If we had more potential matches than maxResults, verify truncation
 					if (potentialMatches.length > maxResults) {
 						expect(actualMatches.length).toBe(maxResults)
 					} else {
@@ -610,7 +578,6 @@ describe('handleGrep integration', () => {
 	it('property: default exclusions are applied when none specified', () => {
 		fc.assert(
 			fc.property(
-				// Generate grep args without exclude patterns
 				fc.record({
 					pattern: fc.string({ minLength: 1 }),
 					path: fc.option(fc.string({ minLength: 1 }), { nil: null }),
@@ -619,7 +586,6 @@ describe('handleGrep integration', () => {
 					}),
 				}),
 				(input) => {
-					// Build args without --exclude
 					const args: string[] = []
 
 					if (input.maxResults !== null) {
@@ -631,10 +597,8 @@ describe('handleGrep integration', () => {
 						args.push(input.path)
 					}
 
-					// Parse the args
 					const parsed = parseGrepArgs(args)
 
-					// Verify no user-specified exclusions
 					expect(parsed.excludePatterns).toEqual([])
 
 					// In the actual handleGrep implementation, default exclusions
@@ -667,7 +631,6 @@ describe('handleGrep integration', () => {
 					path: fc.option(fc.string({ minLength: 1 }), { nil: null }),
 				}),
 				(input) => {
-					// Build args with --no-exclude
 					const args = ['--no-exclude', input.pattern]
 					if (input.path !== null) {
 						args.push(input.path)
@@ -675,7 +638,6 @@ describe('handleGrep integration', () => {
 
 					const parsed = parseGrepArgs(args)
 
-					// Should have noExclude flag set
 					expect(parsed.noExclude).toBe(true)
 					expect(parsed.pattern).toBe(stripQuotes(input.pattern))
 					expect(parsed.path).toBe(stripQuotes(input.path))
