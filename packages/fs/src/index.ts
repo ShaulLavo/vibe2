@@ -51,3 +51,24 @@ export type {
 	GrepProgress,
 	GrepProgressCallback,
 } from './grep'
+
+// Sync module
+export { ByteContentHandle, ByteContentHandleFactory, WriteTokenManager } from './sync'
+export type {
+	SyncState,
+	ContentHandle,
+	ContentHandleFactory,
+	WriteToken,
+	WriteTokenManagerOptions,
+	TrackOptions,
+	SyncEventType,
+	SyncEvent,
+	ExternalChangeEvent,
+	ConflictEvent,
+	ReloadedEvent,
+	DeletedEvent,
+	LocalChangesDiscardedEvent,
+	SyncedEvent,
+	SyncEventMap,
+	SyncEventHandler,
+} from './sync'
