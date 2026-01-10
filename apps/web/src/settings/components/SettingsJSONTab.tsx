@@ -7,7 +7,7 @@ import {
 } from '@repo/code-editor'
 import { ensureFs } from '../../fs/runtime/fsRuntime'
 import { useSettings } from '../SettingsProvider'
-import { createPieceTableSnapshot } from '@repo/utils'
+import { createPieceTableSnapshot, getPieceTableText } from '@repo/utils'
 
 const SETTINGS_FILE_PATH = '/.system/settings.json'
 
@@ -22,7 +22,8 @@ export const SettingsJSONTab: Component = () => {
 	const [lastSavedContent, setLastSavedContent] = createSignal('')
 
 	// Validate JSON content and return errors
-	const validateJSON = (content: string): EditorError[] => {
+	const validateJSON = (content: string | undefined): EditorError[] => {
+		if (!content) return []
 		const errors: EditorError[] = []
 
 		try {
@@ -152,7 +153,7 @@ export const SettingsJSONTab: Component = () => {
 			if (updated) {
 				setPieceTable(updated)
 				// Update file content from piece table
-				const newContent = updated.text
+				const newContent = getPieceTableText(updated)
 				setFileContent(newContent)
 			}
 		},
@@ -165,11 +166,14 @@ export const SettingsJSONTab: Component = () => {
 	}
 
 	// Editor stats (for syntax highlighting)
-	const editorStats = createMemo(() => ({
-		language: 'json',
-		size: fileContent().length,
-		lines: fileContent().split('\n').length,
-	}))
+	const editorStats = createMemo(() => {
+		const content = fileContent() || ''
+		return {
+			language: 'json',
+			size: content.length,
+			lines: content.split('\n').length,
+		}
+	})
 
 	// Check if content has unsaved changes
 	const hasUnsavedChanges = createMemo(() => {

@@ -170,6 +170,18 @@ export const createSettingsStore = (
 	// Initialize on creation
 	void initialize()
 
+	// Listen for settings file saves from the editor
+	if (typeof window !== 'undefined') {
+		window.addEventListener('settings-file-saved', ((event: CustomEvent) => {
+			const newValues = event.detail as Record<string, unknown>
+			setState(
+				produce((s) => {
+					s.values = newValues
+				})
+			)
+		}) as EventListener)
+	}
+
 	const getSetting = <T>(key: string): T => {
 		return (state.values[key] ?? state.defaults[key]) as T
 	}

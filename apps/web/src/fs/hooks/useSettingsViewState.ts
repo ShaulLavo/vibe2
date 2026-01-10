@@ -7,9 +7,13 @@ type UseSettingsViewStateParams = {
 	selectedPath: Accessor<string | undefined>
 }
 
-// Simple local state for settings UI
+// Simple local state for settings UI (exported for direct access from commands)
 const [currentCategory, setCurrentCategory] = createSignal<string>('editor')
-const [isJsonView, setIsJsonView] = createSignal(false)
+const [isJsonView, setIsJsonView] = createSignal(true)
+
+// Export direct setters for command palette usage
+export const setSettingsJsonView = () => setIsJsonView(true)
+export const setSettingsUIView = () => setIsJsonView(false)
 
 export const useSettingsViewState = (params: UseSettingsViewStateParams) => {
 	const isSettingsFile = createMemo(
@@ -27,6 +31,10 @@ export const useSettingsViewState = (params: UseSettingsViewStateParams) => {
 		setIsJsonView(true)
 	}
 
+	const openUIView = () => {
+		setIsJsonView(false)
+	}
+
 	return {
 		isSettingsFile,
 		shouldShowSettings,
@@ -34,5 +42,6 @@ export const useSettingsViewState = (params: UseSettingsViewStateParams) => {
 		handleCategoryChange,
 		currentCategory,
 		openJSONView,
+		openUIView,
 	}
 }

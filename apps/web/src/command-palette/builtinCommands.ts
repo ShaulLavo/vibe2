@@ -1,4 +1,12 @@
 import type { CommandDescriptor, CommandPaletteRegistry } from './types'
+import {
+	setSettingsJsonView,
+	setSettingsUIView,
+} from '../fs/hooks/useSettingsViewState'
+
+type FsActions = {
+	selectPath: (path: string) => Promise<void>
+}
 
 /**
  * Registers all built-in commands with the command palette registry.
@@ -8,7 +16,8 @@ import type { CommandDescriptor, CommandPaletteRegistry } from './types'
  * where hooks like useTheme, useFs, and useFocusManager are available.
  */
 export function registerBuiltinCommands(
-	registry: CommandPaletteRegistry
+	registry: CommandPaletteRegistry,
+	fsActions?: FsActions
 ): () => void {
 	const unregisterFunctions: Array<() => void> = []
 
@@ -24,8 +33,10 @@ export function registerBuiltinCommands(
 	// Save command
 	unregisterFunctions.push(registerSaveCommand(registry))
 
-	// Settings commands
-	unregisterFunctions.push(registerSettingsCommands(registry))
+	// Settings commands (requires fsActions)
+	if (fsActions) {
+		unregisterFunctions.push(registerSettingsCommands(registry, fsActions))
+	}
 
 	// Return function to unregister all commands
 	return () => {
@@ -178,9 +189,11 @@ function registerSaveCommand(registry: CommandPaletteRegistry): () => void {
  * Registers settings-related commands
  */
 function registerSettingsCommands(
-	registry: CommandPaletteRegistry
+	registry: CommandPaletteRegistry,
+	fsActions: FsActions
 ): () => void {
 	const unregisterFunctions: Array<() => void> = []
+	const SETTINGS_FILE_PATH = '/.system/settings.json'
 
 	const openSettingsCommand: CommandDescriptor = {
 		id: 'settings.open',
@@ -188,11 +201,18 @@ function registerSettingsCommands(
 		category: 'View',
 		shortcut: '⌘,',
 		handler: async () => {
-			// Dynamic import to avoid issues in test environment
-			const { useSettingsIntegration } =
-				await import('../settings/hooks/useSettingsIntegration')
-			const { openSettings } = useSettingsIntegration()
-			await openSettings()
+			setSettingsJsonView()
+			await fsActions.selectPath(SETTINGS_FILE_PATH)
+		},
+	}
+
+	const openSettingsUICommand: CommandDescriptor = {
+		id: 'settings.openUI',
+		label: 'Open Settings (UI)',
+		category: 'View',
+		handler: async () => {
+			setSettingsUIView()
+			await fsActions.selectPath(SETTINGS_FILE_PATH)
 		},
 	}
 
@@ -201,15 +221,13 @@ function registerSettingsCommands(
 		label: 'Open Settings (JSON)',
 		category: 'View',
 		handler: async () => {
-			// Dynamic import to avoid issues in test environment
-			const { useSettingsIntegration } =
-				await import('../settings/hooks/useSettingsIntegration')
-			const { openJSONView } = useSettingsIntegration()
-			await openJSONView()
+			setSettingsJsonView()
+			await fsActions.selectPath(SETTINGS_FILE_PATH)
 		},
 	}
 
 	unregisterFunctions.push(registry.register(openSettingsCommand))
+	unregisterFunctions.push(registry.register(openSettingsUICommand))
 	unregisterFunctions.push(registry.register(openSettingsJSONCommand))
 
 	return () => {

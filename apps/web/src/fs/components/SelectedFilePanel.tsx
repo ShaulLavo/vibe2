@@ -7,7 +7,6 @@ import { getTreeSitterWorker } from '../../treeSitter/workerClient'
 
 import { Tabs } from './Tabs'
 import { SettingsTab } from '../../settings/components/SettingsTab'
-import { SettingsJSONTab } from '../../settings/components/SettingsJSONTab'
 import { useEditorDecorations } from '../hooks/useEditorDecorations'
 import { useEditorDocument } from '../hooks/useEditorDocument'
 import { useSelectedFileTabs } from '../hooks/useSelectedFileTabs'
@@ -136,15 +135,6 @@ export const SelectedFilePanel = (props: SelectedFilePanelProps) => {
 						/>
 					}
 				>
-					<Match
-						when={
-							settingsView.shouldShowSettings() &&
-							settingsView.shouldShowJSONView()
-						}
-					>
-						<SettingsJSONTab />
-					</Match>
-
 					<Match
 						when={
 							settingsView.shouldShowSettings() &&

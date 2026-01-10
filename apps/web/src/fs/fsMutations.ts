@@ -218,6 +218,22 @@ export const createFsMutations = ({
 
 				setDirtyPath(filePath, false)
 			})
+
+			// Sync settings if this is the settings file
+			if (filePath === '/.system/settings.json') {
+				try {
+					const parsed = JSON.parse(content)
+					// Dispatch custom event for settings store to pick up
+					window.dispatchEvent(
+						new CustomEvent('settings-file-saved', { detail: parsed })
+					)
+				} catch (e) {
+					logger
+						.withTag('fsMutations')
+						.warn('Settings file saved but JSON parse failed', { error: e })
+				}
+			}
+
 			toast.success('File saved')
 		} catch (error) {
 			logger.withTag('fsMutations').error('Save failed', { error })

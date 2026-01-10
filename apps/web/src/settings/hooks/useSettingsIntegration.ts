@@ -13,6 +13,10 @@ export const useSettingsIntegration = () => {
 		await selectPath(SETTINGS_FILE_PATH)
 	}
 
+	const openUIView = async () => {
+		await selectPath(SETTINGS_FILE_PATH)
+	}
+
 	const isSettingsFile = (path: string | undefined) => {
 		return path === SETTINGS_FILE_PATH
 	}
@@ -20,6 +24,7 @@ export const useSettingsIntegration = () => {
 	return {
 		openSettings,
 		openJSONView,
+		openUIView,
 		isSettingsFile,
 		SETTINGS_FILE_PATH,
 	}
