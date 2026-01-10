@@ -27,21 +27,27 @@ describe('createSettingsStore', () => {
 	 * **Feature: nerdfonts-settings, Property 1: Font Category Navigation**
 	 * **Validates: Requirements 1.2**
 	 */
-	it('property: fonts category is loaded in schema', async () => {
+	it('property: fonts subcategory is loaded under appearance', async () => {
 		await new Promise<void>((resolve) => {
 			createRoot((disposeRoot) => {
 				const [state, actions] = createSettingsStore('memory')
 
 				const checkLoaded = () => {
 					if (state.isLoaded) {
-						// Verify fonts category exists
-						const fontsCategory = state.schema.categories.find(cat => cat.id === 'fonts')
-						expect(fontsCategory).toBeDefined()
-						expect(fontsCategory?.label).toBe('Fonts')
-						expect(fontsCategory?.icon).toBe('VsTextSize')
+						// Verify appearance category exists and has fonts subcategory
+						const appearanceCategory = state.schema.categories.find(cat => cat.id === 'appearance')
+						expect(appearanceCategory).toBeDefined()
+						expect(appearanceCategory?.subcategories).toBeDefined()
+						
+						const fontsSubcategory = appearanceCategory?.subcategories?.find(sub => sub.id === 'fonts')
+						expect(fontsSubcategory).toBeDefined()
+						expect(fontsSubcategory?.label).toBe('Fonts')
+						expect(fontsSubcategory?.icon).toBe('VsTextSize')
 
-						// Verify fonts settings exist
-						const fontsSettings = state.schema.settings.filter(setting => setting.category === 'fonts')
+						// Verify fonts settings exist under appearance category
+						const fontsSettings = state.schema.settings.filter(setting => 
+							setting.category === 'appearance' && setting.subcategory === 'fonts'
+						)
 						expect(fontsSettings).toHaveLength(3)
 						
 						const settingKeys = fontsSettings.map(s => s.key)
