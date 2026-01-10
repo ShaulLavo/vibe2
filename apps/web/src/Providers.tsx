@@ -24,23 +24,23 @@ export const Providers: ParentComponent = (props) => {
 			<ColorModeScript storageType={storageManager.type} />
 			<ColorModeProvider storageManager={storageManager}>
 				<ThemeProvider>
-					<KeymapProvider>
-						<FocusProvider>
-							<FsProvider>
-								<FontRegistryProvider>
-									<SettingsProvider>
-										<SettingsEffects />
+					<SettingsProvider>
+						<SettingsEffects />
+						<KeymapProvider>
+							<FocusProvider>
+								<FsProvider>
+									<FontRegistryProvider>
 										<CommandPaletteProvider>
 											<ThemedToaster />
 											<Modal />
 											<CommandPalette />
 											{props.children}
 										</CommandPaletteProvider>
-									</SettingsProvider>
-								</FontRegistryProvider>
-							</FsProvider>
-						</FocusProvider>
-					</KeymapProvider>
+									</FontRegistryProvider>
+								</FsProvider>
+							</FocusProvider>
+						</KeymapProvider>
+					</SettingsProvider>
 				</ThemeProvider>
 			</ColorModeProvider>
 		</>
