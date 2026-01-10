@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { createMinimalBinaryParseResult } from '@repo/utils'
 import { createTabId, parseTabId, migrateTabState } from '../TabIdentity'
-import { viewModeRegistry } from '../../registry/ViewModeRegistry'
 import { 
 	detectAvailableViewModes, 
 	getDefaultViewMode, 
@@ -63,7 +62,7 @@ describe('ViewModeRegistry', () => {
 		expect(supportsMultipleViewModes('/test/file.txt')).toBe(false)
 		expect(supportsMultipleViewModes('/.system/settings.json')).toBe(true)
 		
-		const mockStats = createMinimalBinaryParseResult('', { isText: false, confidence: 1.0 })
+		const mockStats = createMinimalBinaryParseResult('', { isText: false, confidence: 'high' })
 		expect(supportsMultipleViewModes('/test/binary.exe', mockStats)).toBe(true)
 	})
 
@@ -72,7 +71,7 @@ describe('ViewModeRegistry', () => {
 		expect(isViewModeValid('ui', '/test/file.txt')).toBe(false)
 		expect(isViewModeValid('ui', '/.system/settings.json')).toBe(true)
 		
-		const mockStats = createMinimalBinaryParseResult('', { isText: false, confidence: 1.0 })
+		const mockStats = createMinimalBinaryParseResult('', { isText: false, confidence: 'high' })
 		expect(isViewModeValid('binary', '/test/binary.exe', mockStats)).toBe(true)
 		expect(isViewModeValid('binary', '/test/file.txt')).toBe(false)
 	})

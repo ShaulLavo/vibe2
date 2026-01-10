@@ -147,9 +147,6 @@ export function FsProvider(props: { children: JSX.Element }) {
 				// File not in tree - load parent directories
 				const parentPath = path.split('/').slice(0, -1).join('/')
 				if (parentPath) {
-					console.log(
-						`[FsProvider] selectPath: loading parent directories for ${path}`
-					)
 					await ensureDirPathLoaded(parentPath)
 				}
 			}

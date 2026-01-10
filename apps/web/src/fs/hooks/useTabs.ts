@@ -1,4 +1,5 @@
 import { Accessor, createEffect, createSignal } from 'solid-js'
+import { createTabId, parseTabId, migrateTabState, type TabIdentity } from '../types/TabIdentity'
 
 export type UseTabsOptions = {
 	maxTabs?: number
@@ -15,7 +16,9 @@ const loadTabs = (key: string): string[] => {
 		if (stored) {
 			const parsed = JSON.parse(stored)
 			if (Array.isArray(parsed)) {
-				return parsed.filter((item): item is string => typeof item === 'string')
+				const validTabs = parsed.filter((item): item is string => typeof item === 'string')
+				// Migrate existing tabs to include view mode if they don't have it
+				return migrateTabState(validTabs)
 			}
 		}
 	} catch {
@@ -38,7 +41,9 @@ const loadHistory = (key: string): string[] => {
 		if (stored) {
 			const parsed = JSON.parse(stored)
 			if (Array.isArray(parsed)) {
-				return parsed.filter((item): item is string => typeof item === 'string')
+				const validHistory = parsed.filter((item): item is string => typeof item === 'string')
+				// Migrate existing history to include view mode if they don't have it
+				return migrateTabState(validHistory)
 			}
 		}
 	} catch {
@@ -56,7 +61,7 @@ const saveHistory = (key: string, history: string[]): void => {
 }
 
 export const useTabs = (
-	activePath: Accessor<string | undefined>,
+	activeTabId: Accessor<string | undefined>,
 	options?: UseTabsOptions
 ) => {
 	const maxTabs = options?.maxTabs ?? DEFAULT_MAX_TABS
@@ -69,24 +74,24 @@ export const useTabs = (
 	)
 
 	createEffect(() => {
-		const path = activePath()
-		if (!path) return
+		const tabId = activeTabId()
+		if (!tabId) return
 
 		setTabs((prev) => {
-			if (prev.length > 0 && prev[prev.length - 1] === path) {
+			if (prev.length > 0 && prev[prev.length - 1] === tabId) {
 				return prev
 			}
-			if (prev.includes(path)) {
+			if (prev.includes(tabId)) {
 				return prev
 			}
 			const next = prev.length >= maxTabs ? prev.slice(1) : prev
-			return [...next, path]
+			return [...next, tabId]
 		})
 
 		// Update tab history - move current tab to end (most recent)
 		setTabHistory((prev) => {
-			const filtered = prev.filter((p) => p !== path)
-			return [...filtered, path]
+			const filtered = prev.filter((id) => id !== tabId)
+			return [...filtered, tabId]
 		})
 	})
 
@@ -109,42 +114,42 @@ export const useTabs = (
 		saveHistory(historyKey, tabHistory())
 	})
 
-	const closeTab = (path: string) => {
-		setTabs((prev) => prev.filter((tab) => tab !== path))
+	const closeTab = (tabId: string) => {
+		setTabs((prev) => prev.filter((tab) => tab !== tabId))
 
 		// Clean up history - remove tabs that are no longer open
 		// Keep some history for recently closed tabs, but limit it
 		setTabHistory((prev) => {
-			const currentTabs = tabs().filter((tab) => tab !== path) // tabs after closing
+			const currentTabs = tabs().filter((tab) => tab !== tabId) // tabs after closing
 			const recentHistory = prev.slice(-20) // Keep last 20 for memory
 
 			// Keep tabs that are still open + some recent closed ones
 			return recentHistory.filter(
-				(historyPath) =>
-					currentTabs.includes(historyPath) ||
-					prev.indexOf(historyPath) >= prev.length - 5 // Keep last 5 closed tabs
+				(historyTabId) =>
+					currentTabs.includes(historyTabId) ||
+					prev.indexOf(historyTabId) >= prev.length - 5 // Keep last 5 closed tabs
 			)
 		})
 	}
 
-	const getPreviousTab = (closingPath: string): string | undefined => {
+	const getPreviousTab = (closingTabId: string): string | undefined => {
 		const currentTabs = tabs()
 		const history = tabHistory()
 
 		// First, try to find the most recent tab in history that's still open and not the one being closed
 		for (let i = history.length - 1; i >= 0; i--) {
-			const historyPath = history[i]
+			const historyTabId = history[i]
 			if (
-				historyPath &&
-				historyPath !== closingPath &&
-				currentTabs.includes(historyPath)
+				historyTabId &&
+				historyTabId !== closingTabId &&
+				currentTabs.includes(historyTabId)
 			) {
-				return historyPath
+				return historyTabId
 			}
 		}
 
 		// Fallback 1: If no history or history doesn't help, try adjacent tabs
-		const currentIndex = currentTabs.indexOf(closingPath)
+		const currentIndex = currentTabs.indexOf(closingTabId)
 		if (currentIndex !== -1) {
 			// Try tab to the left first (more natural)
 			if (currentIndex > 0) {
@@ -157,7 +162,7 @@ export const useTabs = (
 		}
 
 		// Fallback 2: If all else fails, return the last tab that's not the closing one
-		const remainingTabs = currentTabs.filter((tab) => tab !== closingPath)
+		const remainingTabs = currentTabs.filter((tab) => tab !== closingTabId)
 		if (remainingTabs.length > 0) {
 			return remainingTabs[remainingTabs.length - 1]
 		}
@@ -165,5 +170,9 @@ export const useTabs = (
 		return undefined
 	}
 
-	return [tabs, { closeTab, getPreviousTab }] as const
+	// Utility functions for working with tab identities
+	const getTabIdentity = (tabId: string): TabIdentity => parseTabId(tabId)
+	const createTabIdFromIdentity = (identity: TabIdentity): string => createTabId(identity)
+
+	return [tabs, { closeTab, getPreviousTab, getTabIdentity, createTabId: createTabIdFromIdentity }] as const
 }
