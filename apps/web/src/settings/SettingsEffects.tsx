@@ -130,10 +130,13 @@ export const SettingsEffects: Component = () => {
 
 		const root = document.documentElement
 
+		// Track zoom offsets to create reactive dependencies
+		const uiZoom = settingsActions.getZoomOffset('ui')
+		const editorZoom = settingsActions.getZoomOffset('editor')
+		const terminalZoom = settingsActions.getZoomOffset('terminal')
+
 		// UI font settings (global for file explorer, sidebars, settings, etc.)
-		const uiFontSize =
-			settingsState.values['ui.font.size'] ??
-			settingsState.defaults['ui.font.size']
+		const uiFontSize = settingsActions.getZoomedFontSize('ui')
 		const uiFontFamily =
 			settingsState.values['ui.font.family'] ??
 			settingsState.defaults['ui.font.family']
@@ -145,9 +148,7 @@ export const SettingsEffects: Component = () => {
 		}
 
 		// Editor font settings
-		const editorFontSize =
-			settingsState.values['editor.font.size'] ??
-			settingsState.defaults['editor.font.size']
+		const editorFontSize = settingsActions.getZoomedFontSize('editor')
 		const editorFontFamily =
 			settingsState.values['editor.font.family'] ??
 			settingsState.defaults['editor.font.family']
@@ -159,9 +160,7 @@ export const SettingsEffects: Component = () => {
 		}
 
 		// Terminal font settings
-		const terminalFontSize =
-			settingsState.values['terminal.font.size'] ??
-			settingsState.defaults['terminal.font.size']
+		const terminalFontSize = settingsActions.getZoomedFontSize('terminal')
 		const terminalFontFamily =
 			settingsState.values['terminal.font.family'] ??
 			settingsState.defaults['terminal.font.family']

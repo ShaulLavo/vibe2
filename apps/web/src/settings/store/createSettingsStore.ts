@@ -7,6 +7,7 @@ import {
 } from '@repo/settings'
 import { ensureFs } from '../../fs/runtime/fsRuntime'
 import type { FsSource } from '../../fs/types'
+import { createFontZoomStore, type FontModule } from '../../hooks/createFontZoomStore'
 
 import editorSchema from '@repo/settings/schemas/editor.json'
 import terminalSchema from '@repo/settings/schemas/terminal.json'
@@ -26,6 +27,10 @@ export type SettingsActions = {
 	setSetting: (key: string, value: unknown) => void
 	resetSetting: (key: string) => void
 	resetAllSettings: () => void
+	getZoomedFontSize: (module: FontModule) => number
+	getZoomOffset: (module: FontModule) => number
+	resetZoom: (module: FontModule) => void
+	setZoom: (module: FontModule, offset: number) => void
 }
 
 export type SettingsStore = [SettingsState, SettingsActions]
@@ -225,11 +230,35 @@ export const createSettingsStore = (
 		void saveToFile()
 	}
 
+	const fontZoomStore = createFontZoomStore()
+
+	const getZoomOffset = (module: FontModule) => {
+		return fontZoomStore.state[module]
+	}
+
+	const getZoomedFontSize = (module: FontModule) => {
+		const baseSize = getSetting<number>(`${module}.font.size`)
+		const zoomOffset = fontZoomStore.state[module]
+		return Math.max(6, Math.min(48, baseSize + zoomOffset))
+	}
+
+	const resetZoom = (module: FontModule) => {
+		fontZoomStore.actions.resetZoom(module)
+	}
+
+	const setZoom = (module: FontModule, offset: number) => {
+		fontZoomStore.actions.setZoom(module, offset)
+	}
+
 	const actions: SettingsActions = {
 		getSetting,
 		setSetting,
 		resetSetting,
 		resetAllSettings,
+		getZoomedFontSize,
+		getZoomOffset,
+		resetZoom,
+		setZoom,
 	}
 
 	return [state, actions]

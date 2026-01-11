@@ -52,7 +52,7 @@ const BinaryRow = (props: BinaryRowProps) => {
 				height: `${props.virtualRow.size || props.rowHeight}px`,
 			}}
 		>
-			<div class="flex h-full items-center gap-4 px-3 text-xs text-zinc-100">
+			<div class="flex h-full items-center gap-4 px-3 text-ui-xs text-zinc-100">
 				<span class="w-16 shrink-0 text-right text-[11px] font-semibold tracking-[0.08em] text-zinc-500 tabular-nums">
 					{offset().toString(16).padStart(8, '0').toUpperCase()}
 				</span>
@@ -201,7 +201,7 @@ export const BinaryFileViewer = (props: BinaryFileViewerProps) => {
 			<Show
 				when={bytes() && byteLength() > 0}
 				fallback={
-					<div class="px-3 py-4 text-sm text-zinc-500">
+					<div class="px-3 py-4 text-ui text-zinc-500">
 						Binary preview is not available for this file yet.
 					</div>
 				}

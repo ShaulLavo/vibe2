@@ -34,7 +34,7 @@ export const FontFamilySelect: Component<FontFamilySelectProps> = (props) => {
 		<div class={cn('space-y-1', props.class)}>
 			<Label>{props.label}</Label>
 			{props.description && (
-				<p class="text-sm text-muted-foreground">{props.description}</p>
+				<p class="text-ui text-muted-foreground">{props.description}</p>
 			)}
 			<Suspense
 				fallback={
@@ -88,16 +88,16 @@ const FontFamilySelectInner: Component<FontFamilySelectInnerProps> = (
 					>
 						<div class="flex flex-col gap-1 w-full">
 							<div class="flex items-center justify-between">
-								<span class="text-sm font-medium">{option().label}</span>
+								<span class="text-ui font-medium">{option().label}</span>
 								<Show when={showSourceBadge()}>
-									<span class="text-xs text-muted-foreground capitalize">
+									<span class="text-ui-xs text-muted-foreground capitalize">
 										{option().source}
 									</span>
 								</Show>
 							</div>
 							<Show when={option().isAvailable}>
 								<div
-									class="text-xs text-muted-foreground truncate"
+									class="text-ui-xs text-muted-foreground truncate"
 									style={{ 'font-family': option().value }}
 								>
 									{previewText}
@@ -116,10 +116,10 @@ const FontFamilySelectInner: Component<FontFamilySelectInnerProps> = (
 
 						return (
 							<div class="flex items-center gap-2">
-								<span class="text-sm">{option.label}</span>
+								<span class="text-ui">{option.label}</span>
 								<Show when={option.isAvailable}>
 									<span
-										class="text-xs text-muted-foreground"
+										class="text-ui-xs text-muted-foreground"
 										style={{ 'font-family': option.value }}
 									>
 										Aa

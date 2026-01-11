@@ -11,6 +11,7 @@ import { FontRegistryProvider } from './fonts'
 import { SettingsProvider } from './settings/SettingsProvider'
 import { SettingsEffects } from './settings/SettingsEffects'
 import { KeymapProvider } from './keymap/KeymapContext'
+import { FontZoomProvider } from './hooks/FontZoomProvider'
 import { Modal } from '@repo/ui/modal'
 import { ThemeProvider } from '@repo/theme'
 import { CommandPaletteProvider } from './command-palette/CommandPaletteProvider'
@@ -28,16 +29,18 @@ export const Providers: ParentComponent = (props) => {
 						<SettingsEffects />
 						<KeymapProvider>
 							<FocusProvider>
-								<FsProvider>
-									<FontRegistryProvider>
-										<CommandPaletteProvider>
-											<ThemedToaster />
-											<Modal />
-											<CommandPalette />
-											{props.children}
-										</CommandPaletteProvider>
-									</FontRegistryProvider>
-								</FsProvider>
+								<FontZoomProvider>
+									<FsProvider>
+										<FontRegistryProvider>
+											<CommandPaletteProvider>
+												<ThemedToaster />
+												<Modal />
+												<CommandPalette />
+												{props.children}
+											</CommandPaletteProvider>
+										</FontRegistryProvider>
+									</FsProvider>
+								</FontZoomProvider>
 							</FocusProvider>
 						</KeymapProvider>
 					</SettingsProvider>
