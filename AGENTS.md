@@ -70,6 +70,7 @@ INSPIRED BY UNIX. PLAN 9. INFERNO.
 - **RUN SCRIPTS**: `bun run <script>`
 - **EXECUTE TOOLS**: `bun run x <tool>` (E.G. `bun run x eslint`)
 - **NEVER USE NON-BUN**: `npx` IS BANNED.
+- **DEBUG**: IF `bun` IS BUGGED, TRY `~/.bun/bin/bun`.
 
 ### 🔍 DEBUGGING
 

@@ -1,5 +1,10 @@
 # Solid.js Guidelines
 
+## Developing
+
+- Use `bun` for all tasks.
+- If `bun` is bugged, try `~/.bun/bin/bun`.
+
 ## Terminology (Essential)
 
 | Term             | Avoid Confusing With              | Definition                                                                  |
@@ -62,5 +67,6 @@ Effects are primarily intended for handling side effects that do not write to th
 ## 🦾 Coding Standards
 
 ### 🗣️ Comments & Complexity
-- **Minimalism**: Avoid adding comments unless they are important (explain *why*, not *what*).
+
+- **Minimalism**: Avoid adding comments unless they are important (explain _why_, not _what_).
 - **Code Clarity**: If code is complex, reduce nesting and move statements/calculations into variables or functions with descriptive names over commenting.

@@ -14,6 +14,7 @@
 - `bun run serve`: preview the built app from `dist/`.
 - `bun run lint`: run ESLint using `@repo/eslint-config/solid` (no warnings allowed).
 - No test runner is configured in this app; add one per feature if needed.
+- If `bun` is bugged, try `~/.bun/bin/bun`.
 
 ## Coding Style & Naming
 
