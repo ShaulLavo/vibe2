@@ -222,7 +222,6 @@ export const HorizontalScrollbar = (props: HorizontalScrollbarProps) => {
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 		>
-			{/* Track */}
 			<div
 				style={{
 					position: 'absolute',
@@ -230,7 +229,7 @@ export const HorizontalScrollbar = (props: HorizontalScrollbarProps) => {
 					'background-color': 'transparent',
 				}}
 			/>
-			{/* Thumb - square, transparent, blur */}
+
 			<div
 				style={{
 					position: 'absolute',

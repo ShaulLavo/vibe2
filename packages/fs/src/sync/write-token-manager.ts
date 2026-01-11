@@ -28,9 +28,6 @@ export class WriteTokenManager {
 		this.tokenExpiryMs = options.tokenExpiryMs ?? 5000
 	}
 
-	/**
-	 * Generate a unique write token for a file path
-	 */
 	generateToken(path: string): WriteToken {
 		const now = Date.now()
 		const token: WriteToken = {
@@ -57,12 +54,6 @@ export class WriteTokenManager {
 		return token
 	}
 
-	/**
-	 * Check if a change matches a pending write token
-	 * @param path - File path that changed
-	 * @param mtime - Modification time of the change
-	 * @returns The matching token if found, undefined otherwise
-	 */
 	matchToken(path: string, mtime: number): WriteToken | undefined {
 		// Find tokens for this path
 		for (const [tokenId, entry] of this.pendingTokens) {
@@ -81,9 +72,6 @@ export class WriteTokenManager {
 		return undefined
 	}
 
-	/**
-	 * Manually clear a token (e.g., when write operation completes)
-	 */
 	clearToken(path: string): void {
 		// Find and clear all tokens for this path
 		const tokensToRemove: string[] = []
@@ -98,9 +86,6 @@ export class WriteTokenManager {
 		}
 	}
 
-	/**
-	 * Clear a specific token by ID
-	 */
 	private clearTokenById(tokenId: string): void {
 		const entry = this.pendingTokens.get(tokenId)
 		if (entry) {
@@ -109,23 +94,14 @@ export class WriteTokenManager {
 		}
 	}
 
-	/**
-	 * Expire a token (called by timeout)
-	 */
 	private expireToken(tokenId: string): void {
 		this.clearTokenById(tokenId)
 	}
 
-	/**
-	 * Get all pending tokens (for debugging/testing)
-	 */
 	getPendingTokens(): WriteToken[] {
 		return Array.from(this.pendingTokens.values()).map((entry) => entry.token)
 	}
 
-	/**
-	 * Clear all tokens and dispose resources
-	 */
 	dispose(): void {
 		for (const entry of this.pendingTokens.values()) {
 			clearTimeout(entry.expiryTimeout)

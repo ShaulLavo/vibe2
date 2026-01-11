@@ -3,8 +3,14 @@ import { ByteContentHandleFactory } from './content-handle'
 
 // Forward declaration for FsContext - will be properly imported when integrated
 interface FsContext {
-	file(path: string, mode?: 'r' | 'rw' | 'rw-unsafe'): {
-		write(content: string | BufferSource | import('../vfs/types').VfsReadableStream, opts?: { truncate?: boolean }): Promise<void>
+	file(
+		path: string,
+		mode?: 'r' | 'rw' | 'rw-unsafe'
+	): {
+		write(
+			content: string | BufferSource | import('../vfs/types').VfsReadableStream,
+			opts?: { truncate?: boolean }
+		): Promise<void>
 		text(): Promise<string>
 		lastModified(): Promise<number>
 	}
@@ -37,9 +43,6 @@ export class FileStateTracker {
 		this.fsContext = fsContext
 	}
 
-	/**
-	 * Get current sync state based on content comparison
-	 */
 	get syncState(): SyncState {
 		const localEqualsBase = this.localContent.equals(this.baseContent)
 		const baseEqualsDisk = this.baseContent.equals(this.diskContent)
@@ -56,31 +59,19 @@ export class FileStateTracker {
 		return 'conflict'
 	}
 
-	/**
-	 * Check if file has unsaved local changes
-	 */
 	get isDirty(): boolean {
 		return !this.localContent.equals(this.baseContent)
 	}
 
-	/**
-	 * Check if file has external changes
-	 */
 	get hasExternalChanges(): boolean {
 		const state = this.syncState
 		return state === 'external-changes' || state === 'conflict'
 	}
 
-	/**
-	 * Get current local content
-	 */
 	getLocalContent(): ContentHandle {
 		return this.localContent
 	}
 
-	/**
-	 * Get base content (last synced state)
-	 */
 	getBaseContent(): ContentHandle {
 		return this.baseContent
 	}
@@ -107,9 +98,6 @@ export class FileStateTracker {
 		this.diskMtime = diskMtime
 	}
 
-	/**
-	 * Get current disk content (for conflict resolution)
-	 */
 	getDiskContent(): ContentHandle {
 		return this.diskContent
 	}
@@ -128,7 +116,9 @@ export class FileStateTracker {
 	 */
 	async resolveKeepLocal(): Promise<void> {
 		if (!this.fsContext) {
-			throw new Error('Cannot resolve conflict: no file system context provided')
+			throw new Error(
+				'Cannot resolve conflict: no file system context provided'
+			)
 		}
 
 		// Write local content to disk
@@ -150,7 +140,9 @@ export class FileStateTracker {
 	 */
 	async resolveAcceptExternal(): Promise<void> {
 		if (!this.fsContext) {
-			throw new Error('Cannot resolve conflict: no file system context provided')
+			throw new Error(
+				'Cannot resolve conflict: no file system context provided'
+			)
 		}
 
 		// Read current disk content
@@ -172,7 +164,9 @@ export class FileStateTracker {
 	 */
 	async resolveMerge(mergedContent: Uint8Array | string): Promise<void> {
 		if (!this.fsContext) {
-			throw new Error('Cannot resolve conflict: no file system context provided')
+			throw new Error(
+				'Cannot resolve conflict: no file system context provided'
+			)
 		}
 
 		// Set merged content as local

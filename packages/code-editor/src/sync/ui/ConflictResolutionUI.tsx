@@ -1,5 +1,9 @@
 import { createSignal, Show, For } from 'solid-js'
-import type { ConflictInfo, ConflictResolution, BatchResolutionResult } from '../types'
+import type {
+	ConflictInfo,
+	ConflictResolution,
+	BatchResolutionResult,
+} from '../types'
 import { ConflictResolutionDialog } from './ConflictResolutionDialog'
 import { ConflictNotification } from './ConflictNotification'
 import { DiffView } from './DiffView'
@@ -11,19 +15,29 @@ export interface ConflictResolutionUIProps {
 	/** List of pending conflicts */
 	conflicts: ConflictInfo[]
 	/** Callback when a conflict is resolved */
-	onResolveConflict: (path: string, resolution: ConflictResolution) => Promise<void>
+	onResolveConflict: (
+		path: string,
+		resolution: ConflictResolution
+	) => Promise<void>
 	/** Callback for batch conflict resolution */
-	onBatchResolve?: (conflicts: ConflictInfo[], strategy: string) => Promise<BatchResolutionResult>
+	onBatchResolve?: (
+		conflicts: ConflictInfo[],
+		strategy: string
+	) => Promise<BatchResolutionResult>
 }
 
 /**
  * Main UI component for handling conflict resolution
  */
 export function ConflictResolutionUI(props: ConflictResolutionUIProps) {
-	const [activeConflict, setActiveConflict] = createSignal<ConflictInfo | null>(null)
+	const [activeConflict, setActiveConflict] = createSignal<ConflictInfo | null>(
+		null
+	)
 	const [showDialog, setShowDialog] = createSignal(false)
 	const [showDiffView, setShowDiffView] = createSignal(false)
-	const [dismissedNotifications, setDismissedNotifications] = createSignal<Set<string>>(new Set())
+	const [dismissedNotifications, setDismissedNotifications] = createSignal<
+		Set<string>
+	>(new Set())
 
 	const handleShowConflictResolution = (conflict: ConflictInfo) => {
 		setActiveConflict(conflict)
@@ -57,7 +71,7 @@ export function ConflictResolutionUI(props: ConflictResolutionUIProps) {
 
 		const resolution: ConflictResolution = {
 			strategy: 'manual-merge',
-			mergedContent
+			mergedContent,
 		}
 
 		try {
@@ -82,7 +96,7 @@ export function ConflictResolutionUI(props: ConflictResolutionUIProps) {
 	}
 
 	const handleDismissNotification = (conflictPath: string) => {
-		setDismissedNotifications(prev => new Set([...prev, conflictPath]))
+		setDismissedNotifications((prev) => new Set([...prev, conflictPath]))
 	}
 
 	const isNotificationVisible = (conflict: ConflictInfo) => {
@@ -91,7 +105,6 @@ export function ConflictResolutionUI(props: ConflictResolutionUIProps) {
 
 	return (
 		<>
-			{/* Conflict Notifications */}
 			<For each={props.conflicts}>
 				{(conflict) => (
 					<Show when={isNotificationVisible(conflict)}>
@@ -105,7 +118,6 @@ export function ConflictResolutionUI(props: ConflictResolutionUIProps) {
 				)}
 			</For>
 
-			{/* Conflict Resolution Dialog */}
 			<Show when={activeConflict()}>
 				{(conflict) => (
 					<ConflictResolutionDialog
@@ -117,7 +129,6 @@ export function ConflictResolutionUI(props: ConflictResolutionUIProps) {
 				)}
 			</Show>
 
-			{/* Diff View */}
 			<Show when={activeConflict()}>
 				{(conflict) => (
 					<DiffView
@@ -138,10 +149,10 @@ export function ConflictResolutionUI(props: ConflictResolutionUIProps) {
 export interface ConflictResolutionUISystem {
 	/** Show conflict resolution dialog for a specific file */
 	showConflictDialog(conflictInfo: ConflictInfo): Promise<ConflictResolution>
-	
+
 	/** Show diff view for manual merging */
 	showDiffView(conflictInfo: ConflictInfo): Promise<string | null>
-	
+
 	/** Show batch conflict resolution interface */
 	showBatchResolution(conflicts: ConflictInfo[]): Promise<BatchResolutionResult>
 }
@@ -151,24 +162,28 @@ export interface ConflictResolutionUISystem {
  */
 export function createConflictResolutionUISystem(): ConflictResolutionUISystem {
 	return {
-		async showConflictDialog(conflictInfo: ConflictInfo): Promise<ConflictResolution> {
+		async showConflictDialog(
+			_conflictInfo: ConflictInfo
+		): Promise<ConflictResolution> {
 			// This would be implemented by the consuming application
 			// For now, return a default resolution
 			return { strategy: 'manual-merge' }
 		},
 
-		async showDiffView(conflictInfo: ConflictInfo): Promise<string | null> {
+		async showDiffView(_conflictInfo: ConflictInfo): Promise<string | null> {
 			// This would be implemented by the consuming application
 			// For now, return null (cancelled)
 			return null
 		},
 
-		async showBatchResolution(conflicts: ConflictInfo[]): Promise<BatchResolutionResult> {
+		async showBatchResolution(
+			_conflicts: ConflictInfo[]
+		): Promise<BatchResolutionResult> {
 			// This would be implemented by the consuming application
 			// For now, return empty result
 			return {
 				resolutions: new Map(),
 			}
-		}
+		},
 	}
 }

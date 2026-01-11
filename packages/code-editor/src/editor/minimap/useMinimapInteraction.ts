@@ -14,24 +14,16 @@ export type DragState = {
 }
 
 export type MinimapInteractionOptions = {
-	/** Accessor for the scroll container element */
 	scrollElement: Accessor<HTMLElement | undefined>
-	/** Accessor for canvas size in CSS pixels */
 	getCanvasSizeCss: () => { width: number; height: number } | null
-	/** Accessor for line count */
 	getLineCount: () => number
 }
 
 export type MinimapInteractionHandlers = {
-	/** Whether currently dragging the slider */
 	isDragging: Accessor<boolean>
-	/** Pointer down handler */
 	handlePointerDown: (event: PointerEvent) => void
-	/** Pointer move handler (drag) */
 	handlePointerMove: (event: PointerEvent) => void
-	/** Pointer up handler */
 	handlePointerUp: (event: PointerEvent) => void
-	/** Wheel handler (scroll passthrough) */
 	handleWheel: (event: WheelEvent) => void
 }
 

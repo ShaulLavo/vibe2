@@ -42,7 +42,6 @@ export type {
 	FileSystemObserverOptions,
 } from './FileSystemObserver'
 
-// Grep module
 export { grep, grepStream, GrepCoordinator } from './grep'
 export type {
 	GrepOptions,
@@ -52,7 +51,6 @@ export type {
 	GrepProgressCallback,
 } from './grep'
 
-// Sync module
 export {
 	ByteContentHandle,
 	ByteContentHandleFactory,
