@@ -17,9 +17,6 @@ import {
 	generateMinimapSummary,
 	generateMinimapSummaryFromText,
 } from './minimap'
-import { logger } from '../../logger'
-
-const log = logger.withTag('treeSitter')
 
 const api: TreeSitterWorkerApi = {
 	async init() {
@@ -79,7 +76,6 @@ self.addEventListener('message', (event: MessageEvent) => {
 		event.data?.type === 'connect-port' &&
 		event.data.port instanceof MessagePort
 	) {
-		log.info('Received port connection from minimap worker')
 		expose(api, event.data.port)
 	}
 })

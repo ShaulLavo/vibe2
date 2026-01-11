@@ -1,7 +1,4 @@
 import type { CachedTreeEntry } from './types'
-import { logger } from '../../logger'
-
-const log = logger.withTag('treeSitter')
 
 export const astCache = new Map<string, CachedTreeEntry>()
 
@@ -15,8 +12,8 @@ export const notifyMinimapReady = (path: string) => {
 	for (const callback of minimapReadySubscribers.values()) {
 		try {
 			callback({ path })
-		} catch (error) {
-			log.warn('[minimap] subscriber callback failed', error)
+		} catch {
+			// Ignore subscriber callback failures
 		}
 	}
 }

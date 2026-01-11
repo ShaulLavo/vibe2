@@ -1,10 +1,8 @@
 import { Parser, Language, Query } from 'web-tree-sitter';
 import type { LanguageId } from './types';
 import { LANGUAGE_CONFIG, locateWasm } from './constants';
-import { logger } from '../../logger';
 import { up } from 'up-fetch';
 
-const log = logger.withTag('treeSitter');
 const upfetch = up(fetch);
 
 let parserInstance: Parser | null = null;
@@ -28,7 +26,6 @@ export const ensureParser = async (languageId?: LanguageId) => {
 			parserInstance = new Parser();
 		})().catch((error) => {
 			parserInitPromise = null;
-			log.error('Tree-sitter parser init failed', error);
 			throw error;
 		});
 	}
@@ -45,8 +42,7 @@ export const ensureParser = async (languageId?: LanguageId) => {
 		try {
 			language = await Language.load(config.wasm);
 			languageCache.set(languageId, language);
-		} catch (e) {
-			log.error(`Failed to load language ${languageId}`, e);
+		} catch {
 			return undefined;
 		}
 	}
@@ -84,8 +80,8 @@ export const ensureParser = async (languageId?: LanguageId) => {
 			if (combinedFoldSource.trim()) {
 				foldQueries.push(new Query(language, combinedFoldSource));
 			}
-		} catch (e) {
-			log.error(`Failed to load queries for ${languageId}`, e);
+		} catch {
+			// Failed to load queries
 		}
 
 		queryCache.set(languageId, {

@@ -4,9 +4,6 @@ import type {
 	TreeSitterEditPayload,
 } from '../workers/treeSitter/types'
 import { applyTreeSitterEditBatch } from './workerClient'
-import { logger } from '../logger'
-
-const log = logger.withTag('treeSitter')
 
 const DEBOUNCE_MS = 50
 
@@ -43,11 +40,6 @@ export const sendIncrementalTreeEdit = (
 			clearTimeout(debounceTimeout)
 			debounceTimeout = null
 		}
-		log.debug('Tree-sitter batch flushed for new path', {
-			fromPath: pendingEdits.path,
-			toPath: path,
-			editCount: pendingEdits.edits.length,
-		})
 		pendingResolve?.(undefined)
 		pendingEdits = null
 		pendingResolve = null
@@ -86,33 +78,13 @@ export const sendIncrementalTreeEdit = (
 
 			applyTreeSitterEditBatch(batch.path, batch.edits)
 				.then((result) => {
-					const workerDuration = performance.now() - requestStartedAt
-					const totalDuration = performance.now() - batchStartedAt
-					if (totalDuration >= 200 || workerDuration >= 100) {
-						log.debug('Tree-sitter batch completed', {
-							path: batch.path,
-							editCount,
-							batchId,
-							debounceMs: DEBOUNCE_MS,
-							queuedMs: Math.max(0, requestStartedAt - batchStartedAt),
-							workerMs: workerDuration,
-							totalMs: totalDuration,
-						})
-					}
-
 					if (requestId === currentRequestId) {
 						resolve(result)
 					} else {
-						log.debug('Tree-sitter batch superseded', {
-							path: batch.path,
-							editCount,
-							batchId,
-						})
 						resolve(undefined)
 					}
 				})
-				.catch((error) => {
-					log.error('[Tree-sitter worker] incremental edit batch failed', error)
+				.catch(() => {
 					resolve(undefined)
 				})
 		}, DEBOUNCE_MS)

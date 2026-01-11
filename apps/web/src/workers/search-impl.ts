@@ -1,8 +1,5 @@
-import { logger } from '@repo/logger'
 import type { Sqlite3Client } from 'sqlite-wasm/client'
 import type { FileMetadata, SearchResult } from '../search/types'
-
-const log = logger.withTag('sqlite-search').debug
 
 export const ensureSchema = async (client: Sqlite3Client) => {
 	await client.execute(`
@@ -27,14 +24,13 @@ export const ensureSchema = async (client: Sqlite3Client) => {
 				(row) => row[nameIdx] === 'basename_initials'
 			)
 			if (!hasInitials) {
-				log('[SQLite] Migrating: Adding basename_initials column')
 				await client.execute(
 					"ALTER TABLE files ADD COLUMN basename_initials TEXT NOT NULL DEFAULT ''"
 				)
 			}
 		}
-	} catch (e) {
-		log('[SQLite] Migration check failed', e)
+	} catch {
+		// Migration check failed
 	}
 
 	await client.execute(
@@ -89,15 +85,10 @@ export const batchInsertFiles = async (
 		)
 	}
 
-	try {
-		await client.execute({
-			sql: `INSERT OR IGNORE INTO files (path, path_lc, basename_lc, basename_initials, dir_lc, kind) VALUES ${placeholders}`,
-			args,
-		})
-	} catch (e) {
-		log('Batch insert failed', e)
-		throw e
-	}
+	await client.execute({
+		sql: `INSERT OR IGNORE INTO files (path, path_lc, basename_lc, basename_initials, dir_lc, kind) VALUES ${placeholders}`,
+		args,
+	})
 }
 
 const SEARCH_PREFIX_SQL = `
@@ -178,9 +169,6 @@ export const removeFromIndex = async (
 			sql: 'DELETE FROM files WHERE path = ? OR path LIKE ?',
 			args: [path, `${path}/%`],
 		})
-		log(
-			`[SQLite] Removed ${result.rowsAffected} entries for path: ${path} (recursive)`
-		)
 		return result.rowsAffected
 	}
 
@@ -188,7 +176,6 @@ export const removeFromIndex = async (
 		sql: 'DELETE FROM files WHERE path = ?',
 		args: [path],
 	})
-	log(`[SQLite] Removed ${result.rowsAffected} entries for path: ${path}`)
 	return result.rowsAffected
 }
 
@@ -264,6 +251,5 @@ export const renameInIndex = async (
 		}
 	}
 
-	log(`[SQLite] Renamed ${totalChanges} entries from ${oldPath} to ${newPath}`)
 	return totalChanges
 }

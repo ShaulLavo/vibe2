@@ -1,4 +1,3 @@
-import { logger } from '@repo/logger'
 import * as Comlink from 'comlink'
 import sqlite3InitModule, {
 	type Database,
@@ -14,8 +13,6 @@ import wasmUrl from 'sqlite-wasm/sqlite3.wasm?url'
 import proxyUrl from 'sqlite-wasm/sqlite3-opfs-async-proxy.js?url'
 import * as searchImpl from './search-impl'
 import type { FileMetadata, SearchResult } from '../search/types'
-
-const log = logger.withTag('sqlite').debug
 
 let sqlite3: Sqlite3Static | null = null
 let client: Sqlite3Client | null = null
@@ -54,10 +51,6 @@ const performInit = async (): Promise<{
 	;[client, db] = createClient(clientCofig, sqlite3)
 
 	await searchImpl.ensureSchema(client)
-
-	log(
-		`[SQLite] v${sqlite3.version.libVersion} initialized. OPFS: ${opfsEnabled}, URL: ${clientCofig.url}`
-	)
 
 	return { version: sqlite3.version.libVersion, opfsEnabled }
 }
@@ -130,8 +123,8 @@ const reset = async (): Promise<void> => {
 	if (db) {
 		try {
 			db.close()
-		} catch (e) {
-			log('[SQLite] Error closing DB:', e)
+		} catch {
+			// Ignore close errors
 		}
 		db = null
 		client = null
@@ -140,16 +133,12 @@ const reset = async (): Promise<void> => {
 	try {
 		const root = await navigator.storage.getDirectory()
 		await root.removeEntry('vibe.sqlite3')
-		log('[SQLite] OPFS file deleted')
-	} catch (e) {
-		log('[SQLite] Error deleting OPFS file (might not exist):', e)
+	} catch {
+		// OPFS file might not exist
 	}
 
 	initPromise = null
 	await performInit()
-	log('[SQLite] Re-initialized')
-
-	log('[SQLite] Database reset complete (clean state)')
 }
 
 const workerApi = {

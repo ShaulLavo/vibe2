@@ -1,9 +1,6 @@
 import type { MinimapTokenSummary, TreeSitterCapture } from './types'
 import { getScopeColorId } from '@repo/code-editor/tokenSummary'
 import { astCache } from './cache'
-import { logger } from '../../logger'
-
-const log = logger.withTag('treeSitter')
 
 /**
  * Internal: Build minimap tokens from text and optional captures
@@ -102,15 +99,8 @@ export const generateMinimapSummary = (
 ): MinimapTokenSummary | undefined => {
 	const cached = astCache.get(path)
 	if (!cached) {
-		log.debug('generateMinimapSummary: No cached entry for', path)
 		return undefined
 	}
-	log.debug(
-		'generateMinimapSummary: Cached entry found for',
-		path,
-		'Language:',
-		cached.languageId
-	)
 
 	const { tokens, lineCount } = buildMinimapTokens(
 		cached.text,
