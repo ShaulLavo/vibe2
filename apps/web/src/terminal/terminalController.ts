@@ -267,9 +267,55 @@ export const createTerminalController = async (
 
 	const replayBuffer = async () => {
 		if (sharedBuffer.entries.length === 0) {
-			// Type out the welcome message with a realistic typing effect
-			await typeEffect(term, 'Welcome to vibe shell (powered by just-bash)', 15)
-			await typeEffect(term, 'Type `help` to see available commands.', 15)
+			// Tiny neofetch style init message
+			const CYAN = '\x1b[36m'
+			const MAGENTA = '\x1b[35m'
+			const RESET = '\x1b[0m'
+			const BOLD = '\x1b[1m'
+
+			const asciiArt = [
+				'      _ _',
+				'     (_) |',
+				'__   ___| |__   ___',
+				"\\ \\ / / | '_ \\ / _ \\",
+				' \\ V /| | |_) |  __/',
+				'  \\_/ |_|_.__/ \\___|',
+			]
+
+			const date = new Date().toLocaleTimeString()
+			const terminalInfo =
+				backend === 'xterm'
+					? `Vibe Terminal (xterm + ${options.rendererType || 'webgl'})`
+					: `Vibe Terminal (${backend})`
+
+			const info = [
+				`${BOLD}${MAGENTA}Just Init Message${RESET}`,
+				`-----------------`,
+				`${CYAN}OS${RESET}:       vibeOS (macOS)`,
+				`${CYAN}Shell${RESET}:    just-bash`,
+				`${CYAN}Terminal${RESET}: ${terminalInfo}`,
+				`${CYAN}Time${RESET}:     ${date}`,
+			]
+
+			const combinedLines: string[] = []
+			const maxLines = Math.max(asciiArt.length, info.length)
+
+			for (let i = 0; i < maxLines; i++) {
+				const artLine = asciiArt[i] || '                    '
+				// Pad art line to fixed width (20 chars)
+				const paddedArt = (artLine + ' '.repeat(30)).slice(0, 22)
+				const infoLine = info[i] || ''
+				combinedLines.push(`${MAGENTA}${paddedArt}${RESET}  ${infoLine}`)
+			}
+
+			// Add an empty line and the help message
+			combinedLines.push('')
+			combinedLines.push('Type `help` to see available commands.')
+
+			// Type out the lines
+			for (const line of combinedLines) {
+				await typeEffect(term, line, 0) // Faster typing for the big block
+			}
 			return
 		}
 
