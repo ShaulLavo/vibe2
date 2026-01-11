@@ -1,16 +1,16 @@
 import type { PerfBreakdownEntry, PerfRecord, PerfSummary } from './perfStore'
 import { getSummary, getRecentForOperation } from './perfStore'
 import { formatBytes } from '@repo/utils'
-type LogLevel = 'debug' | 'info' | 'warn'
+type LogLevel = 'debug' | 'info' | 'warn' | 'silent'
 
-let currentLogLevel: LogLevel = 'debug'
+let currentLogLevel: LogLevel = 'silent'
 
 export const setLogLevel = (level: LogLevel): void => {
 	currentLogLevel = level
 }
 
 const shouldLog = (level: LogLevel): boolean => {
-	const levels: LogLevel[] = ['debug', 'info', 'warn']
+	const levels: LogLevel[] = ['debug', 'info', 'warn', 'silent']
 	return levels.indexOf(level) >= levels.indexOf(currentLogLevel)
 }
 
