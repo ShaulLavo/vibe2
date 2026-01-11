@@ -12,6 +12,8 @@ app.config.timestamp_*.js
 # Environment
 .env
 .env*.local
+vite.env
+vite.env*.local
 
 # dependencies
 /node_modules

@@ -1,10 +1,11 @@
 import path from 'node:path'
-import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import solidPlugin from 'vite-plugin-solid'
 import devtools from 'solid-devtools/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { playwright } from '@vitest/browser-playwright'
 import { build } from 'vite'
+import { env } from './vite-env'
 
 /**
  * Plugin to build the service worker as a separate bundle
@@ -58,17 +59,13 @@ function serviceWorkerDevPlugin(): Plugin {
 	}
 }
 
-export default defineConfig(({ mode }) => {
-	const appDir = path.resolve(__dirname)
-	const repoRoot = path.resolve(appDir, '../..')
-
-	const rootEnv = loadEnv(mode, repoRoot, '')
-	const appEnv = loadEnv(mode, appDir, '')
-	Object.assign(process.env, rootEnv, appEnv)
-
-	const webPort = Number(process.env.VITE_WEB_PORT) || 3000
+export default defineConfig(() => {
+	const webPort = env.VITE_WEB_PORT
 	return {
-		envDir: appDir,
+		// Point envDir to a directory that contains no .env files to prevent Vite
+		// from trying to load them again (which causes crashes in dotenv-expand).
+		// We already loaded and validated them in vite-env.ts.
+		envDir: path.resolve(__dirname, 'src/shims'),
 		plugins: [
 			tailwindcss(),
 			devtools({
