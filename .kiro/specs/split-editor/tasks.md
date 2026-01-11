@@ -195,7 +195,7 @@ Implementation of a recursive split editor system with VS Code-style tab managem
     - **Validates: Requirements 13.1, 13.4**
     - **Note: Integration test - USE BROWSER MODE for complex DOM state preservation**
 
-- [-] 9. Implement Independent Tab State
+- [x] 9. Implement Independent Tab State
   - [x] 9.1 Add tab state management to Layout Manager
     - Track scroll position, selections, cursor per tab
     - Implement updateTabState action
@@ -207,7 +207,7 @@ Implementation of a recursive split editor system with VS Code-style tab managem
     - View settings shared across all tabs in pane
     - _Requirements: 8.4_
 
-  - [-] 9.3 Create FileTab component with shared resources
+  - [x] 9.3 Create FileTab component with shared resources
     - Register/unregister with Resource Manager on mount/cleanup (by tabId)
     - Use shared buffer for content
     - Use independent state for scroll/selections
@@ -215,59 +215,59 @@ Implementation of a recursive split editor system with VS Code-style tab managem
     - _Requirements: 2.1, 2.5, 8.1, 8.2, 8.4_
     - **Note: Component test - USE BROWSER MODE for mount/cleanup lifecycle and editor integration**
 
-  - [ ] 9.4 Write property test for independent tab state
+  - [x] 9.4 Write property test for independent tab state
     - **Property 6: Independent Tab State**
     - Open same file in multiple tabs, verify independent scroll/selections
     - **Validates: Requirements 8.1, 8.2, 8.3**
     - **Note: Integration test - USE BROWSER MODE for scroll/selection state verification**
 
-- [ ] 9.5 Checkpoint - Editor Integration Complete
-  - Ensure all tests pass and actual file editing works
-  - Verify syntax highlighting, scrolling, and editing functionality
-  - Ask the user if questions arise about editor behavior
-  - **Note: Integration verification - USE BROWSER MODE for full editor functionality testing**
+  - [x] 9.5 Checkpoint - Editor Integration Complete
+    - Ensure all tests pass and actual file editing works
+    - Verify syntax highlighting, scrolling, and editing functionality
+    - Ask the user if questions arise about editor behavior
+    - **Note: Integration verification - USE BROWSER MODE for full editor functionality testing**
 
 - [ ] 11. Checkpoint - UI and Tabs Complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Implement Layout Persistence
-  - [ ] 12.1 Implement getLayoutTree() serialization
+- [x] 12. Implement Layout Persistence
+  - [x] 12.1 Implement getLayoutTree() serialization
     - Convert layout state to SerializedLayout format
     - Include all tabs with their content and state
     - _Requirements: 11.1, 16.3_
 
-  - [ ] 12.2 Implement restoreLayout() with reconcile
+  - [x] 12.2 Implement restoreLayout() with reconcile
     - Use reconcile for efficient tree diffing
     - Handle missing files gracefully (show empty tab or remove)
     - _Requirements: 11.2, 11.3_
 
-  - [ ] 12.3 Add auto-persistence with makePersisted and dualStorage
+  - [x] 12.3 Add auto-persistence with makePersisted and dualStorage
     - Debounce persistence writes
     - Restore on initialize()
     - _Requirements: 1.4, 1.5, 11.4, 11.5_
 
-  - [ ] 12.4 Write property test for serialization round-trip
+  - [x] 12.4 Write property test for serialization round-trip
     - **Property 7: Layout Serialization Round-Trip**
     - Serialize then deserialize, verify equivalent layout with all tabs
     - **Validates: Requirements 11.1, 11.2**
     - **Note: Standard unit test - no browser mode needed**
 
-- [ ] 13. Implement Focus and Keyboard Navigation
-  - [ ] 13.1 Add focus tracking to Layout Manager
+- [x] 13. Implement Focus and Keyboard Navigation
+  - [x] 13.1 Add focus tracking to Layout Manager
     - Track focusedPaneId in state
     - Implement setFocusedPane action
     - _Requirements: 12.6_
 
-  - [ ] 13.2 Implement navigateFocus(direction) action
+  - [x] 13.2 Implement navigateFocus(direction) action
     - Calculate geometrically adjacent pane
     - Handle edge cases (no adjacent pane)
     - _Requirements: 12.1_
 
-  - [ ] 13.3 Implement cycleTab(direction) action
+  - [x] 13.3 Implement cycleTab(direction) action
     - Cycle through tabs in focused pane
     - _Requirements: 12.4_
 
-  - [ ] 13.4 Add keyboard shortcuts for navigation, split, close, and tabs
+  - [x] 13.4 Add keyboard shortcuts for navigation, split, close, and tabs
     - Arrow keys with modifier for focus navigation
     - Shortcuts for split horizontal/vertical (Cmd+\, Cmd+Shift+\)
     - Shortcut for close current pane
@@ -275,7 +275,7 @@ Implementation of a recursive split editor system with VS Code-style tab managem
     - Cmd+1/2/3 for pane switching
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
-  - [ ] 13.5 Write property test for focus navigation
+  - [x] 13.5 Write property test for focus navigation
     - **Property 8: Focus Navigation Consistency**
     - Navigate in direction, verify focus moves to adjacent pane
     - **Validates: Requirements 12.1, 12.5**
