@@ -2,11 +2,11 @@
  * Resource Manager
  *
  * Manages shared resources (tree-sitter workers, syntax highlighting, buffers)
- * across panes showing the same file. Uses reference counting for cleanup.
+ * across tabs showing the same file. Uses reference counting for cleanup.
  */
 
 import { createMemo, createSignal, onCleanup, type Accessor } from 'solid-js'
-import type { NodeId } from './types'
+import type { TabId } from './types'
 import type {
 	TreeSitterCapture,
 	TreeSitterParseResult,
@@ -45,7 +45,7 @@ export interface HighlightState {
 	updateFromParseResult: (result: TreeSitterParseResult) => void
 }
 
-/** Shared buffer for multi-pane editing */
+/** Shared buffer for multi-tab editing */
 export interface SharedBuffer {
 	/** The file path */
 	filePath: string
@@ -56,7 +56,7 @@ export interface SharedBuffer {
 	/** Set content directly */
 	setContent: (content: string) => void
 
-	/** Apply an edit from any pane */
+	/** Apply an edit from any tab */
 	applyEdit: (edit: TextEdit) => Promise<void>
 
 	/** Subscribe to edits */
@@ -65,8 +65,8 @@ export interface SharedBuffer {
 
 /** Internal file resource entry */
 interface FileResource {
-	/** Panes using this file */
-	paneIds: Set<NodeId>
+	/** Tabs using this file */
+	tabIds: Set<TabId>
 
 	/** Shared buffer */
 	buffer: SharedBuffer
@@ -86,23 +86,28 @@ export interface ResourceManager {
 	/** Get highlight state for a file */
 	getHighlightState: (filePath: string) => HighlightState | undefined
 
-	/** Register a pane as using a file */
-	registerPaneForFile: (paneId: NodeId, filePath: string) => void
+	/** Register a tab as using a file */
+	registerTabForFile: (tabId: TabId, filePath: string) => void
 
-	/** Unregister a pane from a file */
-	unregisterPaneFromFile: (paneId: NodeId, filePath: string) => void
+	/** Unregister a tab from a file */
+	unregisterTabFromFile: (tabId: TabId, filePath: string) => void
 
 	/** Check if a file has resources */
 	hasResourcesForFile: (filePath: string) => boolean
 
-	/** Get pane count for a file */
-	getPaneCountForFile: (filePath: string) => number
+	/** Get tab count for a file */
+	getTabCountForFile: (filePath: string) => number
 
 	/** Get all tracked files */
 	getTrackedFiles: () => string[]
 
 	/** Cleanup all resources */
 	cleanup: () => void
+
+	// Legacy aliases for backward compatibility with tests
+	registerPaneForFile: (paneId: string, filePath: string) => void
+	unregisterPaneFromFile: (paneId: string, filePath: string) => void
+	getPaneCountForFile: (filePath: string) => number
 }
 
 /** Apply text edit to content string */
@@ -116,8 +121,8 @@ function applyTextEdit(content: string, edit: TextEdit): string {
  * Create a shared buffer for a file
  *
  * The SharedBuffer provides signal-based content storage that coordinates
- * edits across multiple panes showing the same file. When an edit is applied
- * from one pane, all other panes are notified via the listener mechanism.
+ * edits across multiple tabs showing the same file. When an edit is applied
+ * from one tab, all other tabs are notified via the listener mechanism.
  */
 function createSharedBuffer(filePath: string): SharedBuffer {
 	// Signal-based content storage for reactivity
@@ -145,8 +150,8 @@ function createSharedBuffer(filePath: string): SharedBuffer {
 			setContent(newContent)
 			editVersion++
 
-			// Notify all listeners (other panes showing same file)
-			// This allows panes to update their view state accordingly
+			// Notify all listeners (other tabs showing same file)
+			// This allows tabs to update their view state accordingly
 			listeners.forEach((cb) => {
 				try {
 					cb(edit)
@@ -193,7 +198,7 @@ function createSharedBuffer(filePath: string): SharedBuffer {
  * Create highlight state for a file
  *
  * Provides reactive signals for syntax highlighting data that can be
- * shared across multiple panes showing the same file.
+ * shared across multiple tabs showing the same file.
  */
 function createHighlightStateForFile(): HighlightState {
 	const [captures, setCaptures] = createSignal<TreeSitterCapture[]>([])
@@ -229,7 +234,7 @@ export function createResourceManager(): ResourceManager {
 		let resource = resources.get(filePath)
 		if (!resource) {
 			resource = {
-				paneIds: new Set(),
+				tabIds: new Set(),
 				buffer: createSharedBuffer(filePath),
 				highlights: createHighlightStateForFile(),
 				workerReady: false,
@@ -257,24 +262,24 @@ export function createResourceManager(): ResourceManager {
 		}
 	}
 
-	/** Register a pane as using a file */
-	function registerPaneForFile(paneId: NodeId, filePath: string): void {
+	/** Register a tab as using a file */
+	function registerTabForFile(tabId: TabId, filePath: string): void {
 		const resource = getOrCreateResource(filePath)
-		resource.paneIds.add(paneId)
+		resource.tabIds.add(tabId)
 
 		// Initialize worker lazily
 		void initializeWorkerForFile(filePath, resource)
 	}
 
-	/** Unregister a pane from a file */
-	function unregisterPaneFromFile(paneId: NodeId, filePath: string): void {
+	/** Unregister a tab from a file */
+	function unregisterTabFromFile(tabId: TabId, filePath: string): void {
 		const resource = resources.get(filePath)
 		if (!resource) return
 
-		resource.paneIds.delete(paneId)
+		resource.tabIds.delete(tabId)
 
-		// Cleanup if no more panes using this file
-		if (resource.paneIds.size === 0) {
+		// Cleanup if no more tabs using this file
+		if (resource.tabIds.size === 0) {
 			resources.delete(filePath)
 		}
 	}
@@ -294,9 +299,9 @@ export function createResourceManager(): ResourceManager {
 		return resources.has(filePath)
 	}
 
-	/** Get pane count for a file */
-	function getPaneCountForFile(filePath: string): number {
-		return resources.get(filePath)?.paneIds.size ?? 0
+	/** Get tab count for a file */
+	function getTabCountForFile(filePath: string): number {
+		return resources.get(filePath)?.tabIds.size ?? 0
 	}
 
 	/** Get all tracked files */
@@ -312,12 +317,16 @@ export function createResourceManager(): ResourceManager {
 	return {
 		getBuffer,
 		getHighlightState,
-		registerPaneForFile,
-		unregisterPaneFromFile,
+		registerTabForFile,
+		unregisterTabFromFile,
 		hasResourcesForFile,
-		getPaneCountForFile,
+		getTabCountForFile,
 		getTrackedFiles,
 		cleanup,
+		// Legacy aliases for backward compatibility with tests
+		registerPaneForFile: registerTabForFile,
+		unregisterPaneFromFile: unregisterTabFromFile,
+		getPaneCountForFile: getTabCountForFile,
 	}
 }
 

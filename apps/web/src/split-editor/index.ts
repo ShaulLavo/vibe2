@@ -13,3 +13,21 @@ export {
 	type HighlightState,
 	type TextEdit,
 } from './createResourceManager'
+
+// UI Components
+export {
+	SplitEditor,
+	useLayoutManager,
+	useResourceManager,
+	SplitNode,
+	SplitContainer,
+	EditorPaneSlot,
+	PanePortals,
+} from './components'
+export type {
+	SplitEditorProps,
+	SplitNodeProps,
+	SplitContainerProps,
+	EditorPaneSlotProps,
+	PanePortalsProps,
+} from './components'

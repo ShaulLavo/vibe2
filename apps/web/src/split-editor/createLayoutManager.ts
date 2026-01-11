@@ -1,7 +1,7 @@
 /**
  * Layout Manager Store
  *
- * Reactive SolidJS store managing the split editor layout tree.
+ * Reactive SolidJS store managing the split editor layout tree with tabs.
  * Uses createStore with produce for immutable updates and reconcile for efficient tree diffing.
  */
 
@@ -11,8 +11,6 @@ import type {
 	EditorPane,
 	LayoutState,
 	NodeId,
-	PaneContent,
-	PaneState,
 	ScrollSyncGroup,
 	ScrollSyncMode,
 	SerializedLayout,
@@ -20,20 +18,24 @@ import type {
 	SplitContainer,
 	SplitDirection,
 	SplitNode,
+	Tab,
+	TabContent,
+	TabId,
+	TabState,
+	ViewSettings,
 } from './types'
 import {
-	createDefaultPaneState,
+	createDefaultTabState,
+	createDefaultViewSettings,
 	createEmptyContent,
 	isContainer,
 	isPane,
 } from './types'
 
-/** Generate unique node ID */
 function generateId(): NodeId {
 	return crypto.randomUUID()
 }
 
-/** Find first pane in a subtree (depth-first) */
 function findFirstPane(
 	nodes: Record<NodeId, SplitNode>,
 	nodeId: NodeId
@@ -50,7 +52,6 @@ function findFirstPane(
 	return null
 }
 
-/** Create the layout manager store */
 export function createLayoutManager() {
 	const [state, setState] = createStore<LayoutState>({
 		rootId: '',
@@ -59,35 +60,51 @@ export function createLayoutManager() {
 		scrollSyncGroups: [],
 	})
 
-	// Derived: get all pane IDs
 	const paneIds = createMemo(() =>
 		Object.values(state.nodes)
 			.filter((n): n is EditorPane => isPane(n))
 			.map((p) => p.id)
 	)
 
-	// Derived: get panes showing a specific file
-	const getPanesForFile = (filePath: string) =>
-		createMemo(() =>
-			Object.values(state.nodes).filter(
-				(n): n is EditorPane =>
-					isPane(n) && n.content.filePath === filePath
-			)
-		)
+	const getAllTabs = createMemo(() => {
+		const tabs: Array<{ paneId: NodeId; tab: Tab }> = []
+		for (const node of Object.values(state.nodes)) {
+			if (isPane(node)) {
+				for (const tab of node.tabs) {
+					tabs.push({ paneId: node.id, tab })
+				}
+			}
+		}
+		return tabs
+	})
+
+	const findTabByFilePath = (filePath: string) =>
+		createMemo(() => {
+			for (const node of Object.values(state.nodes)) {
+				if (isPane(node)) {
+					for (const tab of node.tabs) {
+						if (tab.content.filePath === filePath) {
+							return { paneId: node.id, tab }
+						}
+					}
+				}
+			}
+			return null
+		})
 
 	// ========================================================================
 	// Initialization
 	// ========================================================================
 
-	/** Initialize with a single pane */
 	function initialize(): void {
 		const paneId = generateId()
 		const pane: EditorPane = {
 			id: paneId,
 			type: 'pane',
 			parentId: null,
-			content: createEmptyContent(),
-			state: createDefaultPaneState(),
+			tabs: [],
+			activeTabId: null,
+			viewSettings: createDefaultViewSettings(),
 		}
 
 		batch(() => {
@@ -101,7 +118,6 @@ export function createLayoutManager() {
 	// Split Operations
 	// ========================================================================
 
-	/** Split a pane into two */
 	function splitPane(paneId: NodeId, direction: SplitDirection): NodeId {
 		const newPaneId = generateId()
 		const newContainerId = generateId()
@@ -114,16 +130,15 @@ export function createLayoutManager() {
 
 					const parentId = pane.parentId
 
-					// Create new pane (empty)
 					const newPane: EditorPane = {
 						id: newPaneId,
 						type: 'pane',
 						parentId: newContainerId,
-						content: createEmptyContent(),
-						state: createDefaultPaneState(),
+						tabs: [],
+						activeTabId: null,
+						viewSettings: { ...pane.viewSettings },
 					}
 
-					// Create container to hold both panes
 					const container: SplitContainer = {
 						id: newContainerId,
 						type: 'container',
@@ -133,14 +148,10 @@ export function createLayoutManager() {
 						children: [paneId, newPaneId],
 					}
 
-					// Update original pane's parent
 					;(s.nodes[paneId] as EditorPane).parentId = newContainerId
 
-					// Update parent's child reference
 					if (parentId) {
-						const parent = s.nodes[parentId] as
-							| SplitContainer
-							| undefined
+						const parent = s.nodes[parentId] as SplitContainer | undefined
 						if (parent && isContainer(parent)) {
 							const childIndex = parent.children.indexOf(paneId)
 							if (childIndex !== -1) {
@@ -148,11 +159,9 @@ export function createLayoutManager() {
 							}
 						}
 					} else {
-						// Original pane was root
 						s.rootId = newContainerId
 					}
 
-					// Add new nodes
 					s.nodes[newContainerId] = container
 					s.nodes[newPaneId] = newPane
 				})
@@ -166,7 +175,6 @@ export function createLayoutManager() {
 	// Close Operations
 	// ========================================================================
 
-	/** Close a pane */
 	function closePane(paneId: NodeId): void {
 		batch(() => {
 			setState(
@@ -181,14 +189,10 @@ export function createLayoutManager() {
 						return
 					}
 
-					const parent = s.nodes[parentId] as
-						| SplitContainer
-						| undefined
+					const parent = s.nodes[parentId] as SplitContainer | undefined
 					if (!parent || !isContainer(parent)) return
 
-					const siblingId = parent.children.find(
-						(id) => id !== paneId
-					)
+					const siblingId = parent.children.find((id) => id !== paneId)
 					if (!siblingId) return
 
 					const sibling = s.nodes[siblingId]
@@ -196,30 +200,23 @@ export function createLayoutManager() {
 
 					const grandparentId = parent.parentId
 
-					// Promote sibling to parent's position
 					sibling.parentId = grandparentId
 
 					if (grandparentId) {
-						const grandparent = s.nodes[grandparentId] as
-							| SplitContainer
-							| undefined
+						const grandparent = s.nodes[grandparentId] as SplitContainer | undefined
 						if (grandparent && isContainer(grandparent)) {
-							const parentIndex =
-								grandparent.children.indexOf(parentId)
+							const parentIndex = grandparent.children.indexOf(parentId)
 							if (parentIndex !== -1) {
 								grandparent.children[parentIndex] = siblingId
 							}
 						}
 					} else {
-						// Parent was root, sibling becomes new root
 						s.rootId = siblingId
 					}
 
-					// Remove closed pane and collapsed container
 					delete s.nodes[paneId]
 					delete s.nodes[parentId]
 
-					// Update focus if needed
 					if (s.focusedPaneId === paneId) {
 						s.focusedPaneId = findFirstPane(s.nodes, siblingId)
 					}
@@ -229,42 +226,157 @@ export function createLayoutManager() {
 	}
 
 	// ========================================================================
-	// Pane Content & State
+	// Tab Operations
 	// ========================================================================
 
-	/** Set pane content */
-	function setPaneContent(paneId: NodeId, content: PaneContent): void {
+	function openTab(paneId: NodeId, content: TabContent): TabId {
+		const tabId = generateId()
+
 		setState(
 			produce((s) => {
-				const pane = s.nodes[paneId]
-				if (pane && isPane(pane)) {
-					pane.content = content
+				const pane = s.nodes[paneId] as EditorPane | undefined
+				if (!pane || !isPane(pane)) return
+
+				const newTab: Tab = {
+					id: tabId,
+					content,
+					state: createDefaultTabState(),
+					isDirty: false,
+				}
+
+				pane.tabs.push(newTab)
+				pane.activeTabId = tabId
+			})
+		)
+
+		return tabId
+	}
+
+	function closeTab(paneId: NodeId, tabId: TabId): void {
+		let shouldClosePane = false
+
+		setState(
+			produce((s) => {
+				const pane = s.nodes[paneId] as EditorPane | undefined
+				if (!pane || !isPane(pane)) return
+
+				const tabIndex = pane.tabs.findIndex((t) => t.id === tabId)
+				if (tabIndex === -1) return
+
+				pane.tabs.splice(tabIndex, 1)
+
+				if (pane.activeTabId === tabId) {
+					if (pane.tabs.length > 0) {
+						const newIndex = Math.min(tabIndex, pane.tabs.length - 1)
+						pane.activeTabId = pane.tabs[newIndex]?.id ?? null
+					} else {
+						pane.activeTabId = null
+					}
+				}
+
+				if (pane.tabs.length === 0) {
+					shouldClosePane = true
+				}
+			})
+		)
+
+		if (shouldClosePane) {
+			closePane(paneId)
+		}
+	}
+
+	function setActiveTab(paneId: NodeId, tabId: TabId): void {
+		setState(
+			produce((s) => {
+				const pane = s.nodes[paneId] as EditorPane | undefined
+				if (!pane || !isPane(pane)) return
+
+				const tab = pane.tabs.find((t) => t.id === tabId)
+				if (tab) {
+					pane.activeTabId = tabId
 				}
 			})
 		)
 	}
 
-	/** Update pane state */
-	function updatePaneState(
-		paneId: NodeId,
-		updates: Partial<PaneState>
-	): void {
+	function moveTab(fromPaneId: NodeId, tabId: TabId, toPaneId: NodeId): void {
+		let shouldClosePane = false
+
 		batch(() => {
 			setState(
 				produce((s) => {
-					const pane = s.nodes[paneId]
-					if (!pane || !isPane(pane)) return
-					Object.assign(pane.state, updates)
+					const fromPane = s.nodes[fromPaneId] as EditorPane | undefined
+					const toPane = s.nodes[toPaneId] as EditorPane | undefined
+					if (!fromPane || !toPane || !isPane(fromPane) || !isPane(toPane)) return
+
+					const tabIndex = fromPane.tabs.findIndex((t) => t.id === tabId)
+					if (tabIndex === -1) return
+
+					const [tab] = fromPane.tabs.splice(tabIndex, 1)
+					if (!tab) return
+
+					if (fromPane.activeTabId === tabId) {
+						fromPane.activeTabId = fromPane.tabs[0]?.id ?? null
+					}
+
+					toPane.tabs.push(tab)
+					toPane.activeTabId = tabId
+
+					if (fromPane.tabs.length === 0) {
+						shouldClosePane = true
+					}
 				})
 			)
+
+			if (shouldClosePane) {
+				closePane(fromPaneId)
+			}
 		})
 	}
 
-	/** Update split sizes */
-	function updateSplitSizes(
-		containerId: NodeId,
-		sizes: [number, number]
-	): void {
+	function updateTabState(paneId: NodeId, tabId: TabId, updates: Partial<TabState>): void {
+		setState(
+			produce((s) => {
+				const pane = s.nodes[paneId] as EditorPane | undefined
+				if (!pane || !isPane(pane)) return
+
+				const tab = pane.tabs.find((t) => t.id === tabId)
+				if (tab) {
+					Object.assign(tab.state, updates)
+				}
+			})
+		)
+	}
+
+	function setTabDirty(paneId: NodeId, tabId: TabId, isDirty: boolean): void {
+		setState(
+			produce((s) => {
+				const pane = s.nodes[paneId] as EditorPane | undefined
+				if (!pane || !isPane(pane)) return
+
+				const tab = pane.tabs.find((t) => t.id === tabId)
+				if (tab) {
+					tab.isDirty = isDirty
+				}
+			})
+		)
+	}
+
+	// ========================================================================
+	// Pane Operations
+	// ========================================================================
+
+	function updateViewSettings(paneId: NodeId, settings: Partial<ViewSettings>): void {
+		setState(
+			produce((s) => {
+				const pane = s.nodes[paneId] as EditorPane | undefined
+				if (!pane || !isPane(pane)) return
+				Object.assign(pane.viewSettings, settings)
+			})
+		)
+	}
+
+	function updateSplitSizes(containerId: NodeId, sizes: [number, number]): void {
 		setState(
 			produce((s) => {
 				const container = s.nodes[containerId]
@@ -279,17 +391,11 @@ export function createLayoutManager() {
 	// Focus Management
 	// ========================================================================
 
-	/** Set focused pane */
 	function setFocusedPane(paneId: NodeId): void {
 		setState('focusedPaneId', paneId)
 	}
 
-	/** Navigate focus in a direction */
-	function navigateFocus(
-		direction: 'up' | 'down' | 'left' | 'right'
-	): void {
-		// Implementation will be added in task 10
-		// For now, just cycle through panes
+	function navigateFocus(direction: 'up' | 'down' | 'left' | 'right'): void {
 		const panes = paneIds()
 		if (panes.length === 0) return
 
@@ -301,19 +407,33 @@ export function createLayoutManager() {
 		}
 	}
 
+	function cycleTab(direction: 'next' | 'prev'): void {
+		const focusedPaneId = state.focusedPaneId
+		if (!focusedPaneId) return
+
+		const pane = state.nodes[focusedPaneId] as EditorPane | undefined
+		if (!pane || !isPane(pane) || pane.tabs.length === 0) return
+
+		const currentIndex = pane.tabs.findIndex((t) => t.id === pane.activeTabId)
+		if (currentIndex === -1) return
+
+		const delta = direction === 'next' ? 1 : -1
+		const nextIndex = (currentIndex + delta + pane.tabs.length) % pane.tabs.length
+		const nextTab = pane.tabs[nextIndex]
+		if (nextTab) {
+			setActiveTab(focusedPaneId, nextTab.id)
+		}
+	}
+
 	// ========================================================================
 	// Scroll Sync
 	// ========================================================================
 
-	/** Link panes for scroll sync */
-	function linkScrollSync(
-		paneIdList: NodeId[],
-		mode: ScrollSyncMode
-	): string {
+	function linkScrollSync(tabIdList: TabId[], mode: ScrollSyncMode): string {
 		const groupId = generateId()
 		const group: ScrollSyncGroup = {
 			id: groupId,
-			paneIds: paneIdList,
+			tabIds: tabIdList,
 			mode,
 		}
 
@@ -326,13 +446,10 @@ export function createLayoutManager() {
 		return groupId
 	}
 
-	/** Unlink scroll sync */
 	function unlinkScrollSync(groupId: string): void {
 		setState(
 			produce((s) => {
-				const index = s.scrollSyncGroups.findIndex(
-					(g) => g.id === groupId
-				)
+				const index = s.scrollSyncGroups.findIndex((g) => g.id === groupId)
 				if (index !== -1) {
 					s.scrollSyncGroups.splice(index, 1)
 				}
@@ -344,29 +461,32 @@ export function createLayoutManager() {
 	// Serialization
 	// ========================================================================
 
-	/** Get layout tree for serialization */
 	function getLayoutTree(): SerializedLayout {
-		const nodes: SerializedNode[] = Object.values(state.nodes).map(
-			(node) => {
-				if (isContainer(node)) {
-					return {
-						id: node.id,
-						parentId: node.parentId,
-						type: 'container' as const,
-						direction: node.direction,
-						sizes: node.sizes,
-						children: node.children,
-					}
-				}
+		const nodes: SerializedNode[] = Object.values(state.nodes).map((node) => {
+			if (isContainer(node)) {
 				return {
 					id: node.id,
 					parentId: node.parentId,
-					type: 'pane' as const,
-					content: node.content,
-					state: node.state,
+					type: 'container' as const,
+					direction: node.direction,
+					sizes: node.sizes,
+					children: node.children,
 				}
 			}
-		)
+			return {
+				id: node.id,
+				parentId: node.parentId,
+				type: 'pane' as const,
+				tabs: node.tabs.map((t) => ({
+					id: t.id,
+					content: t.content,
+					state: t.state,
+					isDirty: t.isDirty,
+				})),
+				activeTabId: node.activeTabId,
+				viewSettings: node.viewSettings,
+			}
+		})
 
 		return {
 			version: 1,
@@ -377,7 +497,6 @@ export function createLayoutManager() {
 		}
 	}
 
-	/** Restore layout from serialized state */
 	function restoreLayout(layout: SerializedLayout): void {
 		const nodes: Record<NodeId, SplitNode> = {}
 
@@ -396,8 +515,9 @@ export function createLayoutManager() {
 					id: serialized.id,
 					parentId: serialized.parentId,
 					type: 'pane',
-					content: serialized.content ?? createEmptyContent(),
-					state: serialized.state ?? createDefaultPaneState(),
+					tabs: serialized.tabs ?? [],
+					activeTabId: serialized.activeTabId ?? null,
+					viewSettings: serialized.viewSettings ?? createDefaultViewSettings(),
 				}
 			}
 		}
@@ -413,15 +533,22 @@ export function createLayoutManager() {
 	return {
 		state,
 		paneIds,
-		getPanesForFile,
+		getAllTabs,
+		findTabByFilePath,
 		initialize,
 		splitPane,
 		closePane,
-		setPaneContent,
-		updatePaneState,
+		openTab,
+		closeTab,
+		setActiveTab,
+		moveTab,
+		updateTabState,
+		setTabDirty,
+		updateViewSettings,
 		updateSplitSizes,
 		setFocusedPane,
 		navigateFocus,
+		cycleTab,
 		linkScrollSync,
 		unlinkScrollSync,
 		getLayoutTree,

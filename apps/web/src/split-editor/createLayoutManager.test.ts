@@ -381,4 +381,140 @@ describe('Layout Manager Properties', () => {
 			{ numRuns: 100 }
 		)
 	})
+
+	/**
+	 * Property 11: Tab Close Cascading
+	 * For any pane, when the last tab is closed, the pane itself SHALL be closed.
+	 * **Validates: Requirements 7.7**
+	 */
+	it('property: closing last tab closes the pane', () => {
+		fc.assert(
+			fc.property(
+				fc.record({
+					direction: fc.constantFrom<SplitDirection>('horizontal', 'vertical'),
+					tabCount: fc.integer({ min: 1, max: 5 }),
+				}),
+				(config) => {
+					// Reset manager
+					manager = createLayoutManager()
+					manager.initialize()
+
+					const initialPaneId = manager.state.rootId
+
+					// Split to create two panes so we can close one
+					const newPaneId = manager.splitPane(initialPaneId, config.direction)
+
+					// Add tabs to the new pane
+					const tabIds: string[] = []
+					for (let i = 0; i < config.tabCount; i++) {
+						const tabId = manager.openTab(newPaneId, {
+							type: 'file',
+							filePath: `/test/file${i}.txt`,
+						})
+						tabIds.push(tabId)
+					}
+
+					// Verify tabs were created
+					const paneBeforeClose = manager.state.nodes[newPaneId] as EditorPane
+					expect(paneBeforeClose).toBeDefined()
+					expect(paneBeforeClose.tabs.length).toBe(config.tabCount)
+					expect(paneBeforeClose.activeTabId).toBe(tabIds[tabIds.length - 1])
+
+					// Close all tabs except the last one
+					for (let i = 0; i < tabIds.length - 1; i++) {
+						manager.closeTab(newPaneId, tabIds[i])
+						
+						// Pane should still exist
+						const paneAfterPartialClose = manager.state.nodes[newPaneId] as EditorPane
+						expect(paneAfterPartialClose).toBeDefined()
+						expect(paneAfterPartialClose.tabs.length).toBe(config.tabCount - i - 1)
+					}
+
+					// Close the last tab
+					const lastTabId = tabIds[tabIds.length - 1]
+					manager.closeTab(newPaneId, lastTabId)
+
+					// Pane should be closed (removed from nodes)
+					expect(manager.state.nodes[newPaneId]).toBeUndefined()
+
+					// Tree integrity should be maintained
+					expect(validateTreeIntegrity()).toBe(true)
+
+					// Should have one less pane
+					const remainingPanes = getAllPaneIds()
+					expect(remainingPanes.length).toBe(1)
+					expect(remainingPanes[0]).toBe(initialPaneId)
+				}
+			),
+			{ numRuns: 100 }
+		)
+	})
+
+	/**
+	 * Property 12: Active Tab Consistency
+	 * For any pane with tabs, closing the active tab SHALL result in another tab becoming active,
+	 * with preference for the next tab or previous if at end.
+	 * **Validates: Requirements 7.6**
+	 */
+	it('property: closing active tab activates next tab', () => {
+		fc.assert(
+			fc.property(
+				fc.record({
+					tabCount: fc.integer({ min: 2, max: 8 }),
+					activeTabIndex: fc.integer({ min: 0, max: 7 }),
+				}),
+				(config) => {
+					// Reset manager
+					manager = createLayoutManager()
+					manager.initialize()
+
+					const paneId = manager.state.rootId
+
+					// Add multiple tabs
+					const tabIds: string[] = []
+					for (let i = 0; i < config.tabCount; i++) {
+						const tabId = manager.openTab(paneId, {
+							type: 'file',
+							filePath: `/test/file${i}.txt`,
+						})
+						tabIds.push(tabId)
+					}
+
+					// Set a specific tab as active
+					const activeIndex = config.activeTabIndex % config.tabCount
+					const activeTabId = tabIds[activeIndex]
+					manager.setActiveTab(paneId, activeTabId)
+
+					// Verify setup
+					const paneBeforeClose = manager.state.nodes[paneId] as EditorPane
+					expect(paneBeforeClose.activeTabId).toBe(activeTabId)
+					expect(paneBeforeClose.tabs.length).toBe(config.tabCount)
+
+					// Close the active tab
+					manager.closeTab(paneId, activeTabId)
+
+					// Verify pane still exists (since we have more than 1 tab)
+					const paneAfterClose = manager.state.nodes[paneId] as EditorPane
+					expect(paneAfterClose).toBeDefined()
+					expect(paneAfterClose.tabs.length).toBe(config.tabCount - 1)
+
+					// Verify a new tab is active
+					expect(paneAfterClose.activeTabId).not.toBeNull()
+					expect(paneAfterClose.activeTabId).not.toBe(activeTabId)
+
+					// Verify the active tab exists in the remaining tabs
+					const activeTab = paneAfterClose.tabs.find(t => t.id === paneAfterClose.activeTabId)
+					expect(activeTab).toBeDefined()
+
+					// Verify the closed tab is no longer in the tabs array
+					const closedTab = paneAfterClose.tabs.find(t => t.id === activeTabId)
+					expect(closedTab).toBeUndefined()
+
+					// Tree integrity should be maintained
+					expect(validateTreeIntegrity()).toBe(true)
+				}
+			),
+			{ numRuns: 100 }
+		)
+	})
 })

@@ -3,10 +3,14 @@
  *
  * Defines the binary tree structure for recursive split layouts.
  * Each node is either a SplitContainer (with two children) or an EditorPane (leaf).
+ * Each EditorPane can hold multiple tabs (VS Code editor group model).
  */
 
 /** Unique identifier for nodes in the layout tree */
 export type NodeId = string
+
+/** Unique identifier for tabs */
+export type TabId = string
 
 /** Direction of a split */
 export type SplitDirection = 'horizontal' | 'vertical'
@@ -23,7 +27,7 @@ export interface Selection {
 	end: Position
 }
 
-/** View settings per pane */
+/** View settings per pane (shared across all tabs in the pane) */
 export interface ViewSettings {
 	showLineNumbers: boolean
 	showMinimap: boolean
@@ -31,16 +35,7 @@ export interface ViewSettings {
 	fontSize: number
 }
 
-/** Per-pane state (independent per pane) */
-export interface PaneState {
-	scrollTop: number
-	scrollLeft: number
-	selections: Selection[]
-	cursorPosition: Position
-	viewSettings: ViewSettings
-}
-
-/** Diff data for diff panes */
+/** Diff data for diff tabs */
 export interface DiffData {
 	originalPath: string
 	modifiedPath: string
@@ -48,12 +43,28 @@ export interface DiffData {
 	modifiedContent?: string
 }
 
-/** Content displayed in a pane */
-export interface PaneContent {
+/** Content displayed in a tab */
+export interface TabContent {
 	type: 'file' | 'diff' | 'empty' | 'custom'
 	filePath?: string
 	diffData?: DiffData
 	customComponent?: string
+}
+
+/** Per-tab state (independent per tab) */
+export interface TabState {
+	scrollTop: number
+	scrollLeft: number
+	selections: Selection[]
+	cursorPosition: Position
+}
+
+/** A single tab within a pane */
+export interface Tab {
+	id: TabId
+	content: TabContent
+	state: TabState
+	isDirty: boolean
 }
 
 /** Base node in the layout tree */
@@ -70,11 +81,12 @@ export interface SplitContainer extends BaseNode {
 	children: [NodeId, NodeId]
 }
 
-/** An editor pane (leaf node) */
+/** An editor pane (leaf node) - contains multiple tabs */
 export interface EditorPane extends BaseNode {
 	type: 'pane'
-	content: PaneContent
-	state: PaneState
+	tabs: Tab[]
+	activeTabId: TabId | null
+	viewSettings: ViewSettings
 }
 
 /** Union type for all nodes */
@@ -83,10 +95,10 @@ export type SplitNode = SplitContainer | EditorPane
 /** Scroll sync mode */
 export type ScrollSyncMode = 'line' | 'percentage'
 
-/** Scroll sync group */
+/** Scroll sync group - links specific tabs */
 export interface ScrollSyncGroup {
 	id: string
-	paneIds: NodeId[]
+	tabIds: TabId[]
 	mode: ScrollSyncMode
 }
 
@@ -102,6 +114,14 @@ export interface LayoutState {
 // Serialization Types (for persistence)
 // ============================================================================
 
+/** Serialized tab for persistence */
+export interface SerializedTab {
+	id: TabId
+	content: TabContent
+	state: TabState
+	isDirty: boolean
+}
+
 /** Serialized node for persistence */
 export interface SerializedNode {
 	id: NodeId
@@ -112,8 +132,9 @@ export interface SerializedNode {
 	sizes?: [number, number]
 	children?: [NodeId, NodeId]
 	// Pane fields
-	content?: PaneContent
-	state?: PaneState
+	tabs?: SerializedTab[]
+	activeTabId?: TabId | null
+	viewSettings?: ViewSettings
 }
 
 /** Serialized layout for persistence */
@@ -150,24 +171,32 @@ export function createDefaultViewSettings(): ViewSettings {
 	}
 }
 
-export function createDefaultPaneState(): PaneState {
+export function createDefaultTabState(): TabState {
 	return {
 		scrollTop: 0,
 		scrollLeft: 0,
 		selections: [],
 		cursorPosition: { line: 0, column: 0 },
-		viewSettings: createDefaultViewSettings(),
 	}
 }
 
-export function createEmptyContent(): PaneContent {
+export function createEmptyContent(): TabContent {
 	return { type: 'empty' }
 }
 
-export function createFileContent(filePath: string): PaneContent {
+export function createFileContent(filePath: string): TabContent {
 	return { type: 'file', filePath }
 }
 
-export function createDiffContent(diffData: DiffData): PaneContent {
+export function createDiffContent(diffData: DiffData): TabContent {
 	return { type: 'diff', diffData }
+}
+
+export function createTab(content: TabContent): Tab {
+	return {
+		id: crypto.randomUUID(),
+		content,
+		state: createDefaultTabState(),
+		isDirty: false,
+	}
 }
