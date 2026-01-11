@@ -22,7 +22,11 @@ describe('State Isolation Properties', () => {
 					stateOperations: fc.array(
 						fc.record({
 							viewMode: fc.constantFrom('editor', 'ui', 'binary'),
-							stateKey: fc.constantFrom('scrollPosition', 'selection', 'foldState'),
+							stateKey: fc.constantFrom(
+								'scrollPosition',
+								'selection',
+								'foldState'
+							),
 							stateValue: fc.oneof(
 								fc.integer({ min: 0, max: 1000 }),
 								fc.string({ minLength: 1, maxLength: 20 }),
@@ -35,64 +39,67 @@ describe('State Isolation Properties', () => {
 				(config) => {
 					// Create tab identities for different view modes
 					const tabStates = new Map<string, Map<string, unknown>>()
-					
+
 					for (const operation of config.stateOperations) {
 						const tabId = createTabIdentity(config.filePath, operation.viewMode)
-						
+
 						// Initialize state for this tab if not exists
 						if (!tabStates.has(tabId)) {
 							tabStates.set(tabId, new Map())
 						}
-						
+
 						// Set state for this specific tab
 						const tabState = tabStates.get(tabId)!
 						tabState.set(operation.stateKey, operation.stateValue)
 					}
-					
+
 					// Verify state isolation - each tab should have independent state
 					const tabIds = Array.from(tabStates.keys())
-					
+
 					for (let i = 0; i < tabIds.length; i++) {
 						for (let j = i + 1; j < tabIds.length; j++) {
-							const tab1 = tabIds[i]
-							const tab2 = tabIds[j]
+							const tab1 = tabIds[i]!
+							const tab2 = tabIds[j]!
 							const parsed1 = parseTabIdentity(tab1)
 							const parsed2 = parseTabIdentity(tab2)
-							
+
 							// If same file but different view modes, states should be independent
-							if (parsed1.filePath === parsed2.filePath && parsed1.viewMode !== parsed2.viewMode) {
+							if (
+								parsed1.filePath === parsed2.filePath &&
+								parsed1.viewMode !== parsed2.viewMode
+							) {
 								const state1 = tabStates.get(tab1)!
 								const state2 = tabStates.get(tab2)!
-								
+
 								// States can have different keys or different values for same keys
 								// This tests that they are truly independent
 								let hasIndependentState = false
-								
+
 								// Check if they have different keys
 								const keys1 = Array.from(state1.keys())
 								const keys2 = Array.from(state2.keys())
 								if (keys1.length !== keys2.length) {
 									hasIndependentState = true
 								}
-								
+
 								// Check if they have different values for same keys
 								for (const key of keys1) {
 									if (state2.has(key) && state1.get(key) !== state2.get(key)) {
 										hasIndependentState = true
 									}
 								}
-								
+
 								// At minimum, tab IDs should be different (proving isolation)
 								expect(tab1).not.toBe(tab2)
 							}
 						}
 					}
-					
+
 					// Verify that each tab maintains its own state correctly
 					for (const [tabId, state] of tabStates) {
 						const parsed = parseTabIdentity(tabId)
 						expect(parsed.filePath).toBe(config.filePath)
-						
+
 						// State should be retrievable and consistent
 						for (const [key, value] of state) {
 							expect(state.get(key)).toBe(value)
@@ -123,30 +130,32 @@ describe('State Isolation Properties', () => {
 				(config) => {
 					const registry = new ViewModeRegistry()
 					registry.initialize()
-					
+
 					// Register custom modes with state hooks
 					const stateInstances = new Map<string, any>()
-					
+
 					for (const mode of config.customModes) {
-						const stateHooks = mode.hasStateHooks ? {
-							createState: () => ({ ...mode.initialState }),
-							cleanup: (state: any) => {
-								state.cleaned = true
-							},
-						} : undefined
-						
+						const stateHooks = mode.hasStateHooks
+							? {
+									createState: () => ({ ...mode.initialState }),
+									cleanup: (state: any) => {
+										state.cleaned = true
+									},
+								}
+							: undefined
+
 						registry.register({
 							id: mode.id,
 							label: mode.id.charAt(0).toUpperCase() + mode.id.slice(1),
 							isAvailable: () => true,
 							stateHooks,
 						})
-						
+
 						// Test state creation if hooks exist
 						if (mode.hasStateHooks) {
 							const registeredMode = registry.getViewMode(mode.id)
 							expect(registeredMode?.stateHooks).toBeDefined()
-							
+
 							if (registeredMode?.stateHooks?.createState) {
 								const state = registeredMode.stateHooks.createState()
 								expect(state.value).toBe(mode.initialState.value)
@@ -155,23 +164,25 @@ describe('State Isolation Properties', () => {
 							}
 						}
 					}
-					
+
 					// Verify state isolation between different mode instances
 					const stateEntries = Array.from(stateInstances.entries())
 					for (let i = 0; i < stateEntries.length; i++) {
 						for (let j = i + 1; j < stateEntries.length; j++) {
-							const [mode1, state1] = stateEntries[i]
-							const [mode2, state2] = stateEntries[j]
-							
+							const entry1 = stateEntries[i]!
+							const entry2 = stateEntries[j]!
+							const [mode1, state1] = entry1
+							const [mode2, state2] = entry2
+
 							// Different modes should have different state instances
 							expect(state1).not.toBe(state2)
-							
+
 							// Modifying one state shouldn't affect another
 							state1.modified = true
 							expect(state2.modified).toBeUndefined()
 						}
 					}
-					
+
 					// Test cleanup isolation
 					for (const [modeId, state] of stateInstances) {
 						const mode = registry.getViewMode(modeId)
@@ -207,16 +218,16 @@ describe('State Isolation Properties', () => {
 					// Simulate independent state for each view mode
 					const editorTabId = createTabIdentity(config.filePath, 'editor')
 					const uiTabId = createTabIdentity(config.filePath, 'ui')
-					
+
 					const editorState = new Map<string, unknown>()
 					const uiState = new Map<string, unknown>()
-					
+
 					// Initialize with different baseline states
 					editorState.set('content', 'initial editor content')
 					editorState.set('cursor', 0)
 					uiState.set('content', 'initial ui content')
 					uiState.set('cursor', 100)
-					
+
 					// Apply modifications
 					for (const mod of config.modifications) {
 						if (mod.targetMode === 'editor') {
@@ -225,41 +236,45 @@ describe('State Isolation Properties', () => {
 							uiState.set(mod.property, mod.newValue)
 						}
 					}
-					
+
 					// Verify that modifications to one mode don't affect the other
-					const editorModifications = config.modifications.filter(m => m.targetMode === 'editor')
-					const uiModifications = config.modifications.filter(m => m.targetMode === 'ui')
-					
+					const editorModifications = config.modifications.filter(
+						(m) => m.targetMode === 'editor'
+					)
+					const uiModifications = config.modifications.filter(
+						(m) => m.targetMode === 'ui'
+					)
+
 					// Check that editor state reflects only editor modifications
 					for (const mod of editorModifications) {
 						// For duplicate properties, the last modification wins
 						const lastModForProperty = editorModifications
-							.filter(m => m.property === mod.property)
+							.filter((m) => m.property === mod.property)
 							.pop()
 						if (lastModForProperty === mod) {
 							expect(editorState.get(mod.property)).toBe(mod.newValue)
 						}
 					}
-					
+
 					// Check that UI state reflects only UI modifications
 					for (const mod of uiModifications) {
 						// For duplicate properties, the last modification wins
 						const lastModForProperty = uiModifications
-							.filter(m => m.property === mod.property)
+							.filter((m) => m.property === mod.property)
 							.pop()
 						if (lastModForProperty === mod) {
 							expect(uiState.get(mod.property)).toBe(mod.newValue)
 						}
 					}
-					
+
 					// Verify baseline values are preserved where not modified
-					if (!editorModifications.some(m => m.property === 'content')) {
+					if (!editorModifications.some((m) => m.property === 'content')) {
 						expect(editorState.get('content')).toBe('initial editor content')
 					}
-					if (!uiModifications.some(m => m.property === 'content')) {
+					if (!uiModifications.some((m) => m.property === 'content')) {
 						expect(uiState.get('content')).toBe('initial ui content')
 					}
-					
+
 					// Tab IDs should remain distinct
 					expect(editorTabId).not.toBe(uiTabId)
 					expect(parseTabIdentity(editorTabId).viewMode).toBe('editor')

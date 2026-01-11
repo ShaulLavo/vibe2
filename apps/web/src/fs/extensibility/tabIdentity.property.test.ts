@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
-import { createTabIdentity, parseTabIdentity, getTabDisplayName } from '../utils/tabIdentity'
+import {
+	createTabIdentity,
+	parseTabIdentity,
+	getTabDisplayName,
+} from '../utils/tabIdentity'
 
 /**
  * Property-based tests for tab identity uniqueness and consistency
@@ -26,30 +30,34 @@ describe('Tab Identity Properties', () => {
 							'nested/folder/file.js'
 						),
 						// Generate arbitrary file paths
-						fc.tuple(
-							fc.string({ minLength: 1, maxLength: 10 }).filter(s => !s.includes('|')),
-							fc.constantFrom('.txt', '.js', '.json', '.exe')
-						).map(([name, ext]) => `${name}${ext}`)
+						fc
+							.tuple(
+								fc
+									.string({ minLength: 1, maxLength: 10 })
+									.filter((s) => !s.includes('|')),
+								fc.constantFrom('.txt', '.js', '.json', '.exe')
+							)
+							.map(([name, ext]) => `${name}${ext}`)
 					),
 					viewMode: fc.constantFrom('editor', 'ui', 'binary'),
 				}),
 				(config) => {
 					// Create tab identity
 					const tabId = createTabIdentity(config.filePath, config.viewMode)
-					
+
 					// Tab ID should be a non-empty string
 					expect(typeof tabId).toBe('string')
 					expect(tabId.length).toBeGreaterThan(0)
-					
+
 					// Tab ID should be deterministic
 					const tabId2 = createTabIdentity(config.filePath, config.viewMode)
 					expect(tabId).toBe(tabId2)
-					
+
 					// Tab ID should be parseable back to original values
 					const parsed = parseTabIdentity(tabId)
 					expect(parsed.filePath).toBe(config.filePath)
 					expect(parsed.viewMode).toBe(config.viewMode)
-					
+
 					// Round-trip should be perfect
 					const roundTrip = createTabIdentity(parsed.filePath, parsed.viewMode)
 					expect(roundTrip).toBe(tabId)
@@ -71,14 +79,12 @@ describe('Tab Identity Properties', () => {
 				(config) => {
 					const tabId1 = createTabIdentity(config.file1, config.mode1)
 					const tabId2 = createTabIdentity(config.file2, config.mode2)
-					
+
 					// Different combinations should produce different IDs
-					if (config.file1 !== config.file2 || config.mode1 !== config.mode2) {
-						expect(tabId1).not.toBe(tabId2)
-					} else {
-						// Same combinations should produce same IDs
-						expect(tabId1).toBe(tabId2)
-					}
+
+					// Different combinations should produce different IDs
+					// File sets are disjoint in this test configuration, so IDs will always be different
+					expect(tabId1).not.toBe(tabId2)
 				}
 			),
 			{ numRuns: 100 }
@@ -97,23 +103,31 @@ describe('Tab Identity Properties', () => {
 					viewMode: fc.constantFrom('editor', 'ui', 'binary'),
 				}),
 				(config) => {
-					const displayName = getTabDisplayName(config.filePath, config.viewMode)
-					
+					const displayName = getTabDisplayName(
+						config.filePath,
+						config.viewMode
+					)
+
 					// Display name should be a non-empty string
 					expect(typeof displayName).toBe('string')
 					expect(displayName.length).toBeGreaterThan(0)
-					
+
 					// Display name should be deterministic
-					const displayName2 = getTabDisplayName(config.filePath, config.viewMode)
+					const displayName2 = getTabDisplayName(
+						config.filePath,
+						config.viewMode
+					)
 					expect(displayName).toBe(displayName2)
-					
+
 					// Display name should contain file name
 					const fileName = config.filePath.split('/').pop() || config.filePath
 					expect(displayName).toContain(fileName)
-					
+
 					// For non-editor modes, display name should indicate the mode
 					if (config.viewMode !== 'editor') {
-						expect(displayName.toLowerCase()).toContain(config.viewMode.toLowerCase())
+						expect(displayName.toLowerCase()).toContain(
+							config.viewMode.toLowerCase()
+						)
 					}
 				}
 			),
@@ -161,10 +175,10 @@ describe('Tab Identity Properties', () => {
 				}),
 				(config) => {
 					const tabId = createTabIdentity(config.filePath, config.viewMode)
-					
+
 					// Tab ID should follow expected format (file|mode)
 					expect(tabId).toContain('|')
-					
+
 					const parts = tabId.split('|')
 					expect(parts.length).toBe(2)
 					expect(parts[0]).toBe(config.filePath)

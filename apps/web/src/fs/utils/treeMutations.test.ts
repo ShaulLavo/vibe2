@@ -113,8 +113,8 @@ describe('addNodeToTree', () => {
 			(c) => c.name === 'src'
 		) as FsDirTreeNode
 
-		expect(srcDir.children[0].name).toBe('components')
-		expect(srcDir.children[0].kind).toBe('dir')
+		expect(srcDir.children[0]!.name).toBe('components')
+		expect(srcDir.children[0]!.kind).toBe('dir')
 	})
 })
 

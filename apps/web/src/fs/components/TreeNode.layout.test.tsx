@@ -25,8 +25,8 @@ describe('TreeNode Layout and Alignment Preservation', () => {
 	let mockFsContext: FsContextValue
 
 	beforeEach(() => {
-		mockFsContext = {
-			state: {
+		mockFsContext = [
+			{
 				tree: null,
 				expanded: {},
 				selectedPath: null,
@@ -35,7 +35,7 @@ describe('TreeNode Layout and Alignment Preservation', () => {
 				pieceTableSnapshots: {},
 				visibleContentSnapshots: {},
 			},
-			actions: {
+			{
 				isSelectedPath: vi.fn(() => false),
 				toggleDir: vi.fn(),
 				selectPath: vi.fn(),
@@ -47,7 +47,7 @@ describe('TreeNode Layout and Alignment Preservation', () => {
 				updateSelectedFileVisibleContent: vi.fn(),
 				setCreationState: vi.fn(),
 			},
-		}
+		] as unknown as FsContextValue
 	})
 
 	const createTestFileNode = (
@@ -59,7 +59,6 @@ describe('TreeNode Layout and Alignment Preservation', () => {
 		path: `/${name}`,
 		depth,
 		size: 1024,
-		mtime: Date.now(),
 	})
 
 	const createTestDirNode = (
@@ -72,7 +71,6 @@ describe('TreeNode Layout and Alignment Preservation', () => {
 		path: `/${name}`,
 		depth,
 		children,
-		mtime: Date.now(),
 	})
 
 	it('should maintain consistent indentation calculations for different depths', () => {
@@ -99,23 +97,27 @@ describe('TreeNode Layout and Alignment Preservation', () => {
 			const expandedFolder = createTestDirNode('expanded', 1)
 
 			// Set expanded state
-			mockFsContext.state.expanded[expandedFolder.path] = true
+			mockFsContext[0].expanded[expandedFolder.path] = true
 
 			// Test that the component structure is correct (Requirements 2.1, 2.4)
 			expect(collapsedFolder.kind).toBe('dir')
 			expect(expandedFolder.kind).toBe('dir')
-			expect(mockFsContext.state.expanded[collapsedFolder.path]).toBeFalsy()
-			expect(mockFsContext.state.expanded[expandedFolder.path]).toBeTruthy()
+			expect(mockFsContext[0].expanded[collapsedFolder.path]).toBeFalsy()
+			expect(mockFsContext[0].expanded[expandedFolder.path]).toBeTruthy()
 		})
 	})
 
 	it('should render file icons correctly for files', () => {
 		createRoot(() => {
-			const fileNode = createTestFileNode('test.txt', 1)
+			const regularFiles = ['test.txt', 'image.png', 'document.pdf']
+			for (const filePath of regularFiles) {
+				const stats = { contentKind: 'text' } as unknown as ParseResult
+				const fileNode = createTestFileNode(filePath, 1)
 
-			// Test that file nodes have correct structure (Requirements 2.1)
-			expect(fileNode.kind).toBe('file')
-			expect(fileNode.name).toBe('test.txt')
+				// Should only detect editor modes have correct structure (Requirements 2.1)
+				expect(fileNode.kind).toBe('file')
+				expect(fileNode.name).toBe(filePath)
+			}
 		})
 	})
 
@@ -125,7 +127,7 @@ describe('TreeNode Layout and Alignment Preservation', () => {
 			const parentNode = createTestDirNode('parent', 1, [childNode])
 
 			// Set parent as expanded
-			mockFsContext.state.expanded[parentNode.path] = true
+			mockFsContext[0].expanded[parentNode.path] = true
 
 			// Test hierarchy structure (Requirements 2.2, 2.4)
 			expect(parentNode.children).toContain(childNode)

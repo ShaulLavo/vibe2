@@ -13,7 +13,7 @@ function simulateDefaultCategorySelection(
 
 	// Otherwise, use the first category in the schema as default
 	if (categories.length > 0) {
-		return categories[0].id
+		return categories[0]!.id
 	}
 
 	// Fallback to 'editor' if no categories available
@@ -136,7 +136,7 @@ describe('SettingsTab', () => {
 					const selectedCategory = simulateDefaultCategorySelection(categories)
 
 					// Should select the first category from the schema
-					expect(selectedCategory).toBe(categories[0].id)
+					expect(selectedCategory).toBe(categories[0]!.id)
 				}
 			),
 			{ numRuns: 100 }
@@ -183,7 +183,9 @@ describe('SettingsTab', () => {
 				fc.constant([]), // Empty categories array
 				(categories) => {
 					// Test with empty categories array
-					const selectedCategory = simulateDefaultCategorySelection(categories)
+					const selectedCategory = simulateDefaultCategorySelection(
+						categories as unknown as { id: string; label: string }[]
+					)
 
 					// Should fallback to 'editor'
 					expect(selectedCategory).toBe('editor')

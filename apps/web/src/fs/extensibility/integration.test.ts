@@ -1,8 +1,8 @@
 /**
  * Integration Tests for File View Modes Complete Workflow
- * 
+ *
  * **Feature: file-view-modes, Task 12.1**
- * 
+ *
  * Tests the complete workflow from file opening to view mode switching,
  * ensuring all components work together correctly.
  */
@@ -35,14 +35,14 @@ describe('File View Modes Integration Tests', () => {
 		registry.register({
 			id: 'binary',
 			label: 'Binary',
-			isAvailable: (path, stats) => stats?.isBinary === true,
+			isAvailable: (path, stats) => (stats as any)?.isBinary === true,
 		})
 	})
 
 	describe('Complete Workflow: Opening Files in Different View Modes', () => {
 		it('should handle opening regular files in editor mode only', () => {
 			const filePath = '/src/index.ts'
-			const stats: ParseResult = { contentKind: 'text' }
+			const stats = { contentKind: 'text' } as unknown as ParseResult
 
 			// Test view mode detection
 			const availableModes = detectAvailableViewModes(filePath, stats)
@@ -59,7 +59,7 @@ describe('File View Modes Integration Tests', () => {
 
 		it('should handle opening settings files in both editor and ui modes', () => {
 			const filePath = '/.system/settings.json'
-			const stats: ParseResult = { contentKind: 'text' }
+			const stats = { contentKind: 'text' } as unknown as ParseResult
 
 			// Test view mode detection
 			const availableModes = detectAvailableViewModes(filePath, stats)
@@ -86,7 +86,7 @@ describe('File View Modes Integration Tests', () => {
 
 		it('should handle opening binary files in both editor and binary modes', () => {
 			const filePath = '/assets/image.png'
-			const stats: ParseResult = { contentKind: 'binary' }
+			const stats = { contentKind: 'binary' } as unknown as ParseResult
 
 			// Test view mode detection
 			const availableModes = detectAvailableViewModes(filePath, stats)
@@ -122,7 +122,7 @@ describe('File View Modes Integration Tests', () => {
 
 			expect(currentTabs()).toEqual([
 				'/.system/settings.json|editor',
-				'/.system/settings.json|ui'
+				'/.system/settings.json|ui',
 			])
 
 			// Verify both tabs exist for the same file
@@ -146,7 +146,7 @@ describe('File View Modes Integration Tests', () => {
 
 			// Close only the editor tab
 			const tabToClose = createTabIdentity(filePath, 'editor')
-			setCurrentTabs(currentTabs().filter(tab => tab !== tabToClose))
+			setCurrentTabs(currentTabs().filter((tab) => tab !== tabToClose))
 
 			expect(currentTabs()).toHaveLength(1)
 			expect(currentTabs()[0]).toBe('/.system/settings.json|ui')
@@ -166,7 +166,10 @@ describe('File View Modes Integration Tests', () => {
 			setCurrentTabs([regularFile])
 
 			// Open settings file in both modes
-			const settingsEditor = createTabIdentity('/.system/settings.json', 'editor')
+			const settingsEditor = createTabIdentity(
+				'/.system/settings.json',
+				'editor'
+			)
 			const settingsUI = createTabIdentity('/.system/settings.json', 'ui')
 			setCurrentTabs([...currentTabs(), settingsEditor, settingsUI])
 
@@ -180,12 +183,27 @@ describe('File View Modes Integration Tests', () => {
 
 			// Verify each tab has correct identity
 			const identities = currentTabs().map(parseTabIdentity)
-			
-			expect(identities).toContainEqual({ filePath: '/src/app.ts', viewMode: 'editor' })
-			expect(identities).toContainEqual({ filePath: '/.system/settings.json', viewMode: 'editor' })
-			expect(identities).toContainEqual({ filePath: '/.system/settings.json', viewMode: 'ui' })
-			expect(identities).toContainEqual({ filePath: '/assets/logo.png', viewMode: 'editor' })
-			expect(identities).toContainEqual({ filePath: '/assets/logo.png', viewMode: 'binary' })
+
+			expect(identities).toContainEqual({
+				filePath: '/src/app.ts',
+				viewMode: 'editor',
+			})
+			expect(identities).toContainEqual({
+				filePath: '/.system/settings.json',
+				viewMode: 'editor',
+			})
+			expect(identities).toContainEqual({
+				filePath: '/.system/settings.json',
+				viewMode: 'ui',
+			})
+			expect(identities).toContainEqual({
+				filePath: '/assets/logo.png',
+				viewMode: 'editor',
+			})
+			expect(identities).toContainEqual({
+				filePath: '/assets/logo.png',
+				viewMode: 'binary',
+			})
 		})
 
 		it('should maintain tab order and selection behavior with view modes', () => {
@@ -203,17 +221,17 @@ describe('File View Modes Integration Tests', () => {
 			expect(currentTabs()).toEqual([
 				'/file1.ts|editor',
 				'/.system/settings.json|editor',
-				'/.system/settings.json|ui'
+				'/.system/settings.json|ui',
 			])
 			expect(activeTab()).toBe('/.system/settings.json|ui')
 
 			// Close the active tab
-			setCurrentTabs(currentTabs().filter(tab => tab !== activeTab()))
-			
+			setCurrentTabs(currentTabs().filter((tab) => tab !== activeTab()))
+
 			// Verify tab was removed
 			expect(currentTabs()).toHaveLength(2)
 			expect(currentTabs()).not.toContain('/.system/settings.json|ui')
-			
+
 			// Verify other settings tab still exists
 			expect(currentTabs()).toContain('/.system/settings.json|editor')
 		})
@@ -225,12 +243,12 @@ describe('File View Modes Integration Tests', () => {
 				'/src/index.ts',
 				'/README.md',
 				'/package.json',
-				'/styles.css'
+				'/styles.css',
 			]
 
 			for (const filePath of regularFiles) {
 				const stats: ParseResult = { contentKind: 'text' }
-				
+
 				// Should only detect editor mode
 				const availableModes = detectAvailableViewModes(filePath, stats)
 				expect(availableModes).toEqual(['editor'])
@@ -248,10 +266,13 @@ describe('File View Modes Integration Tests', () => {
 		it('should handle legacy tab IDs without view mode suffix', () => {
 			// Test migration of old tab format
 			const legacyTabId = '/src/index.ts'
-			
+
 			// Should parse legacy format with default editor mode
 			const identity = parseTabIdentity(legacyTabId)
-			expect(identity).toEqual({ filePath: '/src/index.ts', viewMode: 'editor' })
+			expect(identity).toEqual({
+				filePath: '/src/index.ts',
+				viewMode: 'editor',
+			})
 
 			// Should create proper tab ID from parsed identity
 			const newTabId = createTabIdentity(identity.filePath, identity.viewMode)
