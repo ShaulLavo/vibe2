@@ -105,7 +105,6 @@ const FontsContent = () => {
 
 	return (
 		<div class="space-y-6">
-			{/* Header with refresh */}
 			<div class="flex items-center justify-between">
 				<h3 class="text-sm font-medium text-foreground">Available NerdFonts</h3>
 				<button
@@ -121,7 +120,6 @@ const FontsContent = () => {
 				</button>
 			</div>
 
-			{/* Search Input */}
 			<div class="relative">
 				<VsSearch class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 				<input
@@ -133,7 +131,6 @@ const FontsContent = () => {
 				/>
 			</div>
 
-			{/* Font Grid - Suspense boundary for available fonts */}
 			<Suspense fallback={<FontGridSkeleton />}>
 				<FontGrid
 					fonts={filteredFonts()}
@@ -145,7 +142,6 @@ const FontsContent = () => {
 				/>
 			</Suspense>
 
-			{/* Installed Fonts Section */}
 			<section>
 				<h3 class="text-sm font-medium text-foreground mb-3">
 					Installed Fonts ({installedFonts().length})

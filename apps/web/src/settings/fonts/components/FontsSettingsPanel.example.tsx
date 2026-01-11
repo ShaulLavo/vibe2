@@ -26,7 +26,6 @@ export const FontsSettingsPanelExample = () => {
 						</div>
 					)}
 				>
-					{/* Available Fonts Section */}
 					<section>
 						<h2 class="text-lg font-semibold mb-4">Available Fonts</h2>
 						<Suspense
@@ -38,7 +37,6 @@ export const FontsSettingsPanelExample = () => {
 						</Suspense>
 					</section>
 
-					{/* Installed Fonts Section - This is where FontManager is used */}
 					<section>
 						<h2 class="text-lg font-semibold mb-4">Installed Fonts</h2>
 						<FontManager />

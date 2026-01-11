@@ -26,7 +26,6 @@ export class FontDownloadService {
 	): Promise<void> {
 		console.log('[FontDownloadService] Starting download for font:', name)
 
-		// Check if already downloading
 		if (this.activeDownloads.has(name)) {
 			console.log('[FontDownloadService] Font already downloading:', name)
 			return
@@ -53,7 +52,6 @@ export class FontDownloadService {
 				)
 			}
 
-			// Check if already installed
 			const installedFonts = await fontCacheService.getInstalledFonts()
 			if (installedFonts.has(name)) {
 				console.log('[FontDownloadService] Font already installed:', name)
@@ -114,15 +112,15 @@ export class FontDownloadService {
 			})
 
 			// Handle the response data
-			let fontData: ArrayBuffer
+			// let fontData: ArrayBuffer
 			if (
 				typeof response.data === 'object' &&
 				response.data !== null &&
 				(response.data as any) instanceof Response
 			) {
-				fontData = await (response.data as any).arrayBuffer()
+				await (response.data as any).arrayBuffer()
 			} else if ((response.data as any) instanceof ArrayBuffer) {
-				fontData = response.data as any
+				// fontData = response.data as any
 			} else {
 				throw new Error(`Unexpected response data type for font: ${name}`)
 			}
@@ -263,9 +261,6 @@ export class FontDownloadService {
 		)
 	}
 
-	/**
-	 * Cancel an active download
-	 */
 	cancelDownload(name: string): void {
 		const controller = this.activeDownloads.get(name)
 		if (controller) {
@@ -276,9 +271,6 @@ export class FontDownloadService {
 		}
 	}
 
-	/**
-	 * Check if a font is currently being downloaded
-	 */
 	isDownloading(name: string): boolean {
 		return this.activeDownloads.has(name)
 	}

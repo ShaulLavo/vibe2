@@ -26,7 +26,6 @@ export const LazyFontPreview = (props: LazyFontPreviewProps) => {
 	const previewText = () =>
 		props.previewText || 'The quick brown fox jumps 0123456789'
 
-	// Load font when component becomes visible and font is installed
 	createEffect(() => {
 		if (isVisible() && props.isInstalled && !fontLoaded() && !loadError()) {
 			loadFontForPreview()
@@ -35,20 +34,16 @@ export const LazyFontPreview = (props: LazyFontPreviewProps) => {
 
 	const loadFontForPreview = async () => {
 		try {
-			// Check if font is already available
 			if (document.fonts.check(`1em "${props.fontFamily}"`)) {
 				setFontLoaded(true)
 				return
 			}
 
-			// Wait for font to be ready
 			await document.fonts.ready
 
-			// Check again after fonts are ready
 			if (document.fonts.check(`1em "${props.fontFamily}"`)) {
 				setFontLoaded(true)
 			} else {
-				// Try to load the font explicitly
 				await document.fonts.load(`1em "${props.fontFamily}"`)
 				setFontLoaded(true)
 			}
@@ -111,9 +106,6 @@ export const LazyFontPreview = (props: LazyFontPreviewProps) => {
 	)
 }
 
-/**
- * Optimized Font Card with Lazy Preview
- */
 export interface OptimizedFontCardProps {
 	fontName: string
 	displayName: string
@@ -128,12 +120,10 @@ export interface OptimizedFontCardProps {
 export const OptimizedFontCard = (props: OptimizedFontCardProps) => {
 	return (
 		<div class="p-4 border border-border rounded-lg bg-card hover:bg-card/80 transition-colors">
-			{/* Font Name */}
 			<h4 class="font-medium text-sm mb-2 text-foreground">
 				{props.displayName}
 			</h4>
 
-			{/* Lazy Font Preview */}
 			<div class="mb-3">
 				<LazyFontPreview
 					fontName={props.fontName}
@@ -143,7 +133,6 @@ export const OptimizedFontCard = (props: OptimizedFontCardProps) => {
 				/>
 			</div>
 
-			{/* Action Button */}
 			<Button
 				onClick={props.isInstalled ? props.onRemove : props.onDownload}
 				disabled={props.isDownloading}
@@ -197,13 +186,14 @@ export const VirtualFontGrid = (props: VirtualFontGridProps) => {
 	const [scrollTop, setScrollTop] = createSignal(0)
 	const [containerRef, setContainerRef] = createSignal<HTMLDivElement>()
 
-	const itemHeight = props.itemHeight || 200
-	const containerHeight = props.containerHeight || 600
-	const itemsPerRow = 3 // Adjust based on grid layout
+	const itemHeight = () => props.itemHeight || 200
+	const containerHeight = () => props.containerHeight || 600
+	const itemsPerRow = 3
 
 	const visibleRange = () => {
-		const start = Math.floor(scrollTop() / itemHeight) * itemsPerRow
-		const visibleCount = Math.ceil(containerHeight / itemHeight) * itemsPerRow
+		const start = Math.floor(scrollTop() / itemHeight()) * itemsPerRow
+		const visibleCount =
+			Math.ceil(containerHeight() / itemHeight()) * itemsPerRow
 		const end = Math.min(start + visibleCount + itemsPerRow, props.fonts.length)
 
 		return { start, end }
@@ -219,7 +209,7 @@ export const VirtualFontGrid = (props: VirtualFontGridProps) => {
 
 	const totalHeight = () => {
 		const rows = Math.ceil(props.fonts.length / itemsPerRow)
-		return rows * itemHeight
+		return rows * itemHeight()
 	}
 
 	const handleScroll = (e: Event) => {
@@ -241,13 +231,13 @@ export const VirtualFontGrid = (props: VirtualFontGridProps) => {
 				el.addEventListener('scroll', handleScroll, { passive: true })
 			}}
 			class="overflow-auto"
-			style={{ height: `${containerHeight}px` }}
+			style={{ height: `${containerHeight()}px` }}
 		>
 			<div style={{ height: `${totalHeight()}px`, position: 'relative' }}>
 				<div
 					class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 absolute w-full"
 					style={{
-						transform: `translateY(${Math.floor(visibleRange().start / itemsPerRow) * itemHeight}px)`,
+						transform: `translateY(${Math.floor(visibleRange().start / itemsPerRow) * itemHeight()}px)`,
 					}}
 				>
 					<For each={visibleFonts()}>

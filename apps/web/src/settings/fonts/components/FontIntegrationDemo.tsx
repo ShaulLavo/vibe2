@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js'
-import { createSignal, Show } from 'solid-js'
+import { createSignal, Show, For } from 'solid-js'
 import { FontFamilySelect } from '../../components/FontFamilySelect'
 import { useFontSettingsIntegration } from '../hooks/useFontSettingsIntegration'
 
@@ -32,7 +32,6 @@ export const FontIntegrationDemo: Component = () => {
 				</p>
 			</div>
 
-			{/* Font Family Select */}
 			<div class="space-y-4">
 				<FontFamilySelect
 					value={selectedFont()}
@@ -42,7 +41,6 @@ export const FontIntegrationDemo: Component = () => {
 				/>
 			</div>
 
-			{/* Current Selection Info */}
 			<div class="p-4 bg-muted rounded-lg space-y-2">
 				<h3 class="font-medium">Current Selection</h3>
 				<div class="text-sm space-y-1">
@@ -60,7 +58,6 @@ export const FontIntegrationDemo: Component = () => {
 				</div>
 			</div>
 
-			{/* Font Preview */}
 			<div class="space-y-2">
 				<h3 class="font-medium">Font Preview</h3>
 				<div
@@ -79,25 +76,25 @@ export const FontIntegrationDemo: Component = () => {
 				</div>
 			</div>
 
-			{/* Available Font Options */}
 			<div class="space-y-2">
 				<h3 class="font-medium">Available Font Options</h3>
 				<div class="text-xs text-muted-foreground">
 					Total options: {fontIntegration.allFontOptions().length}
 				</div>
 				<div class="max-h-32 overflow-y-auto text-sm space-y-1">
-					{fontIntegration.allFontOptions().map((option) => (
-						<div class="flex justify-between items-center py-1 px-2 bg-muted/50 rounded">
-							<span>{option.label}</span>
-							<span class="text-xs text-muted-foreground font-mono">
-								{option.value}
-							</span>
-						</div>
-					))}
+					<For each={fontIntegration.allFontOptions()}>
+						{(option) => (
+							<div class="flex justify-between items-center py-1 px-2 bg-muted/50 rounded">
+								<span>{option.label}</span>
+								<span class="text-xs text-muted-foreground font-mono">
+									{option.value}
+								</span>
+							</div>
+						)}
+					</For>
 				</div>
 			</div>
 
-			{/* Font Store Info */}
 			<div class="space-y-2">
 				<h3 class="font-medium">Font Store Status</h3>
 				<div class="text-sm space-y-1">

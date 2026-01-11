@@ -41,7 +41,6 @@ export const FontBrowser = () => {
 
 	return (
 		<Flex flexDirection="col" class="space-y-4" alignItems="stretch">
-			{/* Search Input - Always visible */}
 			<Flex class="relative gap-2">
 				<div class="relative flex-1">
 					<TextField
@@ -74,7 +73,6 @@ export const FontBrowser = () => {
 				</Show>
 			</Flex>
 
-			{/* Font Grid with Progressive Loading */}
 			<FontErrorBoundary
 				maxRetries={3}
 				retryDelay={2000}
@@ -109,7 +107,6 @@ export const FontBrowser = () => {
 				</Suspense>
 			</FontErrorBoundary>
 
-			{/* Empty State */}
 			<Show when={filteredFonts().length === 0 && !pending()}>
 				<div class="text-center py-8">
 					<p class="text-muted-foreground text-sm">

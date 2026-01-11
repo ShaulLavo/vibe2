@@ -12,7 +12,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library'
-import { createRoot, createSignal } from 'solid-js'
+import { createSignal } from 'solid-js'
 import { FontRegistryProvider } from '../../../fonts'
 import { SettingsProvider } from '../../SettingsProvider'
 import { FontsSubcategoryUI } from '../components/FontsSubcategoryUI'
@@ -58,7 +58,7 @@ const mockCache = {
 
 global.caches = {
 	open: vi.fn().mockResolvedValue(mockCache),
-} as any
+} as unknown as CacheStorage
 
 // Mock IndexedDB
 const mockDB = {
@@ -77,7 +77,7 @@ global.indexedDB = {
 		onupgradeneeded: null,
 		result: mockDB,
 	})),
-} as any
+} as unknown as IDBFactory
 
 // Mock FontFace API
 global.FontFace = vi.fn().mockImplementation((family, source, descriptors) => ({
@@ -97,7 +97,7 @@ global.document = {
 		load: vi.fn().mockResolvedValue([]),
 		ready: Promise.resolve(),
 	},
-} as any
+} as unknown as Document
 
 describe('Font Management Workflow Integration', () => {
 	beforeEach(() => {
@@ -120,12 +120,10 @@ describe('Font Management Workflow Integration', () => {
 				<SettingsProvider>
 					<FontRegistryProvider>
 						<div data-testid="test-app">
-							{/* Font Browser Component */}
 							<div data-testid="fonts-browser">
 								<FontsSubcategoryUI />
 							</div>
 
-							{/* Font Selection Component */}
 							<div data-testid="font-selector">
 								<FontFamilySelect
 									value={selectedFont()}

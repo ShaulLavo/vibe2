@@ -34,19 +34,15 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 			class={cn('h-full min-h-0 bg-background', props.class)}
 			contentClass="px-4 py-3 pr-6"
 		>
-			{/* Category header */}
 			<div class="mb-2 bg-muted/40 py-1.5">
 				<h1 class="text-ui-xl font-semibold text-foreground">
 					{props.category.label}
 				</h1>
 			</div>
 
-			{/* Settings */}
 			<div class="space-y-5">
-				{/* Custom component if available */}
 				<Show when={customComponent()}>{customComponent()!()}</Show>
 
-				{/* Regular settings */}
 				<Show when={categorySettings().length > 0}>
 					<div class="divide-y divide-border/60">
 						<For each={categorySettings()}>
@@ -64,7 +60,6 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 					</div>
 				</Show>
 
-				{/* Nested children */}
 				<For each={props.category.children || []}>
 					{(child) => (
 						<div class="space-y-3">
@@ -72,7 +67,6 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 								{child.label}
 							</h2>
 
-							{/* Check for custom component for this child */}
 							<Show
 								when={props.customSubcategoryComponents?.[child.id]}
 								fallback={
@@ -102,7 +96,6 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
 				</For>
 			</div>
 
-			{/* Empty state */}
 			<Show
 				when={
 					categorySettings().length === 0 &&

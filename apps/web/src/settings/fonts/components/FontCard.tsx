@@ -61,12 +61,10 @@ export const FontCard = (props: FontCardProps) => {
 		>
 			<Card class="hover:bg-card/80 transition-colors">
 				<CardContent class="p-4">
-					{/* Font Name */}
 					<h3 class="font-medium text-sm mb-2 text-foreground">
 						{displayName()}
 					</h3>
 
-					{/* Font Preview */}
 					<div class="mb-3 p-2 bg-muted rounded text-xs font-mono overflow-hidden">
 						<Show
 							when={props.isInstalled && previewLoaded()}
@@ -83,7 +81,6 @@ export const FontCard = (props: FontCardProps) => {
 						</Show>
 					</div>
 
-					{/* Action Button */}
 					<Button
 						onClick={handleDownload}
 						disabled={props.isInstalled || isInDownloadQueue() || props.pending}

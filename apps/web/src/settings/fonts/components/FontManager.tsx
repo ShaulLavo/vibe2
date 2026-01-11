@@ -50,10 +50,8 @@ export const FontManager = () => {
 
 	return (
 		<Flex flexDirection="col" class="space-y-4" alignItems="stretch">
-			{/* Cache Status Indicator */}
 			<CacheStatusIndicator />
 
-			{/* Cache Statistics */}
 			<Card>
 				<CardContent class="p-4">
 					<Flex class="gap-2 mb-3" justifyContent="start">
@@ -96,7 +94,6 @@ export const FontManager = () => {
 				</CardContent>
 			</Card>
 
-			{/* Installed Fonts List */}
 			<div>
 				<h3 class="font-medium text-sm mb-3">Installed Fonts</h3>
 				<Show

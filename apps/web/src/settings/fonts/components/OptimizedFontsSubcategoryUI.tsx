@@ -29,13 +29,10 @@ import {
 	VsCheck,
 } from '@repo/icons/vs'
 import { Card, CardContent } from '@repo/ui/Card'
-import { useFontRegistry, FontSource, FontStatus } from '../../../fonts'
+import { useFontRegistry, FontSource } from '../../../fonts'
 import type { FontEntry } from '../../../fonts'
 import { OptimizedFontCard, VirtualFontGrid } from './LazyFontPreview'
-import {
-	useFontPerformanceOptimization,
-	ResourceCleanup,
-} from '../integration/PerformanceOptimization'
+import { useFontPerformanceOptimization } from '../integration/PerformanceOptimization'
 import {
 	usePerformanceMonitor,
 	createMemoryMonitor,
@@ -186,7 +183,6 @@ const OptimizedFontsContent = () => {
 
 	return (
 		<div class="space-y-6">
-			{/* Header with controls */}
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-4">
 					<h3 class="text-sm font-medium text-foreground">
@@ -223,12 +219,10 @@ const OptimizedFontsContent = () => {
 				</div>
 			</div>
 
-			{/* Performance Stats (Dev Mode) */}
 			<Show when={showPerformanceStats() && import.meta.env.DEV}>
 				<PerformanceStatsPanel stats={performanceStats()} />
 			</Show>
 
-			{/* Search Input */}
 			<div class="relative">
 				<VsSearch class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 				<input
@@ -240,7 +234,6 @@ const OptimizedFontsContent = () => {
 				/>
 			</div>
 
-			{/* Font Grid - Suspense boundary for available fonts */}
 			<Suspense fallback={<FontGridSkeleton />}>
 				<Show
 					when={useVirtualScrolling()}
@@ -275,7 +268,6 @@ const OptimizedFontsContent = () => {
 				</Show>
 			</Suspense>
 
-			{/* Installed Fonts Section */}
 			<section>
 				<h3 class="text-sm font-medium text-foreground mb-3">
 					Installed Fonts ({installedFonts().length})
@@ -371,7 +363,7 @@ const OptimizedInstalledFontItem = (props: OptimizedInstalledFontItemProps) => {
 				</div>
 			</div>
 			<button
-				onClick={props.onRemove}
+				onClick={() => props.onRemove()}
 				class="px-3 py-1 text-xs text-destructive hover:bg-destructive/10 rounded"
 			>
 				Remove
@@ -380,7 +372,15 @@ const OptimizedInstalledFontItem = (props: OptimizedInstalledFontItemProps) => {
 	)
 }
 
-const PerformanceStatsPanel = (props: { stats: any }) => {
+interface PerformanceStats {
+	isHealthy: boolean
+	memoryUsage: number
+	totalFontsLoaded: number
+	fontDownloadTime: number
+	cacheHitRate: number
+}
+
+const PerformanceStatsPanel = (props: { stats: PerformanceStats }) => {
 	return (
 		<Card class="bg-muted/50">
 			<CardContent class="p-4">
