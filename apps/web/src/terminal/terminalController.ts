@@ -560,7 +560,11 @@ const createXtermScrollSource = (
 				rafId = requestAnimationFrame(run)
 				return
 			}
-			rafId = setTimeout(run, 16)
+			// Use window.setTimeout if available to get a number return type, otherwise standard setTimeout
+			rafId =
+				typeof window !== 'undefined'
+					? window.setTimeout(run, 16)
+					: setTimeout(run, 16)
 		}
 
 		const disposables = [
@@ -576,7 +580,7 @@ const createXtermScrollSource = (
 			}
 			if (rafId === null) return
 			if (typeof cancelAnimationFrame === 'function') {
-				cancelAnimationFrame(rafId)
+				cancelAnimationFrame(rafId as number)
 			} else {
 				clearTimeout(rafId)
 			}

@@ -178,7 +178,7 @@ function extractFontName(pathname: string): string {
 	const match =
 		pathname.match(/\/fonts\/([^/]+)$/) ||
 		pathname.match(/\/api\/fonts\/([^/]+)$/)
-	return match ? match[1] : (pathname.split('/').pop() ?? '')
+	return match ? match[1]! : (pathname.split('/').pop() ?? '')
 }
 
 /**

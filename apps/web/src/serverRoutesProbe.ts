@@ -58,14 +58,6 @@ const logRoute = async (route: string, request: Promise<unknown>) => {
 
 export const pingServerRoutes = async () => {
 	await Promise.all([
-		logRoute('GET /', client.get()),
-		logRoute('GET /id/:id', client.id({ id: 'probe' }).get()),
-		logRoute(
-			'POST /mirror',
-			client.mirror.post({
-				id: 1,
-				name: 'mirror-probe',
-			})
-		),
+		logRoute('GET /api/fonts/probe', client.fonts({ name: 'probe' }).get()),
 	])
 }

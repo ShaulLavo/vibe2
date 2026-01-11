@@ -367,7 +367,7 @@ const resolveAuthConfig = (repoUrl: string, token?: string): AuthConfig => {
 		return { headers: { Authorization: trimmed } }
 	}
 	if (trimmed.includes(':')) {
-		const [username, ...rest] = trimmed.split(':')
+		const [username = '', ...rest] = trimmed.split(':')
 		return { onAuth: () => ({ username, password: rest.join(':') }) }
 	}
 	try {
