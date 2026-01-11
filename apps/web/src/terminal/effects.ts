@@ -27,18 +27,33 @@ export async function batchTypeEffect(
 		baseDelay?: number
 		delayVariance?: number
 		speedVariance?: number
+		rowDelay?: number
+		initialDelay?: number
 	} = {}
 ) {
-	const { baseDelay = 15, delayVariance = 10, speedVariance = 0.5 } = options
+	const {
+		baseDelay = 15,
+		delayVariance = 10,
+		speedVariance = 0.5,
+		rowDelay = 0,
+		initialDelay = 0,
+	} = options
 
 	if (lines.length === 0) return
 
-	// Track progress for each line
-	const lineStates = lines.map((line) => ({
+	// Initial delay before anything starts
+	if (initialDelay > 0) {
+		await new Promise((resolve) => setTimeout(resolve, initialDelay))
+	}
+
+	// Track progress for each line with staggered start times
+	const lineStates = lines.map((line, index) => ({
 		text: line,
 		position: 0,
 		speed: 1 + (Math.random() - 0.5) * speedVariance, // Random speed multiplier per line
 		done: false,
+		startTime: index * rowDelay, // Staggered start
+		started: rowDelay === 0, // If no rowDelay, all start immediately
 	}))
 
 	// Pre-allocate lines in terminal (create empty lines)
@@ -50,12 +65,22 @@ export async function batchTypeEffect(
 
 	// Track current cursor position (which line we're on, 0-indexed)
 	let cursorLine = 0
+	let elapsed = 0
 
 	while (lineStates.some((s) => !s.done)) {
 		// Update each line
 		for (let i = 0; i < lineStates.length; i++) {
 			const state = lineStates[i]
 			if (state.done) continue
+
+			// Check if this row should start yet (staggered start)
+			if (!state.started) {
+				if (elapsed >= state.startTime) {
+					state.started = true
+				} else {
+					continue
+				}
+			}
 
 			// Advance position based on speed
 			const charsToType = Math.ceil(state.speed)
@@ -82,7 +107,9 @@ export async function batchTypeEffect(
 		// Add random delay variation
 		const randomDelay =
 			baseDelay + Math.floor(Math.random() * delayVariance * 2 - delayVariance)
-		await new Promise((resolve) => setTimeout(resolve, Math.max(5, randomDelay)))
+		const actualDelay = Math.max(5, randomDelay)
+		elapsed += actualDelay
+		await new Promise((resolve) => setTimeout(resolve, actualDelay))
 	}
 
 	// Move cursor to last line and add newline

@@ -304,9 +304,11 @@ export const createTerminalController = async (
 
 			// Type out all lines simultaneously with variable speeds
 			await batchTypeEffect(term, combinedLines, {
-				baseDelay: 12,
+				baseDelay: 25,
 				delayVariance: 8,
 				speedVariance: 0.6,
+				initialDelay: 20,
+				rowDelay: 3,
 			})
 			return
 		}
