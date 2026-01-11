@@ -4,8 +4,6 @@
  * Must run in a Web Worker (sync handles not available on main thread).
  */
 
-import { logger } from '@repo/logger'
-
 declare global {
 	interface FileSystemFileHandle {
 		createSyncAccessHandle(): Promise<FileSystemSyncAccessHandle>
@@ -19,7 +17,6 @@ declare global {
 		close(): void
 	}
 }
-const log = logger.withTag('fs:workerStorage')
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
@@ -75,9 +72,7 @@ async function createWorkerStorage(): Promise<WorkerStorage> {
 	const root = await storageManager.getDirectory()
 
 	const fireAndForget = (promise: Promise<unknown>, context: string): void => {
-		promise.catch((error) => {
-			log.error(context, error)
-		})
+		promise.catch(() => {})
 	}
 
 	type DirectoryWithEntries = FileSystemDirectoryHandle & {
@@ -93,9 +88,7 @@ async function createWorkerStorage(): Promise<WorkerStorage> {
 					filenames.add(name)
 				}
 			}
-		} catch (error) {
-			log.warn('Failed to enumerate OPFS directory', error)
-		}
+		} catch {}
 	}
 
 	await loadInitialKeys()
@@ -105,9 +98,7 @@ async function createWorkerStorage(): Promise<WorkerStorage> {
 		if (handle) {
 			try {
 				handle.close()
-			} catch (error) {
-				log.error('Failed to close handle', error)
-			}
+			} catch {}
 			handles.delete(filename)
 		}
 	}
@@ -276,9 +267,7 @@ async function createWorkerStorage(): Promise<WorkerStorage> {
 			for (const handle of handles.values()) {
 				try {
 					handle.close()
-				} catch (error) {
-					log.error('Failed to close handle during shutdown', error)
-				}
+				} catch {}
 			}
 			handles.clear()
 		},
@@ -367,9 +356,7 @@ export async function createSyncStore(storeName: string = 'sync-store') {
 			flush()
 			try {
 				handle.close()
-			} catch (error) {
-				log.error('Error closing handle', error)
-			}
+			} catch {}
 		},
 	}
 }

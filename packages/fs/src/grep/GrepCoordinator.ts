@@ -21,9 +21,6 @@ import type {
 } from './types'
 import type { GrepWorkerApi } from './grepWorker'
 import { DEFAULT_CHUNK_SIZE } from './chunkReader'
-import { logger } from '@repo/logger'
-
-const log = logger.withTag('fs:grep')
 
 const FILE_TYPES: Record<string, string[]> = {
 	ts: ['*.ts', '*.tsx'],
@@ -204,9 +201,7 @@ export class GrepCoordinator {
 						pendingTasks.push(task)
 					}
 				}
-			} catch (error) {
-				log.warn('Failed to enumerate path', { searchPath, error })
-			}
+			} catch {}
 		}
 
 		await Promise.all(pendingTasks)
@@ -331,9 +326,7 @@ export class GrepCoordinator {
 						}
 					}
 				}
-			} catch (error) {
-				log.warn('Failed to enumerate path', { searchPath, error })
-			}
+			} catch {}
 		}
 	}
 
