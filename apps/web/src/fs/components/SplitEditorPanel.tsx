@@ -8,6 +8,7 @@
 
 import { createMemo, createSignal, onMount, createEffect, type Accessor, type JSX } from 'solid-js'
 import { SplitEditor } from '../../split-editor/components/SplitEditor'
+import { FileTab } from '../../split-editor/components/FileTab'
 import { createLayoutManager } from '../../split-editor/createLayoutManager'
 import { createResourceManager } from '../../split-editor/createResourceManager'
 import { createFileContent } from '../../split-editor/types'
@@ -90,17 +91,11 @@ export const SplitEditorPanel = (props: SplitEditorPanelProps) => {
 		
 		if (tab.content.type === 'file' && tab.content.filePath) {
 			return (
-				<div class="h-full w-full flex items-center justify-center text-muted-foreground">
-					<div class="text-center">
-						<div class="text-lg font-medium mb-2">File Editor</div>
-						<div class="text-sm">
-							File: {tab.content.filePath}
-						</div>
-						<div class="text-xs mt-2 opacity-75">
-							(Editor integration coming in next tasks)
-						</div>
-					</div>
-				</div>
+				<FileTab 
+					tab={tab} 
+					pane={pane} 
+					filePath={tab.content.filePath} 
+				/>
 			)
 		}
 		

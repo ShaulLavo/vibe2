@@ -9,7 +9,14 @@
  * renderTabContent function that handles all tab types.
  */
 
-import { createMemo, For, Show, type JSX } from 'solid-js'
+import {
+	createMemo,
+	createSignal,
+	For,
+	onMount,
+	Show,
+	type JSX,
+} from 'solid-js'
 import { Portal } from 'solid-js/web'
 import { useLayoutManager } from './SplitEditor'
 import { TabContent } from './TabContent'
@@ -55,9 +62,22 @@ function PanePortal(props: PanePortalProps) {
 		return p.tabs.find((t) => t.id === p.activeTabId) ?? null
 	})
 
-	const target = createMemo(() =>
-		document.getElementById(`pane-target-${props.paneId}`)
-	)
+	// Track a signal that changes when we need to re-check for the target element
+	const [targetTrigger, setTargetTrigger] = createSignal(0)
+
+	// Re-check for target element after mount and whenever the pane changes
+	onMount(() => {
+		// Trigger a re-check after initial mount to find DOM elements
+		setTargetTrigger((n) => n + 1)
+	})
+
+	const target = createMemo(() => {
+		// Depend on trigger to re-run after mount
+		targetTrigger()
+		// Also depend on pane to re-run when layout changes
+		pane()
+		return document.getElementById(`pane-target-${props.paneId}`)
+	})
 
 	return (
 		<Show when={target() && pane()}>

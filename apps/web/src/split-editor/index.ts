@@ -7,6 +7,10 @@
 export * from './types'
 export { createLayoutManager, type LayoutManager } from './createLayoutManager'
 export {
+	createPersistedLayoutManager,
+	type PersistedLayoutManager,
+} from './createPersistedLayoutManager'
+export {
 	createResourceManager,
 	type ResourceManager,
 	type SharedBuffer,

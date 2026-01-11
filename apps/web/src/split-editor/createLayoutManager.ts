@@ -396,15 +396,66 @@ export function createLayoutManager() {
 	}
 
 	function navigateFocus(direction: 'up' | 'down' | 'left' | 'right'): void {
-		const panes = paneIds()
-		if (panes.length === 0) return
+		const currentPaneId = state.focusedPaneId
+		if (!currentPaneId) return
 
-		const currentIndex = panes.indexOf(state.focusedPaneId ?? '')
-		const nextIndex = (currentIndex + 1) % panes.length
-		const nextPaneId = panes[nextIndex]
-		if (nextPaneId) {
-			setState('focusedPaneId', nextPaneId)
+		const adjacentPaneId = findAdjacentPane(currentPaneId, direction)
+		if (adjacentPaneId) {
+			setState('focusedPaneId', adjacentPaneId)
 		}
+	}
+
+	function findAdjacentPane(
+		paneId: NodeId,
+		direction: 'up' | 'down' | 'left' | 'right'
+	): NodeId | null {
+		const pane = state.nodes[paneId]
+		if (!pane || !isPane(pane)) return null
+
+		// Walk up the tree to find a container that can provide the adjacent pane
+		let currentNode = pane
+		let parentId = currentNode.parentId
+
+		while (parentId) {
+			const parent = state.nodes[parentId]
+			if (!parent || !isContainer(parent)) break
+
+			// Check if this container's split direction matches our navigation direction
+			const isHorizontalNav = direction === 'left' || direction === 'right'
+			const isVerticalNav = direction === 'up' || direction === 'down'
+			const isHorizontalSplit = parent.direction === 'horizontal'
+			const isVerticalSplit = parent.direction === 'vertical'
+
+			if (
+				(isHorizontalNav && isHorizontalSplit) ||
+				(isVerticalNav && isVerticalSplit)
+			) {
+				// Find which child we are
+				const currentChildIndex = parent.children.indexOf(currentNode.id)
+				if (currentChildIndex === -1) break
+
+				// Determine target child based on direction
+				let targetChildIndex = -1
+				if (direction === 'left' || direction === 'up') {
+					targetChildIndex = currentChildIndex - 1
+				} else if (direction === 'right' || direction === 'down') {
+					targetChildIndex = currentChildIndex + 1
+				}
+
+				// Check if target child exists
+				if (targetChildIndex >= 0 && targetChildIndex < parent.children.length) {
+					const targetChildId = parent.children[targetChildIndex]
+					// Find the first pane in the target subtree
+					return findFirstPane(state.nodes, targetChildId)
+				}
+			}
+
+			// Move up to the next level
+			currentNode = parent
+			parentId = parent.parentId
+		}
+
+		return null
 	}
 
 	function cycleTab(direction: 'next' | 'prev'): void {

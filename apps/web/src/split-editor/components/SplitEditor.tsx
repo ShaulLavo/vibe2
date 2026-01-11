@@ -5,9 +5,10 @@
  * Uses portals for pane content to enable future drag-and-drop functionality.
  */
 
-import { createContext, useContext, type JSX } from 'solid-js'
+import { createContext, useContext, onMount, onCleanup, type JSX } from 'solid-js'
 import { SplitNode } from './SplitNode'
 import { PanePortals } from './PanePortals'
+import { createSplitEditorKeymap } from '../createSplitEditorKeymap'
 import type { LayoutManager } from '../createLayoutManager'
 import type { ResourceManager } from '../createResourceManager'
 import type { EditorPane, Tab } from '../types'
@@ -38,9 +39,19 @@ export interface SplitEditorProps {
 	resourceManager: ResourceManager
 	class?: string
 	renderTabContent?: (tab: Tab, pane: EditorPane) => JSX.Element
+	enableKeyboardShortcuts?: boolean
 }
 
 export function SplitEditor(props: SplitEditorProps) {
+	// Set up keyboard shortcuts
+	onMount(() => {
+		if (props.enableKeyboardShortcuts !== false) {
+			const keymap = createSplitEditorKeymap(props.layoutManager)
+			const detach = keymap.attach()
+			onCleanup(detach)
+		}
+	})
+
 	return (
 		<LayoutContext.Provider value={props.layoutManager}>
 			<ResourceContext.Provider value={props.resourceManager}>

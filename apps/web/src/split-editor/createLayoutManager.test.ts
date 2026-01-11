@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import fc from 'fast-check'
 import { createLayoutManager } from './createLayoutManager'
 import type { LayoutManager } from './createLayoutManager'
-import type { SplitDirection, SplitContainer, EditorPane, NodeId } from './types'
+import type {
+	SplitDirection,
+	SplitContainer,
+	EditorPane,
+	NodeId,
+} from './types'
 import { isContainer, isPane } from './types'
 
 /**
@@ -80,7 +85,10 @@ describe('Layout Manager Properties', () => {
 						fc.oneof(
 							fc.record({
 								type: fc.constant('split' as const),
-								direction: fc.constantFrom<SplitDirection>('horizontal', 'vertical'),
+								direction: fc.constantFrom<SplitDirection>(
+									'horizontal',
+									'vertical'
+								),
 							}),
 							fc.record({
 								type: fc.constant('close' as const),
@@ -100,11 +108,13 @@ describe('Layout Manager Properties', () => {
 					// Apply operations
 					for (const operation of config.operations) {
 						const panesBefore = getAllPaneIds()
-						
+
 						if (operation.type === 'split') {
 							// Split a random pane
 							if (panesBefore.length > 0) {
-								const randomPaneIndex = Math.floor(Math.random() * panesBefore.length)
+								const randomPaneIndex = Math.floor(
+									Math.random() * panesBefore.length
+								)
 								const paneToSplit = panesBefore[randomPaneIndex]
 								if (paneToSplit) {
 									manager.splitPane(paneToSplit, operation.direction)
@@ -113,7 +123,9 @@ describe('Layout Manager Properties', () => {
 						} else if (operation.type === 'close') {
 							// Close a random pane (but not if it's the last one)
 							if (panesBefore.length > 1) {
-								const randomPaneIndex = Math.floor(Math.random() * panesBefore.length)
+								const randomPaneIndex = Math.floor(
+									Math.random() * panesBefore.length
+								)
 								const paneToClose = panesBefore[randomPaneIndex]
 								if (paneToClose) {
 									manager.closePane(paneToClose)
@@ -156,7 +168,6 @@ describe('Layout Manager Properties', () => {
 					manager = createLayoutManager()
 					manager.initialize()
 
-					const initialPaneId = manager.state.rootId
 					const initialPaneCount = getAllPaneIds().length
 					expect(initialPaneCount).toBe(1)
 
@@ -181,7 +192,7 @@ describe('Layout Manager Properties', () => {
 						const containerId = newPane.parentId
 						expect(containerId).toBeDefined()
 						if (!containerId) continue
-						
+
 						const containerNode = manager.state.nodes[containerId]
 						expect(containerNode).toBeDefined()
 						if (!containerNode) continue
@@ -248,10 +259,10 @@ describe('Layout Manager Properties', () => {
 					const paneIndexToClose = config.closeIndex % panesBeforeClose.length
 					const paneToClose = panesBeforeClose[paneIndexToClose]
 					if (!paneToClose) return
-					
+
 					const paneBeforeCloseNode = manager.state.nodes[paneToClose]
 					if (!paneBeforeCloseNode || !isPane(paneBeforeCloseNode)) return
-					
+
 					const paneBeforeClose = paneBeforeCloseNode as EditorPane
 					const parentIdBeforeClose = paneBeforeClose.parentId
 
@@ -266,12 +277,15 @@ describe('Layout Manager Properties', () => {
 
 					// Get sibling before close
 					const parentBeforeCloseNode = manager.state.nodes[parentIdBeforeClose]
-					if (!parentBeforeCloseNode || !isContainer(parentBeforeCloseNode)) return
-					
+					if (!parentBeforeCloseNode || !isContainer(parentBeforeCloseNode))
+						return
+
 					const parentBeforeClose = parentBeforeCloseNode as SplitContainer
-					const siblingId = parentBeforeClose.children.find((id) => id !== paneToClose)
+					const siblingId = parentBeforeClose.children.find(
+						(id) => id !== paneToClose
+					)
 					if (!siblingId) return
-					
+
 					const grandparentId = parentBeforeClose.parentId
 
 					// Close the pane
@@ -287,7 +301,7 @@ describe('Layout Manager Properties', () => {
 					const sibling = manager.state.nodes[siblingId]
 					expect(sibling).toBeDefined()
 					if (!sibling) return
-					
+
 					expect(sibling.parentId).toBe(grandparentId)
 
 					// If grandparent exists, verify it now references sibling
@@ -320,28 +334,25 @@ describe('Layout Manager Properties', () => {
 	 */
 	it('property: cannot close the last remaining pane', () => {
 		fc.assert(
-			fc.property(
-				fc.constant(null),
-				() => {
-					// Reset manager
-					manager = createLayoutManager()
-					manager.initialize()
+			fc.property(fc.constant(null), () => {
+				// Reset manager
+				manager = createLayoutManager()
+				manager.initialize()
 
-					const panes = getAllPaneIds()
-					expect(panes.length).toBe(1)
+				const panes = getAllPaneIds()
+				expect(panes.length).toBe(1)
 
-					const lastPaneId = panes[0]
-					if (!lastPaneId) return
+				const lastPaneId = panes[0]
+				if (!lastPaneId) return
 
-					// Try to close the last pane
-					manager.closePane(lastPaneId)
+				// Try to close the last pane
+				manager.closePane(lastPaneId)
 
-					// Pane should still exist
-					expect(manager.state.nodes[lastPaneId]).toBeDefined()
-					expect(getAllPaneIds().length).toBe(1)
-					expect(manager.state.rootId).toBe(lastPaneId)
-				}
-			),
+				// Pane should still exist
+				expect(manager.state.nodes[lastPaneId]).toBeDefined()
+				expect(getAllPaneIds().length).toBe(1)
+				expect(manager.state.rootId).toBe(lastPaneId)
+			}),
 			{ numRuns: 100 }
 		)
 	})
@@ -375,7 +386,9 @@ describe('Layout Manager Properties', () => {
 
 					// Focus should have moved to the sibling (original pane)
 					expect(manager.state.focusedPaneId).toBe(initialPaneId)
-					expect(manager.state.nodes[manager.state.focusedPaneId!]).toBeDefined()
+					expect(
+						manager.state.nodes[manager.state.focusedPaneId!]
+					).toBeDefined()
 				}
 			),
 			{ numRuns: 100 }
@@ -420,18 +433,24 @@ describe('Layout Manager Properties', () => {
 					expect(paneBeforeClose.tabs.length).toBe(config.tabCount)
 					expect(paneBeforeClose.activeTabId).toBe(tabIds[tabIds.length - 1])
 
-					// Close all tabs except the last one
 					for (let i = 0; i < tabIds.length - 1; i++) {
-						manager.closeTab(newPaneId, tabIds[i])
-						
+						const tabToClose = tabIds[i]
+						if (!tabToClose) continue
+						manager.closeTab(newPaneId, tabToClose)
+
 						// Pane should still exist
-						const paneAfterPartialClose = manager.state.nodes[newPaneId] as EditorPane
+						const paneAfterPartialClose = manager.state.nodes[
+							newPaneId
+						] as EditorPane
 						expect(paneAfterPartialClose).toBeDefined()
-						expect(paneAfterPartialClose.tabs.length).toBe(config.tabCount - i - 1)
+						expect(paneAfterPartialClose.tabs.length).toBe(
+							config.tabCount - i - 1
+						)
 					}
 
 					// Close the last tab
 					const lastTabId = tabIds[tabIds.length - 1]
+					if (!lastTabId) return
 					manager.closeTab(newPaneId, lastTabId)
 
 					// Pane should be closed (removed from nodes)
@@ -483,6 +502,7 @@ describe('Layout Manager Properties', () => {
 					// Set a specific tab as active
 					const activeIndex = config.activeTabIndex % config.tabCount
 					const activeTabId = tabIds[activeIndex]
+					if (!activeTabId) return
 					manager.setActiveTab(paneId, activeTabId)
 
 					// Verify setup
@@ -491,6 +511,7 @@ describe('Layout Manager Properties', () => {
 					expect(paneBeforeClose.tabs.length).toBe(config.tabCount)
 
 					// Close the active tab
+					if (!activeTabId) return
 					manager.closeTab(paneId, activeTabId)
 
 					// Verify pane still exists (since we have more than 1 tab)
@@ -503,15 +524,229 @@ describe('Layout Manager Properties', () => {
 					expect(paneAfterClose.activeTabId).not.toBe(activeTabId)
 
 					// Verify the active tab exists in the remaining tabs
-					const activeTab = paneAfterClose.tabs.find(t => t.id === paneAfterClose.activeTabId)
+					const activeTab = paneAfterClose.tabs.find(
+						(t) => t.id === paneAfterClose.activeTabId
+					)
 					expect(activeTab).toBeDefined()
 
 					// Verify the closed tab is no longer in the tabs array
-					const closedTab = paneAfterClose.tabs.find(t => t.id === activeTabId)
+					const closedTab = paneAfterClose.tabs.find(
+						(t) => t.id === activeTabId
+					)
 					expect(closedTab).toBeUndefined()
 
 					// Tree integrity should be maintained
 					expect(validateTreeIntegrity()).toBe(true)
+				}
+			),
+			{ numRuns: 100 }
+		)
+	})
+
+	/**
+	 * Property 7: Layout Serialization Round-Trip
+	 * For any valid layout state (including all tabs), serializing to JSON and deserializing back
+	 * SHALL produce an equivalent layout tree with all node relationships, sizes, tabs, and tab states preserved.
+	 * **Validates: Requirements 11.1, 11.2**
+	 */
+	it('property: serialization round-trip preserves layout', () => {
+		fc.assert(
+			fc.property(
+				fc.record({
+					splitCount: fc.integer({ min: 0, max: 5 }),
+					tabsPerPane: fc.integer({ min: 1, max: 4 }),
+					directions: fc.array(
+						fc.constantFrom<SplitDirection>('horizontal', 'vertical'),
+						{ minLength: 5, maxLength: 5 }
+					),
+				}),
+				(config) => {
+					// Reset manager for each test
+					manager = createLayoutManager()
+					manager.initialize()
+
+					// Build a layout with splits
+					for (let i = 0; i < config.splitCount; i++) {
+						const panes = getAllPaneIds()
+						const paneToSplit = panes[panes.length - 1]
+						if (!paneToSplit) continue
+						const direction = config.directions[i % config.directions.length]
+						if (!direction) continue
+						manager.splitPane(paneToSplit, direction)
+					}
+
+					// Add tabs to each pane
+					const panes = getAllPaneIds()
+					for (const paneId of panes) {
+						for (let i = 0; i < config.tabsPerPane; i++) {
+							const tabId = manager.openTab(paneId, {
+								type: 'file',
+								filePath: `/test/${paneId}/file${i}.txt`,
+							})
+
+							// Update tab state with random-ish values
+							manager.updateTabState(paneId, tabId, {
+								scrollTop: i * 100,
+								scrollLeft: i * 50,
+								cursorPosition: { line: i + 1, column: i * 2 },
+							})
+
+							// Mark some tabs as dirty
+							if (i % 2 === 0) {
+								manager.setTabDirty(paneId, tabId, true)
+							}
+						}
+					}
+
+					// Serialize the layout
+					const serialized = manager.getLayoutTree()
+
+					// Verify serialization has correct structure
+					expect(serialized.version).toBe(1)
+					expect(serialized.rootId).toBe(manager.state.rootId)
+					expect(serialized.nodes.length).toBe(
+						Object.keys(manager.state.nodes).length
+					)
+
+					// Store original state for comparison
+					const originalRootId = manager.state.rootId
+					const originalNodeCount = Object.keys(manager.state.nodes).length
+					const originalPaneCount = panes.length
+					const originalFocusedPaneId = manager.state.focusedPaneId
+
+					// Capture tab counts and content per pane
+					const originalTabInfo: Map<
+						string,
+						{ count: number; filePaths: string[] }
+					> = new Map()
+					for (const paneId of panes) {
+						const pane = manager.state.nodes[paneId] as EditorPane
+						if (pane && isPane(pane)) {
+							originalTabInfo.set(paneId, {
+								count: pane.tabs.length,
+								filePaths: pane.tabs.map((t) =>
+									t.content.type === 'file' ? (t.content.filePath ?? '') : ''
+								),
+							})
+						}
+					}
+
+					// Create a new manager and restore
+					const restoredManager = createLayoutManager()
+					restoredManager.restoreLayout(serialized)
+
+					// Verify restored state matches original
+					expect(restoredManager.state.rootId).toBe(originalRootId)
+					expect(Object.keys(restoredManager.state.nodes).length).toBe(
+						originalNodeCount
+					)
+					expect(restoredManager.state.focusedPaneId).toBe(
+						originalFocusedPaneId
+					)
+
+					// Verify restored panes have same tabs
+					const restoredPanes = Object.values(restoredManager.state.nodes)
+						.filter((n): n is EditorPane => isPane(n))
+						.map((p) => p.id)
+					expect(restoredPanes.length).toBe(originalPaneCount)
+
+					for (const paneId of restoredPanes) {
+						const restoredPane = restoredManager.state.nodes[
+							paneId
+						] as EditorPane
+						const originalInfo = originalTabInfo.get(paneId)
+
+						if (originalInfo) {
+							expect(restoredPane.tabs.length).toBe(originalInfo.count)
+
+							// Verify file paths are preserved
+							const restoredPaths = restoredPane.tabs.map((t) =>
+								t.content.type === 'file' ? (t.content.filePath ?? '') : ''
+							)
+							expect(restoredPaths).toEqual(originalInfo.filePaths)
+						}
+					}
+
+					// Verify tree integrity after restore
+					expect(validateTreeIntegrity.call({ manager: restoredManager })).toBe(
+						true
+					)
+				}
+			),
+			{ numRuns: 100 }
+		)
+	})
+
+	/**
+	 * Additional property: Serialization includes tab state
+	 * **Validates: Requirements 11.1**
+	 */
+	it('property: serialization preserves tab state', () => {
+		fc.assert(
+			fc.property(
+				fc.record({
+					scrollTop: fc.integer({ min: 0, max: 10000 }),
+					scrollLeft: fc.integer({ min: 0, max: 1000 }),
+					line: fc.integer({ min: 0, max: 10000 }),
+					column: fc.integer({ min: 0, max: 200 }),
+					isDirty: fc.boolean(),
+				}),
+				(config) => {
+					// Reset manager
+					manager = createLayoutManager()
+					manager.initialize()
+
+					const paneId = manager.state.rootId
+
+					// Open a tab with specific state
+					const tabId = manager.openTab(paneId, {
+						type: 'file',
+						filePath: '/test/stateful-file.txt',
+					})
+
+					// Set tab state
+					manager.updateTabState(paneId, tabId, {
+						scrollTop: config.scrollTop,
+						scrollLeft: config.scrollLeft,
+						cursorPosition: { line: config.line, column: config.column },
+					})
+					manager.setTabDirty(paneId, tabId, config.isDirty)
+
+					// Serialize
+					const serialized = manager.getLayoutTree()
+
+					// Find the tab in serialized data
+					const serializedPane = serialized.nodes.find(
+						(n) => n.type === 'pane' && n.id === paneId
+					)
+					expect(serializedPane).toBeDefined()
+					expect(serializedPane?.tabs).toBeDefined()
+
+					const serializedTab = serializedPane?.tabs?.find(
+						(t) => t.id === tabId
+					)
+					expect(serializedTab).toBeDefined()
+
+					// Verify state is preserved in serialization
+					expect(serializedTab?.state.scrollTop).toBe(config.scrollTop)
+					expect(serializedTab?.state.scrollLeft).toBe(config.scrollLeft)
+					expect(serializedTab?.state.cursorPosition.line).toBe(config.line)
+					expect(serializedTab?.state.cursorPosition.column).toBe(config.column)
+					expect(serializedTab?.isDirty).toBe(config.isDirty)
+
+					// Restore and verify
+					const restoredManager = createLayoutManager()
+					restoredManager.restoreLayout(serialized)
+
+					const restoredPane = restoredManager.state.nodes[paneId] as EditorPane
+					const restoredTab = restoredPane.tabs.find((t) => t.id === tabId)
+
+					expect(restoredTab).toBeDefined()
+					expect(restoredTab?.state.scrollTop).toBe(config.scrollTop)
+					expect(restoredTab?.state.scrollLeft).toBe(config.scrollLeft)
+					expect(restoredTab?.state.cursorPosition.line).toBe(config.line)
+					expect(restoredTab?.state.cursorPosition.column).toBe(config.column)
+					expect(restoredTab?.isDirty).toBe(config.isDirty)
 				}
 			),
 			{ numRuns: 100 }
