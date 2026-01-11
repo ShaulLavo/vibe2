@@ -49,7 +49,7 @@ export const Tabs: Component<TabsProps> = (props) => {
 				<Show
 					when={props.values.length > 0}
 					fallback={
-						<p class="uppercase tracking-[0.08em] text-muted-foreground px-2 py-1" style={{ "font-size": "calc(var(--ui-font-size, 13px) * 0.77)" }}>
+						<p class="uppercase tracking-[0.08em] text-muted-foreground px-2 py-1 text-ui-xs">
 							{props.emptyLabel ?? 'Open a file to start editing'}
 						</p>
 					}

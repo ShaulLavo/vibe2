@@ -29,7 +29,7 @@ body {
 	background-color: var(--editor-background, hsl(240 10% 3.9%));
 	color: var(--editor-foreground, hsl(0 0% 98%));
 	font-family: var(--ui-font-family, 'Google Sans Flex', sans-serif);
-	font-size: var(--ui-font-size, 13px);
+	font-size: var(--ui-font-size, var(--base-font-size));
 }
 
 /* ghostty-web: ensure the terminal canvas doesn't behave like inline content */
@@ -134,7 +134,7 @@ body {
 
 	/* Line Gutter */
 	.editor-gutter-container {
-		@apply shrink-0 select-none text-[11px] font-semibold tracking-[0.08em] tabular-nums flex items-center justify-end gap-0.5;
+		@apply shrink-0 select-none font-semibold tracking-[0.08em] tabular-nums flex items-center justify-end gap-0.5;
 	}
 
 	/* Line Gutters */
@@ -179,9 +179,8 @@ body {
 
 	/* Line */
 	.editor-line {
-		@apply absolute left-0 top-0 w-full whitespace-pre;
+		@apply absolute left-0 top-0 w-full whitespace-pre text-editor;
 		color: var(--editor-foreground);
-		font-size: var(--editor-font-size, 14px);
 		font-family: var(--editor-font-family, 'JetBrains Mono');
 	}
 }

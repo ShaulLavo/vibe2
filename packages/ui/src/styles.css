@@ -120,21 +120,37 @@
 }
 
 @layer utilities {
-	/* Zoomable font size utilities - use CSS variables set by app */
+	/* Font scale factors */
+	:root {
+		--base-font-size: 14px; /* Set by JS from settings defaults */
+		--font-scale-xxs: 0.75;
+		--font-scale-xs: 0.85;
+		--font-scale-sm: 0.92;
+		--font-scale-lg: 1.08;
+		--font-scale-xl: 1.15;
+	}
+
+	/* Font size utilities based on CSS variables set by JS */
 	.text-ui {
-		font-size: var(--ui-font-size, 13px);
+		font-size: var(--ui-font-size, var(--base-font-size));
 	}
 	.text-ui-xs {
-		font-size: calc(var(--ui-font-size, 13px) * 0.85);
+		font-size: calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-xs));
 	}
 	.text-ui-sm {
-		font-size: calc(var(--ui-font-size, 13px) * 0.92);
+		font-size: calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-sm));
 	}
 	.text-ui-lg {
-		font-size: calc(var(--ui-font-size, 13px) * 1.15);
+		font-size: calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-lg));
 	}
 	.text-ui-xl {
-		font-size: calc(var(--ui-font-size, 13px) * 1.38);
+		font-size: calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-xl));
+	}
+	.text-editor {
+		font-size: var(--editor-font-size, var(--base-font-size));
+	}
+	.text-editor-xs {
+		font-size: calc(var(--editor-font-size, var(--base-font-size)) * var(--font-scale-xs));
 	}
 }
 

@@ -2,8 +2,16 @@
 @config '../../../apps/web/tailwind.config.ts';
 
 @layer utilities {
+	.line-number {
+		font-size: calc(var(--editor-font-size, var(--base-font-size)) * 0.75);
+	}
+	
 	.line-number::before {
 		content: counter(line, var(--gutter-style, decimal));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
 	}
 
 	.syntax-comment {
