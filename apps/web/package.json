@@ -11,6 +11,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
+    "check-types": "tsc --noEmit",
     "copy-tree-sitter-assets": "bun scripts/install-tree-sitter-assets.ts",
     "postinstall": "bun run copy-tree-sitter-assets",
     "depcheck": "depcheck",

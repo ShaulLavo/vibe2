@@ -65,6 +65,15 @@ export default {
 					foreground: 'hsl(var(--card-foreground))',
 				},
 			},
+			fontSize: {
+				'ui': 'var(--ui-font-size, var(--base-font-size))',
+				'ui-xs': 'calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-xs))',
+				'ui-sm': 'calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-sm))',
+				'ui-lg': 'calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-lg))',
+				'ui-xl': 'calc(var(--ui-font-size, var(--base-font-size)) * var(--font-scale-xl))',
+				'editor': 'var(--editor-font-size, var(--base-font-size))',
+				'editor-xs': 'calc(var(--editor-font-size, var(--base-font-size)) * var(--font-scale-xs))',
+			},
 			borderRadius: {
 				xl: 'calc(var(--radius) + 4px)',
 				lg: 'var(--radius)',

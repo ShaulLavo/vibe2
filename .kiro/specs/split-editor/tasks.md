@@ -227,7 +227,7 @@ Implementation of a recursive split editor system with VS Code-style tab managem
     - Ask the user if questions arise about editor behavior
     - **Note: Integration verification - USE BROWSER MODE for full editor functionality testing**
 
-- [ ] 11. Checkpoint - UI and Tabs Complete
+- [x] 11. Checkpoint - UI and Tabs Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 12. Implement Layout Persistence
@@ -280,35 +280,35 @@ Implementation of a recursive split editor system with VS Code-style tab managem
     - Navigate in direction, verify focus moves to adjacent pane
     - **Validates: Requirements 12.1, 12.5**
 
-- [ ] 14. Implement Synchronized Scrolling
-  - [ ] 14.1 Add scroll sync groups to Layout Manager
+- [x] 14. Implement Synchronized Scrolling
+  - [x] 14.1 Add scroll sync groups to Layout Manager
     - Track ScrollSyncGroup[] in state (links tabIds)
     - Implement linkScrollSync and unlinkScrollSync actions
     - _Requirements: 10.1, 10.3_
 
-  - [ ] 14.2 Implement scroll sync coordination
+  - [x] 14.2 Implement scroll sync coordination
     - Subscribe to scroll events in linked tabs
     - Calculate proportional scroll (line or percentage mode)
     - Apply scroll to other tabs in group
     - _Requirements: 10.2, 10.4_
 
-  - [ ] 14.3 Write property test for scroll sync proportionality
+  - [x] 14.3 Write property test for scroll sync proportionality
     - **Property 9: Scroll Sync Proportionality**
     - Link tabs, scroll one, verify proportional scroll in others
     - **Validates: Requirements 10.1, 10.2, 10.4**
 
-- [ ] 15. Add Visual Feedback and Polish
-  - [ ] 15.1 Add focus indicator styling
+- [x] 15. Add Visual Feedback and Polish
+  - [x] 15.1 Add focus indicator styling
     - Ring around focused pane
     - Theme-aware colors
     - _Requirements: 14.1, 14.3_
 
-  - [ ] 15.2 Add minimum pane size enforcement
+  - [x] 15.2 Add minimum pane size enforcement
     - Configure minSize on Resizable
     - Prevent panes from becoming unusable
     - _Requirements: 5.3_
 
-  - [ ] 15.3 Add CSS containment for performance
+  - [x] 15.3 Add CSS containment for performance
     - Apply contain: strict to pane containers
     - Optimize for deep nesting
     - _Requirements: 15.2, 15.3_
@@ -321,7 +321,11 @@ Implementation of a recursive split editor system with VS Code-style tab managem
 
 ## Notes
 
-- All tasks are mandatory
+- Tasks marked with `*` are optional and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation
+- Property tests validate universal correctness properties
+- Unit tests validate specific examples and edge cases
 - Uses `fast-check` for property-based testing with minimum 100 iterations
 - Builds on existing `@repo/ui` Resizable component
 - Uses SolidJS primitives: createStore, produce, reconcile, batch, untrack, createMemo

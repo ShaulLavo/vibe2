@@ -10,5 +10,5 @@
 		}
 	},
 	"include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
-	"exclude": ["node_modules"]
+	"exclude": ["node_modules", "vite.config.ts", "vitest.config.ts"]
 }
