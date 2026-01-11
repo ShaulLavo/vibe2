@@ -185,6 +185,12 @@ bun run x <tool>             # Execute tools (e.g., bun run x eslint)
 | **Logic Separation** | Pure logic → utility files; Stateful logic → `create*`/`use*` primitives |
 | **Comments**         | Minimal—explain _why_, not _what_                                        |
 
+### Error Handling
+
+- **Fixable Errors**: If an error is fixable, try to fix it automatically first.
+- **Non-Critical Errors**: If it's not fixable and non-critical, use an error toast to inform the user.
+- **Critical Errors**: If it requires user action or is critical and we can't continue, use an error modal.
+
 ---
 
 ## Comment removal rules
@@ -208,6 +214,7 @@ bun run x <tool>             # Execute tools (e.g., bun run x eslint)
 - Comments that just repeat the code
 - Noise / obvious stuff
 - Old TODOs **only if you are 100% sure they’re done**
+- All comments inside JSX
 
 ---
 
