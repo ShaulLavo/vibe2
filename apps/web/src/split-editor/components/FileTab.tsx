@@ -4,11 +4,12 @@
  * A tab component that renders file content using the shared Resource Manager.
  * Registers/unregisters with Resource Manager on mount/cleanup and uses
  * shared buffer for content while maintaining independent tab state.
+ * Supports multiple view modes: editor, ui (settings).
  *
- * Requirements: 2.1, 2.5, 8.1, 8.2, 8.4
+ * Requirements: 2.1, 2.5, 8.1, 8.2, 8.4, View Mode Support
  */
 
-import { createEffect, createMemo, createResource, onCleanup, onMount } from 'solid-js'
+import { createEffect, createMemo, createResource, createSignal, Match, onCleanup, onMount, Switch } from 'solid-js'
 import { Editor } from '@repo/code-editor'
 import { CursorMode } from '@repo/code-editor'
 import type {
@@ -19,6 +20,7 @@ import type {
 import { useLayoutManager, useResourceManager } from './SplitEditor'
 import { useFocusManager } from '~/focus/focusManager'
 import { getTreeSitterWorker } from '~/treeSitter/workerClient'
+import { SettingsTab } from '~/settings/components/SettingsTab'
 import type { Tab, EditorPane } from '../types'
 import { createScrollSyncCoordinator } from '../createScrollSyncCoordinator'
 import type { ScrollEvent } from '../createScrollSyncCoordinator'
@@ -39,8 +41,13 @@ export function FileTab(props: FileTabProps) {
 
 	const scrollSyncCoordinator = createScrollSyncCoordinator(layoutManager)
 
+	// Settings category state for UI mode
+	const [currentCategory, setCurrentCategory] = createSignal<string>('editor')
+
 	// Get tree-sitter worker for minimap
-	const [treeSitterWorker] = createResource(async () => getTreeSitterWorker())
+	const [treeSitterWorker] = createResource(async () => {
+		return getTreeSitterWorker()
+	})
 
 	onMount(() => {
 		resourceManager.registerTabForFile(props.tab.id, props.filePath)
@@ -52,21 +59,21 @@ export function FileTab(props: FileTabProps) {
 
 	// Get shared buffer
 	const buffer = createMemo(() => resourceManager.getBuffer(props.filePath))
-	
+
 	// Get highlight state - track the accessor functions
 	const highlightState = createMemo(() => resourceManager.getHighlightState(props.filePath))
-	
+
 	// Create reactive accessors for highlights
 	const highlights = createMemo(() => {
 		const state = highlightState()
 		if (!state) return undefined
-		
+
 		// Access signals to create dependencies
 		state.captures()
 		state.brackets()
 		state.folds()
 		state.errors()
-		
+
 		return {
 			captures: state.captures,
 			folds: state.folds,
@@ -87,7 +94,7 @@ export function FileTab(props: FileTabProps) {
 	// Create document interface for the Editor
 	const document = createMemo(() => {
 		const sharedBuffer = buffer()
-		
+
 		if (!sharedBuffer) {
 			return {
 				filePath: () => props.filePath,
@@ -165,7 +172,8 @@ export function FileTab(props: FileTabProps) {
 		(): EditorProps => {
 			const doc = document()
 			const highlightData = highlights()
-			
+			const tsWorker = treeSitterWorker()
+
 			return {
 				document: doc,
 				isFileSelected: () => true,
@@ -180,7 +188,7 @@ export function FileTab(props: FileTabProps) {
 				folds: highlightData?.folds,
 				brackets: highlightData?.brackets,
 				errors: highlightData?.errors,
-				treeSitterWorker: treeSitterWorker() ?? undefined,
+				treeSitterWorker: tsWorker ?? undefined,
 				onSave: handleSave,
 				initialScrollPosition: () => initialScrollPosition(),
 				onScrollPositionChange: handleScrollPositionChange,
@@ -190,6 +198,9 @@ export function FileTab(props: FileTabProps) {
 		}
 	)
 
+	// Must be an accessor function for reactivity in SolidJS
+	const viewMode = () => props.tab.viewMode ?? 'editor'
+
 	return (
 		<div
 			class="file-tab absolute inset-0"
@@ -197,7 +208,16 @@ export function FileTab(props: FileTabProps) {
 			data-file-path={props.filePath}
 			data-tab-id={props.tab.id}
 		>
-			<Editor {...editorProps()} />
+			<Switch fallback={<Editor {...editorProps()} />}>
+				{/* Settings file in UI mode */}
+				<Match when={viewMode() === 'ui'}>
+					<SettingsTab
+						initialCategory={currentCategory()}
+						currentCategory={currentCategory()}
+						onCategoryChange={setCurrentCategory}
+					/>
+				</Match>
+			</Switch>
 		</div>
 	)
 }

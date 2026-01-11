@@ -260,7 +260,7 @@ export function createResourceManager(): ResourceManager {
 		try {
 			await ensureTreeSitterWorkerReady()
 			resource.workerReady = true
-			
+
 			// Trigger initial parsing since we have content
 			const content = resource.buffer.content()
 			if (content.length > 0) {

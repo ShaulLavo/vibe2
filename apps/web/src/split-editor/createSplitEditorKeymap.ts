@@ -83,6 +83,11 @@ export function createSplitEditorKeymap(layoutManager: LayoutManager) {
 	})
 
 	keymap.registerCommand({
+		id: 'split-editor.cycle-view-mode',
+		run: ({ app }) => app?.layoutManager.cycleViewMode(),
+	})
+
+	keymap.registerCommand({
 		id: 'split-editor.focus-pane-1',
 		run: ({ app }) => {
 			if (!app) return
@@ -189,6 +194,14 @@ export function createSplitEditorKeymap(layoutManager: LayoutManager) {
 	})
 
 	keymap.registerKeybinding({
+		id: 'cycle-view-mode',
+		shortcut: 'ctrl+shift+v',
+		options: {
+			preventDefault: true,
+		},
+	})
+
+	keymap.registerKeybinding({
 		id: 'focus-pane-1',
 		shortcut: 'cmd+1',
 		options: {
@@ -265,6 +278,12 @@ export function createSplitEditorKeymap(layoutManager: LayoutManager) {
 		scope: 'split-editor',
 		shortcut: 'cmd+shift+tab',
 		commandId: 'split-editor.cycle-tab-prev',
+	})
+
+	keymap.bindCommand({
+		scope: 'split-editor',
+		shortcut: 'ctrl+shift+v',
+		commandId: 'split-editor.cycle-view-mode',
 	})
 
 	keymap.bindCommand({

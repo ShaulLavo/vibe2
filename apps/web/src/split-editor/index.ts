@@ -5,7 +5,7 @@
  */
 
 export * from './types'
-export { createLayoutManager, type LayoutManager } from './createLayoutManager'
+export { createLayoutManager, type LayoutManager, type LayoutManagerOptions } from './createLayoutManager'
 export {
 	createPersistedLayoutManager,
 	type PersistedLayoutManager,

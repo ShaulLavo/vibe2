@@ -30,6 +30,7 @@ import {
 	isContainer,
 	isPane,
 } from './types'
+import type { ViewMode } from '../fs/types/ViewMode'
 
 function generateId(): NodeId {
 	return crypto.randomUUID()
@@ -51,7 +52,13 @@ function findFirstPane(
 	return null
 }
 
-export function createLayoutManager() {
+/** Options for creating a layout manager */
+export interface LayoutManagerOptions {
+	/** Callback when a tab is closed */
+	onTabClose?: (paneId: NodeId, tab: Tab) => void
+}
+
+export function createLayoutManager(options: LayoutManagerOptions = {}) {
 	const [state, setState] = createStore<LayoutState>({
 		rootId: '',
 		nodes: {},
@@ -229,7 +236,7 @@ export function createLayoutManager() {
 	// Tab Operations
 	// ========================================================================
 
-	function openTab(paneId: NodeId, content: TabContent): TabId {
+	function openTab(paneId: NodeId, content: TabContent, viewMode: ViewMode = 'editor'): TabId {
 		const tabId = generateId()
 
 		setState(
@@ -242,6 +249,7 @@ export function createLayoutManager() {
 					content,
 					state: createDefaultTabState(),
 					isDirty: false,
+					viewMode,
 				}
 
 				pane.tabs.push(newTab)
@@ -254,6 +262,13 @@ export function createLayoutManager() {
 
 	function closeTab(paneId: NodeId, tabId: TabId): void {
 		let shouldClosePane = false
+		let closedTab: Tab | undefined
+
+		// Find the tab before closing to pass to callback
+		const pane = state.nodes[paneId] as EditorPane | undefined
+		if (pane && isPane(pane)) {
+			closedTab = pane.tabs.find((t) => t.id === tabId)
+		}
 
 		setState(
 			produce((s) => {
@@ -279,6 +294,11 @@ export function createLayoutManager() {
 				}
 			})
 		)
+
+		// Call the onTabClose callback after state update
+		if (closedTab && options.onTabClose) {
+			options.onTabClose(paneId, closedTab)
+		}
 
 		if (shouldClosePane) {
 			closePane(paneId)
@@ -365,6 +385,41 @@ export function createLayoutManager() {
 				}
 			})
 		)
+	}
+
+	function setTabViewMode(paneId: NodeId, tabId: TabId, viewMode: ViewMode): void {
+		setState(
+			produce((s) => {
+				const pane = s.nodes[paneId] as EditorPane | undefined
+				if (!pane || !isPane(pane)) return
+
+				const tab = pane.tabs.find((t) => t.id === tabId)
+				if (tab) {
+					tab.viewMode = viewMode
+				}
+			})
+		)
+	}
+
+	function cycleViewMode(): void {
+		const focusedPaneId = state.focusedPaneId
+		if (!focusedPaneId) return
+
+		const pane = state.nodes[focusedPaneId] as EditorPane | undefined
+		if (!pane || !isPane(pane)) return
+
+		const activeTab = pane.tabs.find((t) => t.id === pane.activeTabId)
+		if (!activeTab || activeTab.content.type !== 'file') return
+
+		// Cycle through: editor -> ui -> binary -> editor
+		const viewModes: ViewMode[] = ['editor', 'ui', 'binary']
+		const currentIndex = viewModes.indexOf(activeTab.viewMode)
+		const nextIndex = (currentIndex + 1) % viewModes.length
+		const nextMode = viewModes[nextIndex]
+
+		if (nextMode) {
+			setTabViewMode(focusedPaneId, activeTab.id, nextMode)
+		}
 	}
 
 	// ========================================================================
@@ -550,6 +605,7 @@ export function createLayoutManager() {
 					content: t.content,
 					state: t.state,
 					isDirty: t.isDirty,
+					viewMode: t.viewMode,
 				})),
 				activeTabId: node.activeTabId,
 				viewSettings: node.viewSettings,
@@ -583,7 +639,10 @@ export function createLayoutManager() {
 					id: serialized.id,
 					parentId: serialized.parentId,
 					type: 'pane',
-					tabs: serialized.tabs ?? [],
+					tabs: (serialized.tabs ?? []).map((t) => ({
+						...t,
+						viewMode: t.viewMode ?? 'editor', // Default to 'editor' for backward compatibility
+					})),
 					activeTabId: serialized.activeTabId ?? null,
 					viewSettings: serialized.viewSettings ?? createDefaultViewSettings(),
 				}
@@ -612,6 +671,8 @@ export function createLayoutManager() {
 		moveTab,
 		updateTabState,
 		setTabDirty,
+		setTabViewMode,
+		cycleViewMode,
 		updateViewSettings,
 		updateSplitSizes,
 		setFocusedPane,

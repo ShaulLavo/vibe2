@@ -6,6 +6,8 @@
  * Each EditorPane can hold multiple tabs (VS Code editor group model).
  */
 
+import type { ViewMode } from '../fs/types/ViewMode'
+
 /** Unique identifier for nodes in the layout tree */
 export type NodeId = string
 
@@ -65,6 +67,7 @@ export interface Tab {
 	content: TabContent
 	state: TabState
 	isDirty: boolean
+	viewMode: ViewMode
 }
 
 /** Base node in the layout tree */
@@ -120,6 +123,7 @@ export interface SerializedTab {
 	content: TabContent
 	state: TabState
 	isDirty: boolean
+	viewMode: ViewMode
 }
 
 /** Serialized node for persistence */
@@ -192,11 +196,12 @@ export function createDiffContent(diffData: DiffData): TabContent {
 	return { type: 'diff', diffData }
 }
 
-export function createTab(content: TabContent): Tab {
+export function createTab(content: TabContent, viewMode: ViewMode = 'editor'): Tab {
 	return {
 		id: crypto.randomUUID(),
 		content,
 		state: createDefaultTabState(),
 		isDirty: false,
+		viewMode,
 	}
 }
