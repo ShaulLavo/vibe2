@@ -17,7 +17,12 @@ export const Fs = () => {
 	const isFileSelected = () => {
 		const path = state.selectedPath
 		const fileNode = state.lastKnownFileNode
-		console.log('[Fs] isFileSelected - selectedPath:', path, 'lastKnownFileNode:', fileNode)
+		console.log(
+			'[Fs] isFileSelected - selectedPath:',
+			path,
+			'lastKnownFileNode:',
+			fileNode
+		)
 		if (!path) return false
 		return fileNode?.kind === 'file'
 	}
@@ -30,7 +35,10 @@ export const Fs = () => {
 			console.log('[Fs] Layout manager available, calling openFileAsTab')
 			;(manager as any).openFileAsTab(filePath)
 		} else {
-			console.log('[Fs] No layout manager or openFileAsTab method available, manager:', !!manager)
+			console.log(
+				'[Fs] No layout manager or openFileAsTab method available, manager:',
+				!!manager
+			)
 		}
 	}
 
@@ -38,7 +46,7 @@ export const Fs = () => {
 		<SyncStatusProvider>
 			<Flex
 				flexDirection="col"
-				class="h-full min-h-0 overflow-hidden rounded-lg border border-border/30 bg-muted/60 shadow-xl"
+				class="h-full min-h-0 overflow-hidden rounded-lg  bg-muted/60 shadow-xl"
 			>
 				<Resizable
 					orientation="horizontal"

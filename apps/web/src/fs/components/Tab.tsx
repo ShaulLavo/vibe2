@@ -74,7 +74,7 @@ export const Tab = (props: TabProps) => {
 			onClick={handleSelect}
 			title={props.title ?? props.value}
 			class={
-				'h-auto gap-2 px-3 py-1 font-semibold transition-colors group rounded-none border-r border-border/30 first:border-l text-ui ' +
+				'h-auto gap-2 px-3 py-1 font-semibold transition-colors group rounded-none first:border-l text-ui ' +
 				'focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus:outline-none ring-0 outline-none ' +
 				'hover:bg-muted/50 hover:text-foreground ' +
 				(props.isActive

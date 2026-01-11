@@ -43,7 +43,7 @@ export const Tabs: Component<TabsProps> = (props) => {
 		<Flex
 			role="tablist"
 			alignItems="end"
-			class="shrink-0 gap-1 overflow-x-auto border-b border-border/30 bg-muted/40 text-ui-xs"
+			class="shrink-0 gap-1 overflow-x-auto bg-muted/40 text-ui-xs"
 		>
 			<Flex alignItems="end" class="gap-1 flex-1 overflow-x-auto">
 				<Show

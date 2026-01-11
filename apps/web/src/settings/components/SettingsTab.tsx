@@ -95,7 +95,9 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 
 	// Zoom info for each module
 	const getZoomInfo = (module: 'ui' | 'editor' | 'terminal') => {
-		const baseSize = settingsState.values[`${module}.font.size`] ?? settingsState.defaults[`${module}.font.size`]
+		const baseSize =
+			settingsState.values[`${module}.font.size`] ??
+			settingsState.defaults[`${module}.font.size`]
 		const zoomedSize = settingsActions.getZoomedFontSize(module)
 		const offset = zoomedSize - (baseSize as number)
 		return { baseSize, zoomedSize, offset }
@@ -127,14 +129,25 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 						<input
 							type="number"
 							value={info.baseSize as number}
-							onInput={(e) => handleSettingChange('editor.font.size', Number(e.currentTarget.value))}
+							onInput={(e) =>
+								handleSettingChange(
+									'editor.font.size',
+									Number(e.currentTarget.value)
+								)
+							}
 							class="w-20 rounded border bg-background px-2 py-1 text-ui"
 						/>
 					</div>
 					<Show when={info.offset !== 0}>
 						<div class="text-ui-xs text-muted-foreground">
-							Zoom: {info.offset > 0 ? '+' : ''}{info.offset}px → Effective: {info.zoomedSize}px
-							<Button variant="ghost" size="sm" class="ml-2 h-6 px-2 text-ui-xs" onClick={() => settingsActions.resetZoom('editor')}>
+							Zoom: {info.offset > 0 ? '+' : ''}
+							{info.offset}px → Effective: {info.zoomedSize}px
+							<Button
+								variant="ghost"
+								size="sm"
+								class="ml-2 h-6 px-2 text-ui-xs"
+								onClick={() => settingsActions.resetZoom('editor')}
+							>
 								Reset Zoom
 							</Button>
 						</div>
@@ -163,14 +176,25 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 						<input
 							type="number"
 							value={info.baseSize as number}
-							onInput={(e) => handleSettingChange('terminal.font.size', Number(e.currentTarget.value))}
+							onInput={(e) =>
+								handleSettingChange(
+									'terminal.font.size',
+									Number(e.currentTarget.value)
+								)
+							}
 							class="w-20 rounded border bg-background px-2 py-1 text-ui"
 						/>
 					</div>
 					<Show when={info.offset !== 0}>
 						<div class="text-ui-xs text-muted-foreground">
-							Zoom: {info.offset > 0 ? '+' : ''}{info.offset}px → Effective: {info.zoomedSize}px
-							<Button variant="ghost" size="sm" class="ml-2 h-6 px-2 text-ui-xs" onClick={() => settingsActions.resetZoom('terminal')}>
+							Zoom: {info.offset > 0 ? '+' : ''}
+							{info.offset}px → Effective: {info.zoomedSize}px
+							<Button
+								variant="ghost"
+								size="sm"
+								class="ml-2 h-6 px-2 text-ui-xs"
+								onClick={() => settingsActions.resetZoom('terminal')}
+							>
 								Reset Zoom
 							</Button>
 						</div>
@@ -198,14 +222,25 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 						<input
 							type="number"
 							value={info.baseSize as number}
-							onInput={(e) => handleSettingChange('ui.font.size', Number(e.currentTarget.value))}
+							onInput={(e) =>
+								handleSettingChange(
+									'ui.font.size',
+									Number(e.currentTarget.value)
+								)
+							}
 							class="w-20 rounded border bg-background px-2 py-1 text-ui"
 						/>
 					</div>
 					<Show when={info.offset !== 0}>
 						<div class="text-ui-xs text-muted-foreground">
-							Zoom: {info.offset > 0 ? '+' : ''}{info.offset}px → Effective: {info.zoomedSize}px
-							<Button variant="ghost" size="sm" class="ml-2 h-6 px-2 text-ui-xs" onClick={() => settingsActions.resetZoom('ui')}>
+							Zoom: {info.offset > 0 ? '+' : ''}
+							{info.offset}px → Effective: {info.zoomedSize}px
+							<Button
+								variant="ghost"
+								size="sm"
+								class="ml-2 h-6 px-2 text-ui-xs"
+								onClick={() => settingsActions.resetZoom('ui')}
+							>
 								Reset Zoom
 							</Button>
 						</div>
@@ -216,14 +251,16 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 	}
 
 	const sidebarCategories = () => settingsState.schemas
+	const isLoaded = () => settingsState.isLoaded
 
 	return (
+		<Show when={isLoaded()} fallback={<div class="flex items-center justify-center h-full text-muted-foreground">Loading settings...</div>}>
 		<Flex
 			flexDirection="col"
 			class="h-full min-h-0 bg-background"
 			alignItems="stretch"
 		>
-			<div class="shrink-0 px-2 py-2 border-b border-border/60 flex items-center gap-2">
+			<div class="shrink-0 px-2 py-2  flex items-center gap-2">
 				<div class="flex-1">
 					<SettingsSearch
 						value={searchValue()}
@@ -262,5 +299,6 @@ export const SettingsTab: Component<SettingsTabProps> = (props) => {
 				)}
 			</Resizable>
 		</Flex>
+		</Show>
 	)
 }
