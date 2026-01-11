@@ -6,7 +6,6 @@ import {
 	createPieceTableSnapshot,
 	getPieceTableText,
 } from '@repo/utils'
-import { loggers } from '@repo/logger'
 import type { PieceTableSnapshot, ParseResult } from '@repo/utils'
 import { trackOperation } from '@repo/perf'
 import {
@@ -84,7 +83,6 @@ export const useFileSelection = ({
 		if (error instanceof DOMException && error.name === 'AbortError') return
 		const message =
 			error instanceof Error ? error.message : 'Failed to read file'
-		loggers.fs.error('[fs] Failed to read file', error)
 		toast.error(message)
 	}
 
@@ -235,13 +233,9 @@ export const useFileSelection = ({
 											})
 										}
 									})
-									.catch((error) => {
-										loggers.fs.error(
-											'[Tree-sitter worker] parse failed',
-											path,
-											error
-										)
-									})
+									.catch(() => {
+									// Tree-sitter parse failed
+								})
 							}
 
 							fileStatsResult = timeSync('parse-file-buffer', () =>
@@ -292,12 +286,12 @@ export const useFileSelection = ({
 				},
 				{
 					metadata: perfMetadata,
-					logger: loggers.fs,
 				}
-			).catch((error) => {
-				if (requestId !== selectRequestId) return
+			)
+		} catch (error) {
+			if (requestId === selectRequestId) {
 				handleReadError(error)
-			})
+			}
 		} finally {
 			if (requestId === selectRequestId) {
 				setSelectedFileLoading(false)

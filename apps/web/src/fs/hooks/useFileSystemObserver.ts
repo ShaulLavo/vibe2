@@ -3,9 +3,7 @@ import {
 	type FileSystemChangeRecord,
 	type FileSystemObserverPolyfill,
 } from '@repo/fs'
-import { loggers } from '@repo/logger'
 import { onCleanup } from 'solid-js'
-import { findNode } from '../runtime/tree'
 import type { FsState } from '../types'
 
 type UseFileSystemObserverOptions = {
@@ -42,12 +40,6 @@ export const useFileSystemObserver = ({
 	let observer: FileSystemObserverPolyfill | null = null
 	let isObserving = false
 
-	const getParentPath = (path: string): string => {
-		const segments = path.split('/').filter(Boolean)
-		segments.pop()
-		return segments.join('/')
-	}
-
 	const handleChangeRecords = async (records: FileSystemChangeRecord[]) => {
 		const processedPaths = new Set<string>()
 
@@ -56,11 +48,6 @@ export const useFileSystemObserver = ({
 
 			// Skip if we already processed this path in this batch
 			if (processedPaths.has(fullPath)) continue
-
-			loggers.fs.debug('[FileSystemObserver] Change detected:', {
-				type: record.type,
-				path: fullPath,
-			})
 
 			// PARKED: logic for handling file system events
 			// switch (record.type) {
@@ -188,12 +175,10 @@ export const useFileSystemObserver = ({
 	const startObserving = async () => {
 		const rootHandle = getRootHandle()
 		if (!rootHandle) {
-			loggers.fs.debug('[FileSystemObserver] No root handle available')
 			return
 		}
 
 		if (isObserving) {
-			loggers.fs.debug('[FileSystemObserver] Already observing')
 			return
 		}
 
@@ -204,12 +189,8 @@ export const useFileSystemObserver = ({
 		try {
 			await observer.observe(rootHandle, { recursive: true })
 			isObserving = true
-			loggers.fs.info(
-				'[FileSystemObserver] Started observing filesystem',
-				observer.isNative ? '(native)' : '(polling)'
-			)
-		} catch (error) {
-			loggers.fs.error('[FileSystemObserver] Failed to start observing:', error)
+		} catch {
+			// Failed to start observing
 		}
 	}
 
@@ -218,7 +199,6 @@ export const useFileSystemObserver = ({
 			observer.disconnect()
 			observer = null
 			isObserving = false
-			loggers.fs.debug('[FileSystemObserver] Stopped observing')
 		}
 	}
 

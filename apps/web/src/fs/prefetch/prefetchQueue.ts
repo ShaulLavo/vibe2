@@ -1,6 +1,4 @@
 import type { FsDirTreeNode } from '@repo/fs'
-import { logger } from '~/logger'
-import { formatBytes } from '@repo/utils'
 import type { FsSource } from '../types'
 import { IGNORED_SEGMENTS } from '../config/constants'
 import type {
@@ -22,7 +20,6 @@ const BATCH_SIZE = 8
 const BATCH_DELAY_MS = 4
 const INDEX_BATCH_SIZE = 100
 
-const prefetchLogger = logger.withTag('prefetch')
 const now = () =>
 	typeof performance !== 'undefined' ? performance.now() : Date.now()
 
@@ -83,8 +80,8 @@ export class PrefetchQueue {
 		if (this.workerCount < 1) {
 			throw new Error('PrefetchQueue requires at least one worker')
 		}
-		void searchService.init().catch((err) => {
-			prefetchLogger.error('Failed to initialize SQLite for indexing', err)
+		void searchService.init().catch(() => {
+			// Failed to initialize SQLite for indexing
 		})
 	}
 
@@ -485,8 +482,8 @@ export class PrefetchQueue {
 
 		try {
 			await searchService.indexFiles(batch)
-		} catch (err) {
-			prefetchLogger.error('Failed to batch insert files to SQLite', err)
+		} catch {
+			// Failed to batch insert files to SQLite
 		}
 	}
 
@@ -558,33 +555,12 @@ export class PrefetchQueue {
 			return
 		}
 
-		const duration =
-			this.runStartTime !== undefined
-				? now() - this.runStartTime
-				: this.totalDurationMs
-		const deferredSummary =
-			this.deferredBytesTotal > 0
-				? `, deferred ${formatBytes(this.deferredBytesTotal)} across ${this.loggedDeferredPaths.size} dirs${
-						this.deferredSample
-							? ` (sample path=${this.deferredSample.path}`
-							: ''
-					}`
-				: ''
-		prefetchLogger.info(
-			`prefetch finished in ${duration.toFixed(1)}ms (${processedDelta} dirs, ${
-				this.indexedFileCount - this.loggedIndexedCount
-			} files indexed${deferredSummary})`
-		)
 		this.runStartTime = undefined
 		this.loggedProcessedCount = this.processedCount
 		this.loggedIndexedCount = this.indexedFileCount
 	}
 
-	private logPhaseCompletion(kind: PrefetchPriority) {
-		const elapsed =
-			this.runStartTime !== undefined ? now() - this.runStartTime : 0
-		prefetchLogger.info(
-			`prefetch ${kind} phase completed after ${elapsed.toFixed(1)}ms`
-		)
+	private logPhaseCompletion(_kind: PrefetchPriority) {
+		// Phase completion logged
 	}
 }

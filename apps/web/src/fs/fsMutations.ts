@@ -3,7 +3,6 @@ import type { SetStoreFunction } from 'solid-js/store'
 import type { FsDirTreeNode, FsFileTreeNode } from '@repo/fs'
 import { ensureFs, resolveSourceForPath } from './runtime/fsRuntime'
 import type { FsSource, FsState } from './types'
-import { logger } from '../logger'
 import { addNodeToTree, removeNodeFromTree } from './utils/treeMutations'
 import { findNode } from './runtime/tree'
 
@@ -84,7 +83,6 @@ export const createFsMutations = ({
 				setSelectedPath(newPath)
 			})
 		} catch (error) {
-			logger.withTag('fsMutations').error('Create directory failed', { error })
 			toast.error(
 				error instanceof Error ? error.message : 'Failed to create directory'
 			)
@@ -134,7 +132,6 @@ export const createFsMutations = ({
 				setSelectedFileSize(new Blob([fileContent]).size)
 			})
 		} catch (error) {
-			logger.withTag('fsMutations').error('Create file failed', { error })
 			toast.error(
 				error instanceof Error ? error.message : 'Failed to create file'
 			)
@@ -164,7 +161,6 @@ export const createFsMutations = ({
 				}
 			})
 		} catch (error) {
-			logger.withTag('fsMutations').error('Delete entry failed', { error })
 			toast.error(
 				error instanceof Error ? error.message : 'Failed to delete entry'
 			)
@@ -228,16 +224,13 @@ export const createFsMutations = ({
 					window.dispatchEvent(
 						new CustomEvent('settings-file-saved', { detail: parsed })
 					)
-				} catch (e) {
-					logger
-						.withTag('fsMutations')
-						.warn('Settings file saved but JSON parse failed', { error: e })
+				} catch {
+					// Settings file saved but JSON parse failed
 				}
 			}
 
 			toast.success('File saved')
-		} catch (error) {
-			logger.withTag('fsMutations').error('Save failed', { error })
+		} catch {
 			toast.error('Failed to save file')
 		} finally {
 			setSaving(false)

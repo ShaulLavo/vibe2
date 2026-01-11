@@ -1,6 +1,5 @@
 import { batch } from 'solid-js'
 import { createStore, reconcile } from 'solid-js/store'
-import { logger } from '../../logger'
 import type { TreeSitterCapture } from '../../workers/treeSitter/types'
 
 /**
@@ -22,8 +21,6 @@ export type HighlightTransform = {
 }
 
 export const createHighlightState = () => {
-	const log = logger.withTag('highlights')
-
 	const [fileHighlights, setHighlightsStore] = createStore<
 		Record<string, TreeSitterCapture[] | undefined>
 	>({})
@@ -34,29 +31,6 @@ export const createHighlightState = () => {
 	>({})
 
 	let highlightUpdateId = 0
-
-	const summarizeHighlights = (highlights?: TreeSitterCapture[]) => {
-		if (!highlights?.length) {
-			return { count: 0 }
-		}
-
-		const first = highlights[0]
-		const last = highlights[highlights.length - 1]
-
-		if (!first || !last) {
-			return { count: highlights.length }
-		}
-
-		return {
-			count: highlights.length,
-			firstStart: first.startIndex,
-			firstEnd: first.endIndex,
-			firstScope: first.scope,
-			lastStart: last.startIndex,
-			lastEnd: last.endIndex,
-			lastScope: last.scope,
-		}
-	}
 
 	const applyHighlightOffset = (
 		path: string,
@@ -149,15 +123,7 @@ export const createHighlightState = () => {
 		const nextHighlights = highlights?.length ? highlights : undefined
 		const existingHighlights = fileHighlights[p]
 		const offsetCount = highlightOffsets[p]?.length ?? 0
-		const updateId = ++highlightUpdateId
-
-		log.debug('[setHighlights] start', {
-			path: p,
-			updateId,
-			offsetCount,
-			existing: summarizeHighlights(existingHighlights),
-			next: summarizeHighlights(nextHighlights),
-		})
+		++highlightUpdateId
 
 		// Clear pending offset - we have real data now
 		const shouldClearOffsets = offsetCount > 0
@@ -165,7 +131,6 @@ export const createHighlightState = () => {
 		const hasExistingHighlights = !!existingHighlights?.length
 
 		if (!shouldClearOffsets && !hasNextHighlights && !hasExistingHighlights) {
-			log.debug('[setHighlights] noop', { path: p, updateId })
 			return
 		}
 
@@ -174,13 +139,6 @@ export const createHighlightState = () => {
 				setHighlightOffsets(p, undefined)
 			}
 			setHighlightsStore(p, nextHighlights)
-		})
-
-		log.debug('[setHighlights] end', {
-			path: p,
-			updateId,
-			offsetCount,
-			nextCount: nextHighlights?.length ?? 0,
 		})
 	}
 
