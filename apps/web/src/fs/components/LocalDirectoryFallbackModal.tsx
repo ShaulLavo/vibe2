@@ -5,7 +5,6 @@ import {
 	type Component,
 	type JSX,
 } from 'solid-js'
-import { logger } from '~/logger'
 import { modal, type ModalAction } from '@repo/ui/modal'
 import { importDirectoryToMemory } from '../fallback/importDirectoryToMemory'
 import {
@@ -20,8 +19,6 @@ import {
 	type LocalDirectoryFallbackResult,
 } from '../fallback/localDirectoryFallbackCoordinator'
 import type { FsSource } from '../types'
-
-const log = logger.withTag('LocalDirectoryFallback')
 
 // intentionally not exported from module
 const FALLBACK_ERROR = 'local-directory-fallback-error'
@@ -85,7 +82,6 @@ export const LocalDirectoryFallbackModal: Component = () => {
 	const singleMode = createMemo(() => !opfsSupported())
 
 	const handleRequest = (nextReason: LocalDirectoryFallbackReason) => {
-		log.info('Fallback requested', { reason: nextReason })
 		setReason(nextReason)
 		setError(undefined)
 		setProcessing(false)
@@ -227,7 +223,6 @@ export const LocalDirectoryFallbackModal: Component = () => {
 				}
 				setError(undefined)
 			} else {
-				log.error(FALLBACK_ERROR, err)
 				setError('Failed to import the selected folder. Please try again.')
 			}
 		} finally {
