@@ -37,7 +37,7 @@ describe('ActiveFileState', () => {
 						scrollPosition: fc.oneof(
 							fc.constant(undefined),
 							fc.record({
-								scrollTop: fc.integer(),
+								lineIndex: fc.integer(),
 								scrollLeft: fc.integer(),
 							})
 						),
@@ -93,13 +93,13 @@ describe('ActiveFileState', () => {
 
 							localActiveState.setActive(path)
 							localActiveState.setActiveEntry({
-								scrollPosition: { scrollTop: 0, scrollLeft: 0 },
+								scrollPosition: { lineIndex: 0, scrollLeft: 0 },
 							})
 
 							// Verify current active file
 							expect(localActiveState.isActive(path)).toBe(true)
 							expect(localActiveState.getActiveEntry()?.scrollPosition).toEqual(
-								{ scrollTop: 0, scrollLeft: 0 }
+								{ lineIndex: 0, scrollLeft: 0 }
 							)
 						}
 
@@ -128,7 +128,7 @@ describe('ActiveFileState', () => {
 						scrollPosition: fc.oneof(
 							fc.constant(undefined),
 							fc.record({
-								scrollTop: fc.integer(),
+								lineIndex: fc.integer(),
 								scrollLeft: fc.integer(),
 							})
 						),
@@ -177,12 +177,12 @@ describe('ActiveFileState', () => {
 						// Set first file as active with data
 						activeState.setActive(path1)
 						activeState.setActiveEntry({
-							scrollPosition: { scrollTop: 100, scrollLeft: 50 },
+							scrollPosition: { lineIndex: 100, scrollLeft: 50 },
 						})
 
 						// Verify data is set
 						expect(activeState.getActiveEntry()?.scrollPosition).toEqual({
-							scrollTop: 100,
+							lineIndex: 100,
 							scrollLeft: 50,
 						})
 
@@ -218,7 +218,7 @@ describe('ActiveFileState', () => {
 		it('should update active file entry', () => {
 			const path = '/test/file.ts'
 			const entry: Partial<FileCacheEntry> = {
-				scrollPosition: { scrollTop: 50, scrollLeft: 0 },
+				scrollPosition: { lineIndex: 50, scrollLeft: 0 },
 			}
 
 			activeState.setActive(path)
@@ -233,21 +233,21 @@ describe('ActiveFileState', () => {
 
 			activeState.setActive(path)
 			activeState.setActiveEntry({
-				scrollPosition: { scrollTop: 50, scrollLeft: 0 },
+				scrollPosition: { lineIndex: 50, scrollLeft: 0 },
 			})
 			activeState.setActiveEntry({
-				scrollPosition: { scrollTop: 100, scrollLeft: 25 },
+				scrollPosition: { lineIndex: 100, scrollLeft: 25 },
 			})
 
 			const retrieved = activeState.getActiveEntry()
 			expect(retrieved).toEqual({
-				scrollPosition: { scrollTop: 100, scrollLeft: 25 },
+				scrollPosition: { lineIndex: 100, scrollLeft: 25 },
 			})
 		})
 
 		it('should handle deactivation to null', () => {
 			const path = '/test/file.ts'
-			const entry = { scrollPosition: { scrollTop: 50, scrollLeft: 0 } }
+			const entry = { scrollPosition: { lineIndex: 50, scrollLeft: 0 } }
 
 			activeState.setActive(path)
 			activeState.setActiveEntry(entry)
@@ -267,14 +267,14 @@ describe('ActiveFileState', () => {
 		})
 
 		it('should update specific field', () => {
-			const scrollPos = { scrollTop: 100, scrollLeft: 50 }
+			const scrollPos = { lineIndex: 100, scrollLeft: 50 }
 			updateActiveFileField(activeState, 'scrollPosition', scrollPos)
 
 			expect(getActiveFileField(activeState, 'scrollPosition')).toBe(scrollPos)
 		})
 
 		it('should get specific field', () => {
-			const scrollPos = { scrollTop: 100, scrollLeft: 50 }
+			const scrollPos = { lineIndex: 100, scrollLeft: 50 }
 			activeState.setActiveEntry({ scrollPosition: scrollPos })
 
 			expect(getActiveFileField(activeState, 'scrollPosition')).toBe(scrollPos)
@@ -283,7 +283,7 @@ describe('ActiveFileState', () => {
 
 		it('should clear specific field', () => {
 			activeState.setActiveEntry({
-				scrollPosition: { scrollTop: 50, scrollLeft: 0 },
+				scrollPosition: { lineIndex: 50, scrollLeft: 0 },
 			})
 
 			clearActiveFileField(activeState, 'scrollPosition')
@@ -296,7 +296,7 @@ describe('ActiveFileState', () => {
 			activeState.setActive(null)
 
 			updateActiveFileField(activeState, 'scrollPosition', {
-				scrollTop: 100,
+				lineIndex: 100,
 				scrollLeft: 50,
 			})
 			expect(getActiveFileField(activeState, 'scrollPosition')).toBeUndefined()

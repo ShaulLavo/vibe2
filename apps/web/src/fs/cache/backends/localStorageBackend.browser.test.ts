@@ -57,7 +57,7 @@ describe('LocalStorageBackend Browser Tests', () => {
 						// ScrollPosition - exclude NaN values since they don't round-trip through JSON
 						scrollPosition: fc.option(
 							fc.record({
-								scrollTop: fc.float({ min: 0, max: 10000, noNaN: true }),
+								lineIndex: fc.float({ min: 0, max: 10000, noNaN: true }),
 								scrollLeft: fc.float({ min: 0, max: 10000, noNaN: true }),
 							}),
 							{ nil: undefined }
@@ -111,7 +111,7 @@ describe('LocalStorageBackend Browser Tests', () => {
 						// Visible content snapshot
 						visibleContent: fc.option(
 							fc.record({
-								scrollTop: fc.float({ min: 0, max: 10000, noNaN: true }),
+								lineIndex: fc.float({ min: 0, max: 10000, noNaN: true }),
 								scrollLeft: fc.float({ min: 0, max: 10000, noNaN: true }),
 								viewportHeight: fc.integer({ min: 100, max: 2000 }),
 								viewportWidth: fc.integer({ min: 100, max: 2000 }),

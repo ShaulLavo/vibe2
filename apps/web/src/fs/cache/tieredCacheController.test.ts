@@ -130,7 +130,7 @@ const fileCacheEntryArb = fc
 	.record({
 		scrollPosition: fc.option(
 			fc.record({
-				scrollTop: fc.integer(),
+				lineIndex: fc.integer(),
 				scrollLeft: fc.integer(),
 			}),
 			{ nil: undefined }
