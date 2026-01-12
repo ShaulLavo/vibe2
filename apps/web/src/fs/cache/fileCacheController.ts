@@ -7,26 +7,15 @@ import type {
 	TreeSitterError,
 	FoldRange,
 } from '../../workers/treeSitter/types'
+import { createFilePath, type FilePath } from '@repo/fs'
+import { FileStateStore, createFileStateStore } from '../store'
+import { timestamp } from '../freshness'
+import type { SyntaxData, ScrollPosition } from '../store/types'
 import type { FsState } from '../types'
-import {
-	TieredCacheController,
-	type TieredCacheControllerOptions,
-} from './tieredCacheController'
-import type { CacheStats } from './backends/types'
+
+export type { ScrollPosition }
 
 export const DISABLE_CACHE = false as const
-
-/**
- * Normalize path by stripping leading slash.
- * This ensures consistent cache keys regardless of path format.
- */
-const normalizePath = (path: string): string =>
-	path.startsWith('/') ? path.slice(1) : path
-
-export type ScrollPosition = {
-	lineIndex: number
-	scrollLeft: number
-}
 
 export type FileCacheEntry = {
 	pieceTable?: PieceTableSnapshot
@@ -38,8 +27,13 @@ export type FileCacheEntry = {
 	errors?: TreeSitterError[]
 	scrollPosition?: ScrollPosition
 	visibleContent?: VisibleContentSnapshot
-	/** Cached line start offsets for instant tab switching */
 	lineStarts?: number[]
+}
+
+export type CacheStats = {
+	memoryEntries: number
+	persistedEntries: number
+	totalSize: number
 }
 
 export type FileCacheController = {
@@ -58,6 +52,9 @@ export type FileCacheController = {
 	getStats: () => Promise<CacheStats>
 	flush: () => Promise<void>
 }
+
+const normalizePath = (path: string): string =>
+	path.startsWith('/') ? path.slice(1) : path
 
 type FileCacheControllerOptions = {
 	state: Pick<
@@ -79,10 +76,9 @@ type FileCacheControllerOptions = {
 	setErrors: (path: string, errors?: TreeSitterError[]) => void
 	setScrollPosition: (path: string, position?: ScrollPosition) => void
 	setVisibleContent: (path: string, content?: VisibleContentSnapshot) => void
-	tieredCacheOptions?: TieredCacheControllerOptions
 }
 
-export const createFileCacheController = ({
+export const createFileCacheControllerV2 = ({
 	state,
 	setPieceTable,
 	setFileStats,
@@ -92,14 +88,16 @@ export const createFileCacheController = ({
 	setErrors,
 	setScrollPosition,
 	setVisibleContent,
-	tieredCacheOptions,
 }: FileCacheControllerOptions): FileCacheController => {
+	const store = createFileStateStore()
 	const previews: Record<string, Uint8Array | undefined> = {}
-	const tieredCache = new TieredCacheController(tieredCacheOptions)
+
+	const toFilePath = (path: string): FilePath => createFilePath(path)
 
 	const get = (path: string): FileCacheEntry => {
 		if (DISABLE_CACHE) return {}
 		const p = normalizePath(path)
+
 		return {
 			pieceTable: state.pieceTables[p],
 			stats: state.fileStats[p],
@@ -116,40 +114,47 @@ export const createFileCacheController = ({
 	const set = (path: string, entry: FileCacheEntry) => {
 		if (!path || DISABLE_CACHE) return
 		const p = normalizePath(path)
+
 		batch(() => {
-			if (entry.pieceTable !== undefined) {
-				setPieceTable(p, entry.pieceTable)
-			}
-			if (entry.stats !== undefined) {
-				setFileStats(p, entry.stats)
-			}
-			if (entry.highlights !== undefined) {
-				setHighlights(p, entry.highlights)
-			}
-			if (entry.folds !== undefined) {
-				setFolds(p, entry.folds)
-			}
-			if (entry.previewBytes !== undefined) {
-				previews[p] = entry.previewBytes
-			}
-			if (entry.brackets !== undefined) {
-				setBrackets(p, entry.brackets)
-			}
-			if (entry.errors !== undefined) {
-				setErrors(p, entry.errors)
-			}
-			if (entry.scrollPosition !== undefined) {
-				setScrollPosition(p, entry.scrollPosition)
-			}
-			if (entry.visibleContent !== undefined) {
-				setVisibleContent(p, entry.visibleContent)
-			}
+			if (entry.pieceTable !== undefined) setPieceTable(p, entry.pieceTable)
+			if (entry.stats !== undefined) setFileStats(p, entry.stats)
+			if (entry.highlights !== undefined) setHighlights(p, entry.highlights)
+			if (entry.folds !== undefined) setFolds(p, entry.folds)
+			if (entry.brackets !== undefined) setBrackets(p, entry.brackets)
+			if (entry.errors !== undefined) setErrors(p, entry.errors)
+			if (entry.scrollPosition !== undefined) setScrollPosition(p, entry.scrollPosition)
+			if (entry.visibleContent !== undefined) setVisibleContent(p, entry.visibleContent)
+			if (entry.previewBytes !== undefined) previews[p] = entry.previewBytes
 		})
-		tieredCache.set(p, entry).catch((error) => {
-			console.warn(
-				`FileCacheController: Failed to persist entry for ${p}:`,
-				error
-			)
+
+		const fp = toFilePath(p)
+		store.update(fp, {
+			...(entry.pieceTable !== undefined && {
+				pieceTable: timestamp(entry.pieceTable),
+			}),
+			...(entry.stats !== undefined && {
+				stats: timestamp(entry.stats),
+			}),
+			...((entry.highlights !== undefined ||
+				entry.folds !== undefined ||
+				entry.brackets !== undefined ||
+				entry.errors !== undefined) && {
+				syntax: timestamp<SyntaxData>({
+					highlights: entry.highlights ?? [],
+					brackets: entry.brackets ?? [],
+					folds: entry.folds ?? [],
+					errors: entry.errors ?? [],
+				}),
+			}),
+			...(entry.scrollPosition !== undefined && {
+				scrollPosition: timestamp(entry.scrollPosition),
+			}),
+			...(entry.visibleContent !== undefined && {
+				visibleContent: timestamp(entry.visibleContent),
+			}),
+			...(entry.previewBytes !== undefined && {
+				previewBytes: entry.previewBytes,
+			}),
 		})
 	}
 
@@ -187,153 +192,105 @@ export const createFileCacheController = ({
 			setVisibleContent(p, undefined)
 			delete previews[p]
 		})
-		tieredCache.clearPath(p).catch((error) => {
-			console.warn(`FileCacheController: Failed to clear path ${p}:`, error)
+		store.remove(toFilePath(p)).catch((error) => {
+			console.warn(`FileCacheControllerV2: Failed to clear path ${p}:`, error)
 		})
 	}
 
 	const clearAll = () => {
 		batch(() => {
-			for (const path of Object.keys(state.pieceTables)) {
-				setPieceTable(path, undefined)
-			}
-			for (const path of Object.keys(state.fileStats)) {
-				setFileStats(path, undefined)
-			}
-			for (const path of Object.keys(state.fileHighlights)) {
-				setHighlights(path, undefined)
-			}
-			for (const path of Object.keys(state.fileFolds)) {
-				setFolds(path, undefined)
-			}
-			for (const path of Object.keys(state.fileBrackets)) {
-				setBrackets(path, undefined)
-			}
-			for (const path of Object.keys(state.fileErrors)) {
-				setErrors(path, undefined)
-			}
-			for (const path of Object.keys(state.scrollPositions)) {
-				setScrollPosition(path, undefined)
-			}
-			for (const path of Object.keys(state.visibleContents)) {
-				setVisibleContent(path, undefined)
-			}
-			for (const path of Object.keys(previews)) {
-				delete previews[path]
-			}
+			for (const path of Object.keys(state.pieceTables)) setPieceTable(path, undefined)
+			for (const path of Object.keys(state.fileStats)) setFileStats(path, undefined)
+			for (const path of Object.keys(state.fileHighlights)) setHighlights(path, undefined)
+			for (const path of Object.keys(state.fileFolds)) setFolds(path, undefined)
+			for (const path of Object.keys(state.fileBrackets)) setBrackets(path, undefined)
+			for (const path of Object.keys(state.fileErrors)) setErrors(path, undefined)
+			for (const path of Object.keys(state.scrollPositions)) setScrollPosition(path, undefined)
+			for (const path of Object.keys(state.visibleContents)) setVisibleContent(path, undefined)
+			for (const path of Object.keys(previews)) delete previews[path]
 		})
-		tieredCache.clearAll().catch((error) => {
-			console.warn('FileCacheController: Failed to clear all:', error)
+		store.clear().catch((error) => {
+			console.warn('FileCacheControllerV2: Failed to clear all:', error)
 		})
 	}
 
 	const clearMemory = () => {
 		batch(() => {
-			for (const path of Object.keys(state.pieceTables)) {
-				setPieceTable(path, undefined)
-			}
-			for (const path of Object.keys(state.fileStats)) {
-				setFileStats(path, undefined)
-			}
-			for (const path of Object.keys(state.fileHighlights)) {
-				setHighlights(path, undefined)
-			}
-			for (const path of Object.keys(state.fileFolds)) {
-				setFolds(path, undefined)
-			}
-			for (const path of Object.keys(state.fileBrackets)) {
-				setBrackets(path, undefined)
-			}
-			for (const path of Object.keys(state.fileErrors)) {
-				setErrors(path, undefined)
-			}
-			for (const path of Object.keys(state.scrollPositions)) {
-				setScrollPosition(path, undefined)
-			}
-			for (const path of Object.keys(state.visibleContents)) {
-				setVisibleContent(path, undefined)
-			}
-			for (const path of Object.keys(previews)) {
-				delete previews[path]
-			}
+			for (const path of Object.keys(state.pieceTables)) setPieceTable(path, undefined)
+			for (const path of Object.keys(state.fileStats)) setFileStats(path, undefined)
+			for (const path of Object.keys(state.fileHighlights)) setHighlights(path, undefined)
+			for (const path of Object.keys(state.fileFolds)) setFolds(path, undefined)
+			for (const path of Object.keys(state.fileBrackets)) setBrackets(path, undefined)
+			for (const path of Object.keys(state.fileErrors)) setErrors(path, undefined)
+			for (const path of Object.keys(state.scrollPositions)) setScrollPosition(path, undefined)
+			for (const path of Object.keys(state.visibleContents)) setVisibleContent(path, undefined)
+			for (const path of Object.keys(previews)) delete previews[path]
 		})
 	}
 
 	const getAsync = async (path: string): Promise<FileCacheEntry> => {
 		if (DISABLE_CACHE) return {}
 		const p = normalizePath(path)
+
 		const memoryEntry = get(p)
 		const hasMemoryData = Object.keys(memoryEntry).some(
 			(key) => memoryEntry[key as keyof FileCacheEntry] !== undefined
 		)
-		if (hasMemoryData) {
-			return memoryEntry
-		}
-		const persistedEntry = await tieredCache.getAsync(p)
-		if (Object.keys(persistedEntry).length > 0) {
-			batch(() => {
-				if (persistedEntry.pieceTable !== undefined) {
-					setPieceTable(p, persistedEntry.pieceTable)
-				}
-				if (persistedEntry.stats !== undefined) {
-					setFileStats(p, persistedEntry.stats)
-				}
-				if (persistedEntry.highlights !== undefined) {
-					setHighlights(p, persistedEntry.highlights)
-				}
-				if (persistedEntry.folds !== undefined) {
-					setFolds(p, persistedEntry.folds)
-				}
-				if (persistedEntry.previewBytes !== undefined) {
-					previews[p] = persistedEntry.previewBytes
-				}
-				if (persistedEntry.brackets !== undefined) {
-					setBrackets(p, persistedEntry.brackets)
-				}
-				if (persistedEntry.errors !== undefined) {
-					setErrors(p, persistedEntry.errors)
-				}
-				if (persistedEntry.scrollPosition !== undefined) {
-					setScrollPosition(p, persistedEntry.scrollPosition)
-				}
-				if (persistedEntry.visibleContent !== undefined) {
-					setVisibleContent(p, persistedEntry.visibleContent)
-				}
-			})
-		}
-		return persistedEntry
-	}
+		if (hasMemoryData) return memoryEntry
 
-	const setActiveFile = (path: string | null): void => {
-		tieredCache.setActiveFile(path ? normalizePath(path) : null)
-	}
+		const fp = toFilePath(p)
+		const persistedState = await store.getAsync(fp)
+		if (!persistedState) return {}
 
-	const setOpenTabs = (paths: string[]): void => {
-		tieredCache.setOpenTabs(paths.map(normalizePath))
+		const entry: FileCacheEntry = {
+			pieceTable: persistedState.pieceTable?.value,
+			stats: persistedState.stats?.value,
+			previewBytes: persistedState.previewBytes ?? undefined,
+			highlights: persistedState.syntax?.value.highlights,
+			folds: persistedState.syntax?.value.folds,
+			brackets: persistedState.syntax?.value.brackets,
+			errors: persistedState.syntax?.value.errors,
+			scrollPosition: persistedState.scrollPosition?.value,
+			visibleContent: persistedState.visibleContent?.value,
+			lineStarts: persistedState.lineStarts ?? undefined,
+		}
+
+		batch(() => {
+			if (entry.pieceTable) setPieceTable(p, entry.pieceTable)
+			if (entry.stats) setFileStats(p, entry.stats)
+			if (entry.highlights) setHighlights(p, entry.highlights)
+			if (entry.folds) setFolds(p, entry.folds)
+			if (entry.brackets) setBrackets(p, entry.brackets)
+			if (entry.errors) setErrors(p, entry.errors)
+			if (entry.scrollPosition) setScrollPosition(p, entry.scrollPosition)
+			if (entry.visibleContent) setVisibleContent(p, entry.visibleContent)
+			if (entry.previewBytes) previews[p] = entry.previewBytes
+		})
+
+		return entry
 	}
 
 	const getScrollPosition = (path: string): ScrollPosition | undefined => {
 		const p = normalizePath(path)
-		const memoryPos = state.scrollPositions[p]
-		if (memoryPos) return memoryPos
-		return tieredCache.getScrollPosition(p)
+		return state.scrollPositions[p]
 	}
 
 	const getLineStarts = (path: string): number[] | undefined => {
 		const p = normalizePath(path)
-		// Check memory first (from stats.lineStarts)
-		const stats = state.fileStats[p]
-		if (stats?.lineStarts) return stats.lineStarts
-		// Fall back to warm cache
-		return tieredCache.getLineStarts(p)
+		return state.fileStats[p]?.lineStarts
 	}
 
-	const getStats = async (): Promise<CacheStats> => {
-		return tieredCache.getStats()
-	}
+	const setActiveFile = (_path: string | null): void => {}
+	const setOpenTabs = (_paths: string[]): void => {}
+
+	const getStats = async (): Promise<CacheStats> => ({
+		memoryEntries: store.size,
+		persistedEntries: 0,
+		totalSize: 0,
+	})
 
 	const flush = async (): Promise<void> => {
-		return tieredCache.flush()
+		await store.flush()
 	}
 
 	return {
