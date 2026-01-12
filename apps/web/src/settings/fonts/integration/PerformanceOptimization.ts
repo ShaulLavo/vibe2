@@ -59,6 +59,16 @@ export class FontPerformanceOptimizer {
 		return FontPerformanceOptimizer.instance
 	}
 
+	/**
+	 * Reset the singleton instance (for testing purposes only)
+	 */
+	static resetInstance(): void {
+		if (FontPerformanceOptimizer.instance) {
+			FontPerformanceOptimizer.instance.cleanup()
+		}
+		FontPerformanceOptimizer.instance = undefined as any
+	}
+
 	private initialize(): void {
 		if (this.config.enablePerformanceMonitoring) {
 			this.setupPerformanceMonitoring()

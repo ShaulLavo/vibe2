@@ -42,6 +42,17 @@ export class FontResourceCleanup {
 	}
 
 	/**
+	 * Reset the singleton instance (for testing purposes only)
+	 */
+	static resetInstance(): void {
+		if (FontResourceCleanup.instance) {
+			FontResourceCleanup.instance.cleanupInProgress = false
+			FontResourceCleanup.instance.setCleanupStatus('idle')
+		}
+		FontResourceCleanup.instance = undefined as any
+	}
+
+	/**
 	 * Get current resource usage statistics
 	 */
 	async getResourceStats(): Promise<ResourceStats> {
