@@ -153,11 +153,11 @@ export function createTextEditorLayout(
 	const hasLineEntries = createMemo(() => {
 		const lineCount = cursor.lines.lineCount()
 		const hasEntries = lineCount > 0
-		console.log('[createTextEditorLayout] hasLineEntries', {
-			lineCount,
-			hasEntries,
-			filePath: options.filePath?.(),
-		})
+		// 		console.log('[createTextEditorLayout] hasLineEntries', {
+		// 			lineCount,
+		// 			hasEntries,
+		// 			filePath: options.filePath?.(),
+		// 		})
 		return hasEntries
 	})
 
@@ -211,13 +211,13 @@ export function createTextEditorLayout(
 		const hasEntries = hasLineEntries()
 		const hasScroll = Boolean(options.scrollElement())
 		const enabled = isSelected && hasEntries && hasScroll
-		console.log('[createTextEditorLayout] virtualizerEnabled', {
-			isSelected,
-			hasEntries,
-			hasScroll,
-			enabled,
-			filePath: options.filePath?.(),
-		})
+		// 		console.log('[createTextEditorLayout] virtualizerEnabled', {
+		// 			isSelected,
+		// 			hasEntries,
+		// 			hasScroll,
+		// 			enabled,
+		// 			filePath: options.filePath?.(),
+		// 		})
 		return enabled
 	})
 
@@ -240,7 +240,7 @@ export function createTextEditorLayout(
 		const baseSize = rowVirtualizer.totalSize()
 		const padding = rowVirtualizer.viewportHeight() * 0.5
 		const total = baseSize + padding
-		console.log(`[createTextEditorLayout] totalSize: baseSize=${baseSize}, padding=${padding}, total=${total}`)
+		// 		console.log(`[createTextEditorLayout] totalSize: baseSize=${baseSize}, padding=${padding}, total=${total}`)
 		return total
 	})
 
@@ -517,7 +517,7 @@ export function createTextEditorLayout(
 
 	const scrollToLine = (lineIndex: number): void => {
 		const displayIndex = foldMapping.lineToDisplay(lineIndex)
-		console.log(`[createTextEditorLayout] scrollToLine: lineIndex=${lineIndex}, displayIndex=${displayIndex}, willScroll=${displayIndex >= 0}`)
+		// 		console.log(`[createTextEditorLayout] scrollToLine: lineIndex=${lineIndex}, displayIndex=${displayIndex}, willScroll=${displayIndex >= 0}`)
 		if (displayIndex >= 0) {
 			rowVirtualizer.scrollToIndex(displayIndex, { align: 'start' })
 		}

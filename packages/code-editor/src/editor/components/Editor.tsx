@@ -4,12 +4,12 @@ import { HistoryProvider } from '../history'
 import { TextEditorView } from './TextEditorView'
 
 export const Editor = (props: EditorProps) => {
-	console.log('[Editor] render', {
-		filePath: props.document.filePath(),
-		contentLength: props.document.content()?.length,
-		hasPrecomputedLineStarts: !!props.precomputedLineStarts,
-		precomputedValue: props.precomputedLineStarts?.()?.length,
-	})
+	// 	console.log('[Editor] render', {
+	// 		filePath: props.document.filePath(),
+	// 		contentLength: props.document.content()?.length,
+	// 		hasPrecomputedLineStarts: !!props.precomputedLineStarts,
+	// 		precomputedValue: props.precomputedLineStarts?.()?.length,
+	// 	})
 	return (
 		<CursorProvider
 			filePath={props.document.filePath}
@@ -17,6 +17,7 @@ export const Editor = (props: EditorProps) => {
 			content={props.document.content}
 			pieceTable={props.document.pieceTable}
 			precomputedLineStarts={props.precomputedLineStarts}
+			contentVersion={props.contentVersion}
 		>
 			<HistoryProvider document={props.document}>
 				<TextEditorView {...props} />

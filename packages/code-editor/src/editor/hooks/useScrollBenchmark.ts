@@ -146,7 +146,6 @@ export const useScrollBenchmark = (options: UseScrollBenchmarkOptions) => {
 		if (requestedPhases) {
 			phasesToRun = new Set(requestedPhases)
 		} else {
-			// Backward compatibility logic
 			phasesToRun = new Set(['down', 'up', 'jumpV'])
 			if (includeHorizontal) {
 				phasesToRun.add('right')

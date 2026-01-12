@@ -8,7 +8,7 @@ import type { EditorFileSyncManager } from '../editor-file-sync-manager'
  */
 interface SyncStatusContextValue {
 	/** Get sync status for a file path */
-	getStatus: (path: string) => SyncStatusInfo
+	getSyncStatus: (path: string) => SyncStatusInfo
 	/** Get all file paths being tracked */
 	getTrackedPaths: () => string[]
 	/** Check if any files have conflicts */
@@ -44,7 +44,7 @@ export function SyncStatusProvider(props: SyncStatusProviderProps) {
 	})
 
 	// Computed values
-	const getStatus = (path: string): SyncStatusInfo => {
+	const getSyncStatus = (path: string): SyncStatusInfo => {
 		return statusMap[path] ?? {
 			type: 'not-watched',
 			lastSyncTime: Date.now(),
@@ -66,7 +66,7 @@ export function SyncStatusProvider(props: SyncStatusProviderProps) {
 	}
 
 	const contextValue: SyncStatusContextValue = {
-		getStatus,
+		getSyncStatus,
 		getTrackedPaths,
 		hasConflicts,
 		getConflictCount,
@@ -95,8 +95,8 @@ export function useSyncStatusContext(): SyncStatusContextValue {
  */
 export function createSyncStatus(filePath: Accessor<string>) {
 	const context = useSyncStatusContext()
-	
-	return createMemo(() => context.getStatus(filePath()))
+
+	return createMemo(() => context.getSyncStatus(filePath()))
 }
 
 /**
@@ -104,11 +104,11 @@ export function createSyncStatus(filePath: Accessor<string>) {
  */
 export function createMultiSyncStatus(filePaths: Accessor<string[]>) {
 	const context = useSyncStatusContext()
-	
-	return createMemo(() => 
-		filePaths().map(path => ({
+
+	return createMemo(() =>
+		filePaths().map((path) => ({
 			path,
-			status: context.getStatus(path)
+			status: context.getSyncStatus(path),
 		}))
 	)
 }
@@ -133,11 +133,11 @@ export function createConflictTracker() {
  */
 export function createAllSyncStatuses() {
 	const context = useSyncStatusContext()
-	
-	return createMemo(() => 
-		context.getTrackedPaths().map(path => ({
+
+	return createMemo(() =>
+		context.getTrackedPaths().map((path) => ({
 			path,
-			status: context.getStatus(path)
+			status: context.getSyncStatus(path),
 		}))
 	)
 }

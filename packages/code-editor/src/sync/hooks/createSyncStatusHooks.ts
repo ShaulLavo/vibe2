@@ -11,7 +11,7 @@ export function createAggregatedSyncStatus(filePaths: Accessor<string[]>) {
 
 	return createMemo(() => {
 		const paths = filePaths()
-		const statuses = paths.map((path) => context.getStatus(path))
+		const statuses = paths.map((path) => context.getSyncStatus(path))
 
 		const counts = {
 			synced: 0,

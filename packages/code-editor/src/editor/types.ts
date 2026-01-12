@@ -146,6 +146,8 @@ export type EditorProps = {
 	onCaptureVisibleContent?: (snapshot: VisibleContentSnapshot) => void
 	/** Pre-computed line starts for instant tab switching (skip O(n) computation) */
 	precomputedLineStarts?: Accessor<number[] | undefined>
+	/** Content version - increments on external content replacement, used to force reinitialization */
+	contentVersion?: Accessor<number>
 }
 
 export type ScrollPosition = {

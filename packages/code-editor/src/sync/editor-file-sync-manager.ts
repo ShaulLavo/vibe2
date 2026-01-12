@@ -374,10 +374,13 @@ export class EditorFileSyncManager {
 	}
 
 	private onContentChange(path: string): void {
-		// Content sync is handled through dirty state changes
 		const tracker = this.syncManager.getTracker(path)
-		if (tracker) {
-			// Future: update tracker with new content
+		const editor = this.editorRegistry.getEditor(path)
+
+		if (tracker && editor) {
+			// Update the tracker's local content for three-way sync
+			const content = editor.getContent()
+			tracker.setLocalContent(content)
 		}
 	}
 

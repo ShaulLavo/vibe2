@@ -135,14 +135,24 @@ export function CursorProvider(props: CursorProviderProps) {
 		// Get current line text (lazy: compute from content if not cached)
 		const lineStart = prevLineStarts[startLine] ?? 0
 		const cachedData = lineDataById[startLineId]
-		const currentText = cachedData?.text ?? getTextRange(lineStart, lineStart + getLineTextLengthFromStarts(startLine, prevLineStarts, documentLength()))
-		if (!cachedData) {
-			console.log('[CursorContext] applySingleNewlineInsert: lazy load line text', {
-				startLine,
-				startLineId,
+		const currentText =
+			cachedData?.text ??
+			getTextRange(
 				lineStart,
-				textLength: currentText.length,
-			})
+				lineStart +
+					getLineTextLengthFromStarts(
+						startLine,
+						prevLineStarts,
+						documentLength()
+					)
+			)
+		if (!cachedData) {
+			// 			console.log('[CursorContext] applySingleNewlineInsert: lazy load line text', {
+			// 				startLine,
+			// 				startLineId,
+			// 				lineStart,
+			// 				textLength: currentText.length,
+			// 			})
 		}
 		const column = startIndex - lineStart
 
@@ -240,7 +250,13 @@ export function CursorProvider(props: CursorProviderProps) {
 		const lineStart = prevLineStarts[lineIdx] ?? 0
 		// Lazy: compute from content if not cached
 		const cachedData = lineDataById[lineId]
-		const currentText = cachedData?.text ?? getTextRange(lineStart, lineStart + getLineTextLengthFromStarts(lineIdx, prevLineStarts, documentLength()))
+		const currentText =
+			cachedData?.text ??
+			getTextRange(
+				lineStart,
+				lineStart +
+					getLineTextLengthFromStarts(lineIdx, prevLineStarts, documentLength())
+			)
 		const column = startIndex - lineStart
 		const isLastLine = lineIdx === prevLineCount - 1
 
@@ -308,7 +324,13 @@ export function CursorProvider(props: CursorProviderProps) {
 		const lineStart = prevLineStarts[lineIdx] ?? 0
 		// Lazy: compute from content if not cached
 		const cachedData = lineDataById[lineId]
-		const currentText = cachedData?.text ?? getTextRange(lineStart, lineStart + getLineTextLengthFromStarts(lineIdx, prevLineStarts, documentLength()))
+		const currentText =
+			cachedData?.text ??
+			getTextRange(
+				lineStart,
+				lineStart +
+					getLineTextLengthFromStarts(lineIdx, prevLineStarts, documentLength())
+			)
 		const column = startIndex - lineStart
 		const isLastLine = lineIdx === prevLineCount - 1
 
@@ -338,11 +360,11 @@ export function CursorProvider(props: CursorProviderProps) {
 			})
 			setLineDataRevision((v) => v + 1)
 		})
-		console.log(
-			'[delete] batch took',
-			(performance.now() - t0).toFixed(1),
-			'ms'
-		)
+		// 		console.log(
+		// 			'[delete] batch took',
+		// 			(performance.now() - t0).toFixed(1),
+		// 			'ms'
+		// 		)
 
 		return true
 	}
@@ -602,6 +624,8 @@ export function CursorProvider(props: CursorProviderProps) {
 	}
 
 	let initializedPath: string | undefined
+	let lastSeenContentVersion: number | undefined
+
 	const initializeFromSnapshot = (snapshot: PieceTableSnapshot) => {
 		const length = getPieceTableLength(snapshot)
 		const starts = buildLineStartsFromSnapshot(snapshot)
@@ -623,27 +647,29 @@ export function CursorProvider(props: CursorProviderProps) {
 		const precomputed = props.precomputedLineStarts?.()
 		const usePrecomputed = precomputed && precomputed.length > 0
 
-		console.log('[CursorContext] initializeFromContent called', {
-			contentLength: content.length,
-			hasPrecomputedLineStarts: usePrecomputed,
-			precomputedLineCount: precomputed?.length,
-		})
+		// 		console.log('[CursorContext] initializeFromContent called', {
+		// 			contentLength: content.length,
+		// 			hasPrecomputedLineStarts: usePrecomputed,
+		// 			precomputedLineCount: precomputed?.length,
+		// 		})
 
 		const length = content.length
-		const starts = usePrecomputed ? precomputed : buildLineStartsFromText(content)
+		const starts = usePrecomputed
+			? precomputed
+			: buildLineStartsFromText(content)
 
 		if (usePrecomputed) {
-			console.log('[CursorContext] using precomputed lineStarts', { lineCount: starts.length })
-		} else {
-			console.log('[CursorContext] built lineStarts from content', { lineCount: starts.length })
+			// 			console.log('[CursorContext] using precomputed lineStarts', { lineCount: starts.length })
+			// 		} else {
+			// 			console.log('[CursorContext] built lineStarts from content', { lineCount: starts.length })
 		}
 
 		const ids = createLineIds(starts.length)
 		const data = buildLineDataFromText(content, ids, starts)
-		console.log('[CursorContext] built lineData', {
-			idCount: ids.length,
-			dataKeys: Object.keys(data).length,
-		})
+		// 		console.log('[CursorContext] built lineData', {
+		// 			idCount: ids.length,
+		// 			dataKeys: Object.keys(data).length,
+		// 		})
 
 		batch(() => {
 			setActivePieceTable(undefined)
@@ -653,7 +679,7 @@ export function CursorProvider(props: CursorProviderProps) {
 			setLineDataById(reconcile(data))
 			syncCursorStateToDocument()
 		})
-		console.log('[CursorContext] batch complete, pendingLineDataReset = false')
+		// 		console.log('[CursorContext] batch complete, pendingLineDataReset = false')
 		pendingLineDataReset = false
 	}
 
@@ -661,20 +687,25 @@ export function CursorProvider(props: CursorProviderProps) {
 		const selected = props.isFileSelected()
 		const path = props.filePath()
 		const snapshot = props.pieceTable()
+		// Track contentVersion to detect external file changes
+		const version = props.contentVersion?.()
 
-		console.log('[CursorContext] createEffect triggered', {
-			selected,
-			path,
-			hasSnapshot: !!snapshot,
-			snapshotLength: snapshot?.length,
-			initializedPath,
-			currentLineStartsLength: lineStarts().length,
-			currentDocLength: documentLength(),
-		})
+		// 		console.log('[CursorContext] createEffect triggered', {
+		// 			selected,
+		// 			path,
+		// 			hasSnapshot: !!snapshot,
+		// 			snapshotLength: snapshot?.length,
+		// 			initializedPath,
+		// 			currentLineStartsLength: lineStarts().length,
+		// 			currentDocLength: documentLength(),
+		// 			contentVersion: version,
+		// 			lastSeenContentVersion,
+		// 		})
 
 		if (!selected || !path) {
-			console.log('[CursorContext] not selected or no path, clearing state')
+			// 			console.log('[CursorContext] not selected or no path, clearing state')
 			initializedPath = undefined
+			lastSeenContentVersion = undefined
 			batch(() => {
 				setActivePieceTable(undefined)
 				setDocumentLength(0)
@@ -686,9 +717,16 @@ export function CursorProvider(props: CursorProviderProps) {
 			return
 		}
 
+		// Check if content version changed (external file modification)
+		const versionChanged =
+			version !== undefined &&
+			lastSeenContentVersion !== undefined &&
+			version !== lastSeenContentVersion
+
 		if (initializedPath !== path) {
-			console.log('[CursorContext] new path, initializing', { oldPath: initializedPath, newPath: path })
+			// 			console.log('[CursorContext] new path, initializing', { oldPath: initializedPath, newPath: path })
 			initializedPath = path
+			lastSeenContentVersion = version
 			if (snapshot) {
 				initializeFromSnapshot(snapshot)
 			} else {
@@ -697,26 +735,42 @@ export function CursorProvider(props: CursorProviderProps) {
 			return
 		}
 
+		// Force reinitialization if content version changed (external modification)
+		if (versionChanged) {
+			lastSeenContentVersion = version
+			if (snapshot) {
+				initializeFromSnapshot(snapshot)
+			} else {
+				initializeFromContent(props.content())
+			}
+			return
+		}
+
+		// Update lastSeenContentVersion if this is the first time we see it
+		if (version !== undefined && lastSeenContentVersion === undefined) {
+			lastSeenContentVersion = version
+		}
+
 		if (snapshot) {
 			setActivePieceTable(snapshot)
 			const currentLength = documentLength()
 			if (lineStarts().length === 0 || currentLength !== snapshot.length) {
-				console.log('[CursorContext] snapshot length mismatch, reinitializing', {
-					lineStartsLength: lineStarts().length,
-					currentLength,
-					snapshotLength: snapshot.length,
-				})
+				// 				console.log('[CursorContext] snapshot length mismatch, reinitializing', {
+				// 					lineStartsLength: lineStarts().length,
+				// 					currentLength,
+				// 					snapshotLength: snapshot.length,
+				// 				})
 				initializeFromSnapshot(snapshot)
 			}
 		} else {
 			const content = props.content()
 			const currentLength = documentLength()
 			if (lineStarts().length === 0 || currentLength !== content.length) {
-				console.log('[CursorContext] content length mismatch, reinitializing', {
-					lineStartsLength: lineStarts().length,
-					currentLength,
-					contentLength: content.length,
-				})
+				// 				console.log('[CursorContext] content length mismatch, reinitializing', {
+				// 					lineStartsLength: lineStarts().length,
+				// 					currentLength,
+				// 					contentLength: content.length,
+				// 				})
 				initializeFromContent(content)
 			}
 		}

@@ -87,4 +87,6 @@ export type CursorProviderProps = {
 	pieceTable: () => PieceTableSnapshot | undefined
 	/** Pre-computed line starts for instant tab switching (skip O(n) computation) */
 	precomputedLineStarts?: () => number[] | undefined
+	/** Content version - increments on external content replacement, used to force reinitialization */
+	contentVersion?: () => number
 }
