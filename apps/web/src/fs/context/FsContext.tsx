@@ -8,12 +8,9 @@ import type {
 	TreeSitterError,
 	FoldRange,
 } from '../../workers/treeSitter/types'
-import type {
-	FileCacheController,
-	ScrollPosition,
-} from '../cache/fileCacheController'
+import type { FileCacheController } from '../cache/fileCacheController'
 import type { FsState, FsSource } from '../types'
-import type { HighlightTransform, CursorPosition, SelectionRange } from '../store/types'
+import type { HighlightTransform, CursorPosition, SelectionRange, ScrollPosition } from '../store/types'
 import type { ViewMode } from '../types/ViewMode'
 
 export type SelectPathOptions = {

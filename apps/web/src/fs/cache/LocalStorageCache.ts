@@ -1,18 +1,7 @@
 import type { VisibleContentSnapshot } from '@repo/code-editor'
 import type { ViewMode } from '../types/ViewMode'
-import type { ScrollPosition } from '../store/types'
+import type { ScrollPosition, CursorPosition, SelectionRange } from '../store/types'
 import type { FilePath } from '@repo/fs'
-
-export type CursorPosition = {
-	line: number
-	column: number
-	offset: number
-}
-
-export type SelectionRange = {
-	anchor: number
-	focus: number
-}
 
 export type LocalStorageFileState = {
 	cursor: CursorPosition | null

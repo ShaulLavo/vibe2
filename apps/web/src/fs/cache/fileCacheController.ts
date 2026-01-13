@@ -22,7 +22,7 @@ import {
 	type FileContentData,
 } from '../store/ReactiveFileState'
 
-export type { ScrollPosition, CursorPosition, SelectionRange }
+// Types should be imported directly from store/types, not re-exported here
 
 export const DISABLE_CACHE = false as const
 

@@ -221,11 +221,15 @@ export const useFileSelection = ({
 												brackets: result.brackets,
 												errors: result.errors,
 											})
+											fileCache.getFileState(path).mutateSyntax({
+												highlights: result.captures,
+												folds: result.folds,
+												brackets: result.brackets,
+												errors: result.errors,
+											})
 										}
 									})
-									.catch(() => {
-										// Tree-sitter parse failed
-									})
+									.catch(() => {})
 							}
 
 							fileStatsResult = timeSync('parse-file-buffer', () =>
@@ -260,6 +264,14 @@ export const useFileSelection = ({
 										pieceTable: pieceTableSnapshot,
 										stats: fileStatsResult,
 										previewBytes: binaryPreviewBytes,
+									})
+								)
+								timeSync('populate-reactive-file-state', () =>
+									fileCache.getFileState(path).mutateContent({
+										content: selectedFileContentValue,
+										pieceTable: pieceTableSnapshot ?? null,
+										stats: fileStatsResult ?? null,
+										previewBytes: binaryPreviewBytes ?? null,
 									})
 								)
 							}
@@ -335,13 +347,8 @@ export const useFileSelection = ({
 
 	const updateSelectedFileScrollPosition: FsContextValue[1]['updateSelectedFileScrollPosition'] =
 		(scrollPosition) => {
-			console.log('[useFileSelection] updateSelectedFileScrollPosition:', scrollPosition)
 			const path = state.lastKnownFilePath
-			if (!path) {
-				console.log('[useFileSelection] no path, skipping')
-				return
-			}
-			console.log('[useFileSelection] calling fileCache.set for path:', path)
+			if (!path) return
 			fileCache.set(path, { scrollPosition })
 		}
 
