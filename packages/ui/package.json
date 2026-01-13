@@ -13,6 +13,7 @@
     "generate:component": "turbo gen react-component",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
     "depcheck": "depcheck",
     "unimported": "unimported",
     "tsprune": "ts-prune",
