@@ -5,6 +5,8 @@ import type {
 	PieceTableBuffers,
 } from './pieceTableTypes'
 
+const contentCache = new WeakMap<PieceTableTreeSnapshot, string>()
+
 const randomPriority = () => Math.random()
 
 const getSubtreeLength = (node: PieceTreeNode | null): number =>
@@ -248,6 +250,19 @@ export const getPieceTableText = (
 	ensureValidRange(snapshot, start, effectiveEnd)
 	if (start === effectiveEnd) return ''
 
+	// If getting full content, check cache first
+	if (start === 0 && effectiveEnd === snapshot.length) {
+		const cached = contentCache.get(snapshot)
+		if (cached !== undefined) return cached
+
+		const chunks: string[] = []
+		collectTextInRange(snapshot.root, snapshot.buffers, start, effectiveEnd, chunks)
+		const content = chunks.join('')
+		contentCache.set(snapshot, content)
+		return content
+	}
+
+	// For substrings, compute without caching
 	const chunks: string[] = []
 	collectTextInRange(
 		snapshot.root,
@@ -257,6 +272,17 @@ export const getPieceTableText = (
 		chunks
 	)
 	return chunks.join('')
+}
+
+export const getCachedPieceTableContent = (
+	snapshot: PieceTableTreeSnapshot
+): string => {
+	const cached = contentCache.get(snapshot)
+	if (cached !== undefined) return cached
+
+	const content = getPieceTableText(snapshot)
+	contentCache.set(snapshot, content)
+	return content
 }
 
 export const insertIntoPieceTable = (

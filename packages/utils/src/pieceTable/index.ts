@@ -8,6 +8,7 @@ export {
 	createPieceTableSnapshot,
 	deleteFromPieceTable,
 	debugPieceTable,
+	getCachedPieceTableContent,
 	getPieceTableLength,
 	getPieceTableOriginalText,
 	getPieceTableText,
