@@ -1,7 +1,6 @@
 import { client } from '~/client'
 import { fontMetadataService } from './FontMetadataService'
 import { cacheErrorRecovery } from './CacheErrorRecovery'
-import { env } from '../../../../../server/src/env'
 import { serviceWorkerManager } from './ServiceWorkerManager'
 import type { FontMetadata, CacheStats } from './FontMetadataService'
 import type {
@@ -234,7 +233,7 @@ export class FontCacheService {
 			}
 		} catch (error) {
 			console.error('Failed to cleanup cache:', error)
-			if (env.mode !== 'test' && typeof window !== 'undefined') {
+			if (import.meta.env.MODE !== 'test' && typeof window !== 'undefined') {
 				throw error
 			}
 		}
@@ -256,7 +255,7 @@ export class FontCacheService {
 			await fontMetadataService.clearAllMetadata()
 		} catch (error) {
 			console.error('Failed to clear all fonts:', error)
-			if (env.mode !== 'test' && typeof window !== 'undefined') {
+			if (import.meta.env.MODE !== 'test' && typeof window !== 'undefined') {
 				throw error
 			}
 		}
