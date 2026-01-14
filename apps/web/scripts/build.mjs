@@ -1,6 +1,33 @@
 #!/usr/bin/env node
 import { build } from 'vite'
 
+// Intercept process.exit to see what's happening
+const originalExit = process.exit
+process.exit = (code) => {
+  console.error(`\n========== PROCESS EXIT INTERCEPTED ==========`)
+  console.error(`Exit code: ${code}`)
+  console.error(`Stack trace:`, new Error().stack)
+  console.error(`==============================================\n`)
+  originalExit(code)
+}
+
+// Catch unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('\n========== UNCAUGHT EXCEPTION ==========')
+  console.error('Error:', error)
+  console.error('Stack:', error?.stack)
+  console.error('=========================================\n')
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('\n========== UNHANDLED REJECTION ==========')
+  console.error('Reason:', reason)
+  console.error('Promise:', promise)
+  console.error('=========================================\n')
+  process.exit(1)
+})
+
 async function runBuild() {
   try {
     console.log('Starting Vite build...')
@@ -29,7 +56,7 @@ async function runBuild() {
     console.error('\nFull error object:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
     console.error('\nStack trace:', error?.stack)
     console.error('==========================================\n')
-    process.exit(1)
+    originalExit(1)
   }
 }
 

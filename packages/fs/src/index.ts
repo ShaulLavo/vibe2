@@ -108,3 +108,41 @@ export type {
 	FileSyncManagerOptions,
 	ObserverStrategy,
 } from './sync'
+
+// === NEW FILE LAYER (Layer 1) ===
+// Stateless file handles with only directory handle caching
+export {
+	HandleCache,
+	FileHandle,
+	DirHandle,
+	FileContextImpl,
+	createFileContext,
+} from './file'
+export type {
+	OpenMode as FileOpenMode,
+	FileContextOptions,
+	TreeKind as FileTreeKind,
+	FsTreeBase as FileTreeBase,
+	FileTreeNode,
+	DirTreeNode,
+	TreeNode,
+	TreeOptions,
+	ReadableByteStream,
+	FileContext,
+	ResolvedPath,
+	FileContextInternal,
+} from './file'
+
+// === NEW SYNC LAYER (Layer 2) ===
+// Simplified sync controller without write tokens
+export { SyncController, type SyncControllerOptions } from './sync/SyncController'
+export type {
+	ConflictSource,
+	ExternalFileChangeEvent,
+	FileDeletedEvent,
+	FileConflictEvent,
+	SyncEvent as NewSyncEvent,
+	SyncEventType as NewSyncEventType,
+	SyncEventMap as NewSyncEventMap,
+	SyncEventHandler as NewSyncEventHandler,
+} from './sync/sync-types'
