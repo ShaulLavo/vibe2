@@ -1,7 +1,3 @@
-// Core sync manager
-export { EditorFileSyncManager } from './editor-file-sync-manager'
-export type { EditorFileSyncManagerOptions, NotificationSystem } from './editor-file-sync-manager'
-
 // Editor registry
 export { EditorRegistryImpl } from './editor-registry'
 
@@ -22,6 +18,7 @@ export type {
 	ConflictResolutionStrategy,
 	PendingConflict,
 	BatchResolutionResult,
+	NotificationSystem,
 } from './types'
 
 export { DEFAULT_EDITOR_SYNC_CONFIG, deriveSyncStatusType } from './types'
@@ -63,20 +60,3 @@ export type {
 	FileUndoState,
 	UndoResult,
 } from './batch-undo-manager'
-
-// Reactive context and hooks
-export { 
-	SyncStatusProvider, 
-	useSyncStatusContext, 
-	createSyncStatus, 
-	createMultiSyncStatus,
-	createConflictTracker,
-	createAllSyncStatuses 
-} from './context/SyncStatusContext'
-export type { SyncStatusProviderProps } from './context/SyncStatusContext'
-
-// Aggregated status hook
-export { createAggregatedSyncStatus } from './hooks/createSyncStatusHooks'
-
-// UI Components
-export * from './ui'

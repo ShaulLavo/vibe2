@@ -1,11 +1,9 @@
-import { createContext, useContext, type ParentProps, createSignal, onCleanup } from 'solid-js'
+import { createContext, useContext, type ParentProps, createMemo, createEffect } from 'solid-js'
 import { createStore, produce } from 'solid-js/store'
-import type { SyncStatusInfo, ConflictInfo } from '@repo/code-editor/sync'
-import type { EditorFileSyncManager } from '@repo/code-editor/sync'
+import type { SyncStatusInfo, ConflictInfo as EditorConflictInfo } from '@repo/code-editor/sync'
+import { createFilePath } from '@repo/fs'
+import type { DocumentStore, Document } from '../doc'
 
-/**
- * Default status for files when sync is not active
- */
 const NOT_WATCHED_STATUS: SyncStatusInfo = {
 	type: 'not-watched',
 	lastSyncTime: 0,
@@ -13,99 +11,118 @@ const NOT_WATCHED_STATUS: SyncStatusInfo = {
 	hasExternalChanges: false,
 }
 
+function documentToSyncStatus(doc: Document): SyncStatusInfo {
+	const syncState = doc.syncState()
+	const hasLocal = doc.isDirty()
+	const hasExternal = doc.hasExternalChanges()
+	const lastSync = doc.lastSyncedAt() ?? 0
+
+	let type: SyncStatusInfo['type']
+	if (syncState === 'synced') type = 'synced'
+	else if (syncState === 'local-changes') type = 'dirty'
+	else if (syncState === 'external-changes') type = 'external-changes'
+	else if (syncState === 'conflict') type = 'conflict'
+	else type = 'synced'
+
+	return {
+		type,
+		lastSyncTime: lastSync,
+		hasLocalChanges: hasLocal,
+		hasExternalChanges: hasExternal,
+	}
+}
+
+function documentToConflictInfo(doc: Document): EditorConflictInfo | null {
+	if (doc.syncState() !== 'conflict') return null
+
+	return {
+		path: doc.path,
+		baseContent: doc.baseContent(),
+		localContent: doc.content(),
+		externalContent: doc.diskContent(),
+		lastModified: doc.diskMtime() ?? Date.now(),
+		conflictTimestamp: doc.conflicts()[0]?.detectedAt ?? Date.now(),
+	}
+}
+
 type SyncStatusContextType = {
-	/** Get sync status for a file path */
 	getSyncStatus: (path: string) => SyncStatusInfo
-	/** Get all tracked file paths */
 	getTrackedPaths: () => string[]
-	/** Get pending conflicts */
-	getPendingConflicts: () => ConflictInfo[]
-	/** Get conflict count */
+	getPendingConflicts: () => EditorConflictInfo[]
 	getConflictCount: () => number
-	/** Check if a file has a conflict */
 	hasConflict: (path: string) => boolean
-	/** The sync manager (if available) */
-	syncManager: EditorFileSyncManager | null
+	documentStore: DocumentStore | null
 }
 
 const SyncStatusContext = createContext<SyncStatusContextType>()
 
 export interface SyncStatusProviderProps extends ParentProps {
-	/** The EditorFileSyncManager to wire up (optional - uses stub if not provided) */
-	syncManager?: EditorFileSyncManager
+	documentStore?: DocumentStore
 }
 
-/**
- * Provider for sync status.
- * When syncManager is provided, it subscribes to status changes and provides real sync status.
- * Otherwise provides stub implementation.
- */
 export function SyncStatusProvider(props: SyncStatusProviderProps) {
-	// Store for reactive status updates
 	const [statuses, setStatuses] = createStore<Record<string, SyncStatusInfo>>({})
-	const [trackedPaths, setTrackedPaths] = createSignal<string[]>([])
-	const [conflicts, setConflicts] = createSignal<ConflictInfo[]>([])
 
-	// Subscribe to sync manager events if provided
-	if (props.syncManager) {
-		const manager = props.syncManager
+	// Reactive effect to sync document states to the store
+	createEffect(() => {
+		if (!props.documentStore) return
 
-		// Subscribe to status changes
-		const unsubscribeStatus = manager.onSyncStatusChange((path, status) => {
-			setStatuses(produce((draft) => {
-				draft[path] = status
-			}))
-			// Update tracked paths list
-			setTrackedPaths(Object.keys(statuses))
-		})
+		const docs = props.documentStore.documents()
+		const newStatuses: Record<string, SyncStatusInfo> = {}
 
-		// Subscribe to conflict changes
-		const unsubscribeConflict = manager.onConflictResolutionRequest((_path, _info) => {
-			setConflicts(manager.getPendingConflicts())
-		})
+		for (const [path, doc] of docs) {
+			newStatuses[path] = documentToSyncStatus(doc)
+		}
 
-		onCleanup(() => {
-			unsubscribeStatus()
-			unsubscribeConflict()
-		})
-	}
+		setStatuses(newStatuses)
+	})
+
+	const getPendingConflicts = createMemo(() => {
+		if (!props.documentStore) return []
+
+		const docs = props.documentStore.documents()
+		const conflicts: EditorConflictInfo[] = []
+
+		for (const [, doc] of docs) {
+			const conflict = documentToConflictInfo(doc)
+			if (conflict) {
+				conflicts.push(conflict)
+			}
+		}
+
+		return conflicts
+	})
 
 	const value: SyncStatusContextType = {
 		getSyncStatus: (path: string) => {
-			if (props.syncManager) {
-				// Try the store first for reactive updates
-				const storedStatus = statuses[path]
-				if (storedStatus) return storedStatus
-				// Fall back to direct manager query
-				return props.syncManager.getSyncStatus(path)
+			if (props.documentStore) {
+				const doc = props.documentStore.get(createFilePath(path))
+				if (doc) {
+					return documentToSyncStatus(doc)
+				}
+				const stored = statuses[path]
+				if (stored) return stored
 			}
 			return NOT_WATCHED_STATUS
 		},
 		getTrackedPaths: () => {
-			if (props.syncManager) {
-				return trackedPaths()
+			if (props.documentStore) {
+				return Array.from(props.documentStore.documents().keys())
 			}
 			return []
 		},
-		getPendingConflicts: () => {
-			if (props.syncManager) {
-				return props.syncManager.getPendingConflicts()
-			}
-			return []
-		},
-		getConflictCount: () => {
-			if (props.syncManager) {
-				return props.syncManager.getConflictCount()
-			}
-			return 0
-		},
+		getPendingConflicts: () => getPendingConflicts(),
+		getConflictCount: () => getPendingConflicts().length,
 		hasConflict: (path: string) => {
-			if (props.syncManager) {
-				return props.syncManager.hasConflict(path)
+			if (props.documentStore) {
+				const doc = props.documentStore.get(createFilePath(path))
+				if (doc) {
+					return doc.syncState() === 'conflict'
+				}
 			}
 			return false
 		},
-		syncManager: props.syncManager ?? null,
+		documentStore: props.documentStore ?? null,
 	}
 
 	return (
@@ -115,9 +132,6 @@ export function SyncStatusProvider(props: SyncStatusProviderProps) {
 	)
 }
 
-/**
- * Hook to access sync status context
- */
 export function useSyncStatusContext() {
 	const context = useContext(SyncStatusContext)
 	if (!context) {

@@ -37,7 +37,6 @@ export const CreationRow = (props: CreationRowProps) => {
 				await actions.createFile(props.parentPath, name)
 				// Auto-open the newly created file in split editor
 				const filePath = props.parentPath ? `${props.parentPath}/${name}` : name
-				console.log('[CreationRow] Calling onFileCreate with filePath:', filePath)
 				props.onFileCreate?.(filePath)
 			} else {
 				await actions.createDir(props.parentPath, name)
