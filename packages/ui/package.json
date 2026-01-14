@@ -25,7 +25,7 @@
     "@solidjs/testing-library": "^0.8.10",
     "@types/node": "^24.10.1",
     "@vitest/browser": "^4.0.16",
-    "@vitest/browser-playwright": "workspace:*",
+    "@vitest/browser-playwright": "^4.0.16",
     "eslint": "^9.39.1",
     "fast-check": "^4.5.3",
     "happy-dom": "^18.0.1",
