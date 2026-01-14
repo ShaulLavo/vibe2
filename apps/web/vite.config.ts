@@ -60,27 +60,33 @@ function serviceWorkerDevPlugin(): Plugin {
 	}
 }
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
 	const webPort = env.VITE_WEB_PORT
+	const isProd = mode === 'production'
+
 	return {
 		// Point envDir to a directory that contains no .env files to prevent Vite
 		// from trying to load them again (which causes crashes in dotenv-expand).
 		// We already loaded and validated them in vite-env.ts.
 		envDir: path.resolve(__dirname, 'src/shims'),
 		plugins: [
-			// TanStack Devtools must be first plugin
-			tanstackDevtools({
-				eventBusConfig: {
-					port: 4206,
-					debug: false,
-				},
-				removeDevtoolsOnBuild: true,
-				enhancedLogs: { enabled: false },
-			}),
+			// Only include devtools in development - they cause issues in Docker builds
+			...(!isProd
+				? [
+						tanstackDevtools({
+							eventBusConfig: {
+								port: 4206,
+								debug: false,
+							},
+							removeDevtoolsOnBuild: true,
+							enhancedLogs: { enabled: false },
+						}),
+						devtools({
+							autoname: true,
+						}),
+					]
+				: []),
 			tailwindcss(),
-			devtools({
-				autoname: true,
-			}),
 			solidPlugin(),
 			serviceWorkerPlugin(),
 			serviceWorkerDevPlugin(),
