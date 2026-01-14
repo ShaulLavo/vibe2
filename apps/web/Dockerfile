@@ -2,6 +2,9 @@
 # Stage 1: Build
 FROM oven/bun:1.2.22 AS builder
 
+# Install git (needed for icons build to fetch icon packs)
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy root package files
