@@ -22,10 +22,11 @@ RUN bun install --ignore-scripts
 RUN bun run --cwd apps/web copy-tree-sitter-assets
 
 # Build submodules first (icons, sqlite-wasm, just-bash)
-RUN bun run build:submodules
+# Clean up icons cache after build to save disk space (icons source repos are large)
+RUN bun run build:submodules && rm -rf packages/icons/.cache
 
-# Build the web app with verbose logging
-RUN DEBUG=vite:* bun run --cwd apps/web build 2>&1 || (echo "Build failed, checking for errors..." && cat /tmp/vite-error.log 2>/dev/null || true && exit 1)
+# Build the web app
+RUN bun run --cwd apps/web build
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
