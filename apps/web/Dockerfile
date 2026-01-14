@@ -34,19 +34,8 @@ FROM nginx:alpine
 # Copy built static files
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
-# SPA fallback - all routes serve index.html
-RUN echo 'server { \
-    listen 80; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|wasm)$ { \
-        expires 1y; \
-        add_header Cache-Control "public, immutable"; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Copy custom nginx config with COOP/COEP headers for SharedArrayBuffer (SQLite OPFS)
+COPY --from=builder /app/apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
