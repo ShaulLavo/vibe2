@@ -25,8 +25,8 @@ RUN bun run --cwd apps/web copy-tree-sitter-assets
 # Clean up icons cache after build to save disk space (icons source repos are large)
 RUN bun run build:submodules && rm -rf packages/icons/.cache
 
-# Build the web app - try with explicit vite call for better error output
-RUN cd apps/web && bunx vite build --logLevel info 2>&1 || (echo "===== BUILD FAILED =====" && cat /app/apps/web/node_modules/.vite-error.log 2>/dev/null || true && exit 1)
+# Build the web app - use custom build script for detailed error reporting
+RUN cd apps/web && bun scripts/build.mjs
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
