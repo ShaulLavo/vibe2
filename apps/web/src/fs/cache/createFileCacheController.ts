@@ -1,7 +1,7 @@
 import type { FilePath } from '@repo/fs'
 import type { FileCacheController, FileCacheEntry } from './fileCacheController'
 
-const DB_NAME = 'file-cache-v2'
+const DB_NAME = 'file-cache'
 const DB_VERSION = 1
 const STORE_NAME = 'files'
 
