@@ -3,7 +3,10 @@
 FROM oven/bun:1.2.22 AS builder
 
 # Install pnpm (needed for just-bash submodule build)
-RUN npm install -g pnpm
+# The bun image doesn't include npm, so install pnpm directly
+RUN curl -fsSL https://get.pnpm.io/install.sh | SHELL=/bin/bash sh -
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
 WORKDIR /app
 
